@@ -1,4 +1,7 @@
-# Compiled class file
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+
 *.class
 
 # Log file
@@ -18,7 +21,11 @@
 *.zip
 *.tar.gz
 *.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+*.xml
+*.iml
+logs/
+node_modules/
+*.lock
+.umi/
+.umi-production/
+.idea
