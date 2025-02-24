@@ -6,7 +6,7 @@ const AVATAR = "/img/defaultAvatar.jpg";
 const HOME_PATH = "/home";
 const LOGIN_PATH = "/login";
 
-const TOKEN_KEY = "X-TOKEN";
-const USERNAME_KEY = "X-NICKNAME";
+const TOKEN_KEY = "Authorization";
+const USERNAME_KEY = "USERNAME";
 
 export {BACK_PORT, LOGO, AVATAR, HOME_PATH, LOGIN_PATH, USERNAME_KEY, TITLE, TOKEN_KEY};

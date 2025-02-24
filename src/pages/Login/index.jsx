@@ -7,6 +7,7 @@ import {getToken, setToken, setUsername} from "@/utils/tokenUtil";
 import {HOME_PATH, TITLE, LOGO} from "@/config";
 import {waitTime} from "@/utils/commonUtil";
 import buildMenu from "@/utils/buildMenu";
+import LoginApi from "../../api/LoginApi";
 
 const Login = () => {
 
@@ -36,12 +37,7 @@ const Login = () => {
    * 账号登陆
    */
   const accountLogin = async (loginParams) => {
-    // TODO: 实际使用时，需调用 lakers系统的登录接口
-    // const {success, data} = await LakersApi.login(loginParams)
-    const {success, data} = {
-      success: true,
-      data: {token: 'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ1Y2VudGVyIiwidXNlcklkIjo2MiwidXNlcm5hbWUiOiLoi4_lroEiLCJlbWFpbCI6InN1bmluZ0BneXl4LmNuIiwiaWF0IjoxNjY3OTcxNzkxMzI2LCJleHAiOjE2NjgwMDc3OTEzMjZ9.qpa9cJAORU7pzgLnGu1B0ppLkcndbUOjGNLhTiCMUJpJHSndAUj7WZIg8Ys09_kEcDmO7vGSzgxi-Pkh8K2YbQ'}
-    }
+    const {success, data} = await LoginApi.login({password: loginParams.password, userName: loginParams.username})
     if (success && data?.token) {
       setToken(data.token)
       setUsername(loginParams.username)

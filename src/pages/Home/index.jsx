@@ -3,7 +3,6 @@ import {PageContainer, ProCard} from "@ant-design/pro-components";
 import MDEditor from "@uiw/react-md-editor";
 import {withAuth} from "@/components/Auth";
 import {Button} from "antd";
-import Whale from "../../api/WhaleApi";
 import WhaleApi from "../../api/WhaleApi";
 
 const HomePage = () => {
