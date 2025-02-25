@@ -5,7 +5,7 @@ export default {
 
   queryWhale(data) {
     return request({
-      url: '/whaleFall/queryWhale',
+      url: '/test/test',
       method: 'POST',
       data
     })

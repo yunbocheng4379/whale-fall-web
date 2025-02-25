@@ -5,7 +5,7 @@ export default {
 
   login(data) {
     return request({
-      url: '/login/',
+      url: 'user/login',
       method: 'POST',
       data
     })

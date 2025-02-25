@@ -117,7 +117,7 @@ const HomePage = () => {
           '```\n'}/>
       </ProCard>
       <Button type={'primary'} onClick={async () => {
-        WhaleApi.queryWhale({id: 2})
+        WhaleApi.queryWhale({id: 1})
       }}>新增</Button>
     </PageContainer>
   )

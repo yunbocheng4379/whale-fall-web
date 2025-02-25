@@ -37,7 +37,7 @@ const Login = () => {
    * 账号登陆
    */
   const accountLogin = async (loginParams) => {
-    const {success, data} = await LoginApi.login({password: loginParams.password, userName: loginParams.username})
+    const {success, data} = await LoginApi.login(loginParams)
     if (success && data?.token) {
       setToken(data.token)
       setUsername(loginParams.username)
