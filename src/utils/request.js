@@ -1,9 +1,10 @@
 import {history} from "umi";
 import {message} from "antd";
 import axios from "axios";
-import {getToken, removeToken} from "@/utils/tokenUtil";
-import {SUCCESS_CODE, UNAUTHORIZED_CODE} from "@/config/code";
+import {getToken, removeToken, removeUsername} from "@/utils/tokenUtil";
+import {SUCCESS_CODE, JWT_LOSE_CODE, JWT_FAIL_CODE} from "@/config/code";
 import {BACK_PORT, LOGIN_PATH, TOKEN_KEY} from "@/config";
+import {getUsername} from "./tokenUtil";
 
 // 后端端口
 const PORT = BACK_PORT
@@ -37,8 +38,10 @@ instance.interceptors.response.use(response => {
     message.error('服务器缺少响应数据')
     return
   }
+  console.log(response)
   const {code, message: msg} = response.data
-  if (code === UNAUTHORIZED_CODE) {
+  if (code === JWT_LOSE_CODE || code === JWT_FAIL_CODE) {
+    message.warning(msg)
     if (getToken()) {
       removeToken()
     }
