@@ -1,3 +1,4 @@
+import LoginApi from '@/api/LoginApi';
 import { AVATAR, LOGIN_PATH, LOGO, TITLE } from '@/config';
 import buildMenu from '@/utils/buildMenu';
 import {
@@ -41,18 +42,18 @@ export async function getInitialState() {
     history.push(LOGIN_PATH);
     return defaultInitialState;
   }
-  // TODO: 实际使用时，需调用 lakers系统的菜单接口
-  // const {success, data} = await LakersApi.getMenu(getToken())
-  const { success, data } = {
-    data: [
-      {
-        text: '欢迎',
-        route: '/welcome',
-        rank: 0,
-      },
-    ],
-    success: true,
-  };
+  //从后端获取菜单权限
+  const { success, data } = await LoginApi.getMenu(getUsername());
+  // const { success, data } = {
+  //   data: [
+  //     {
+  //       text: '欢迎',
+  //       route: '/welcome',
+  //       rank: 0,
+  //     },
+  //   ],
+  //   success: true,
+  // };
   if (success && data.length > 0) {
     let { menuData, routeList } = buildMenu(data);
     return {
