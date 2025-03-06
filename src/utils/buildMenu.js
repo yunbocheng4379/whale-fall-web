@@ -49,7 +49,7 @@ const buildMenu = (menuList) => {
       ) {
         return item;
       }
-      return undefined; // 显式返回 undefined 以符合 array-callback-return 规则
+      return undefined;
     })
     .filter((item) => {
       if (item) {
@@ -59,7 +59,7 @@ const buildMenu = (menuList) => {
           return item;
         }
       }
-      return false; // 确保 filter 回调也明确返回布尔值
+      return false;
     });
 
   menuData = menuData.map((menu) => {
