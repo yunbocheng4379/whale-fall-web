@@ -1,5 +1,5 @@
 export default function access(initialState) {
-  const { routeList = [] } = initialState;
+  const { routeList = [], menuData = [] } = initialState || {};
 
   return {
     allowAnyoneAccessRoute: true,
