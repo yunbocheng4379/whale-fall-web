@@ -1,3 +1,4 @@
+import LoginApi from '@/api/LoginApi';
 import { HOME_PATH, LOGO, TITLE } from '@/config';
 import buildMenu from '@/utils/buildMenu';
 import { waitTime } from '@/utils/commonUtil';
@@ -11,7 +12,6 @@ import {
 import { message, Tabs } from 'antd';
 import { Fragment, useEffect, useState } from 'react';
 import { history, useModel } from 'umi';
-import LoginApi from '../../api/LoginApi';
 
 const Login = () => {
   const { initialState, setInitialState } = useModel('@@initialState');
@@ -39,24 +39,26 @@ const Login = () => {
    */
   const accountLogin = async (loginParams) => {
     const { success, data } = await LoginApi.login(loginParams);
-    if (success && data?.token) {
-      setToken(data.token);
+    const token = data?.token;
+    if (success && token) {
+      setToken(token);
       setUsername(loginParams.username);
-      // TODO: 实际使用时，需调用 lakers系统的菜单接口
-      // const {success, data: menuList} = await LakersApi.getMenu(data.token)
-      const { success, data: menuList } = {
-        data: [
-          {
-            text: '欢迎',
-            route: '/welcome',
-            rank: 0,
-          },
-        ],
-        success: true,
-      };
+      const { success, data } = await LoginApi.getMenu(loginParams.username);
+      const menuList = data.data;
+      // const { success, data: menuList } = {
+      //   data: [
+      //     {
+      //       text: '欢迎',
+      //       route: '/welcome',
+      //       rank: 0,
+      //     },
+      //   ],
+      //   success: true,
+      // };
       if (success && menuList.length > 0) {
         let { menuData, routeList } = buildMenu(menuList);
-        await setInitialState({
+        console.log(menuData);
+        setInitialState({
           ...initialState,
           currentUser: { name: loginParams.username },
           menuData,

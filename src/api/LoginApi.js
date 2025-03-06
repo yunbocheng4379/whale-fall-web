@@ -11,9 +11,8 @@ export default {
 
   getMenu(username) {
     return request({
-      url: 'user/getMenu',
-      method: 'POST',
-      data: username,
+      url: '/user/getMenu?username=' + username,
+      method: 'GET',
     });
   },
 };

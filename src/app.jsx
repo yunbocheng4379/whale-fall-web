@@ -44,6 +44,7 @@ export async function getInitialState() {
   }
   //从后端获取菜单权限
   const { success, data } = await LoginApi.getMenu(getUsername());
+  const menuList = data.data;
   // const { success, data } = {
   //   data: [
   //     {
@@ -54,8 +55,8 @@ export async function getInitialState() {
   //   ],
   //   success: true,
   // };
-  if (success && data.length > 0) {
-    let { menuData, routeList } = buildMenu(data);
+  if (success && menuList.length > 0) {
+    let { menuData, routeList } = buildMenu(menuList);
     return {
       ...defaultInitialState,
       currentUser: { name: getUsername() },
