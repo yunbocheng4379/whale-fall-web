@@ -43,23 +43,15 @@ const buildMenu = (menuList) => {
           ...item,
           routes: hasPermissionAccessRouteList,
         };
-      } else if (
-        accessList.includes(item.access) ||
-        routeList.includes(item.path)
-      ) {
-        return item;
       }
-      return undefined;
+      // 显式返回符合条件的项目或 undefined
+      return accessList.includes(item.access) || routeList.includes(item.path)
+        ? item
+        : undefined;
     })
     .filter((item) => {
-      if (item) {
-        if (item.routes && item.routes.length > 0) {
-          return item;
-        } else if (!item.routes) {
-          return item;
-        }
-      }
-      return false;
+      if (!item) return false;
+      return item.routes ? item.routes.length > 0 : true;
     });
 
   menuData = menuData.map((menu) => {
