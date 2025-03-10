@@ -1,10 +1,14 @@
+/**
+ * @see https://v3.umijs.org/zh-CN/plugins/plugin-access
+ */
 export default function access(initialState) {
-  const { routeList = [], menuData = [] } = initialState || {};
+  const { routeList = [] } = initialState ?? {};
 
   return {
     allowAnyoneAccessRoute: true,
-    validationRoute: (route) => {
+    allowAdminAccessRoute: (route) => {
       return routeList.includes(route.path);
     },
+    allowAccessDemoRoute: true,
   };
 }

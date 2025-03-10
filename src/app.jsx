@@ -59,7 +59,7 @@ export async function getInitialState() {
     let { menuData, routeList } = buildMenu(menuList);
     return {
       ...defaultInitialState,
-      currentUser: { name: getUsername() },
+      currentUser: { name: getUsername() || '非法昵称' },
       menuData,
       routeList,
     };
@@ -115,5 +115,8 @@ export const layout = ({ initialState }) => {
       fontStyle: 'normal',
     },
     ...initialState?.settings,
+    onMenuHeaderClick: () => {
+      console.log(initialState);
+    },
   };
 };

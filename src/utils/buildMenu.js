@@ -1,70 +1,73 @@
+import { MyIcon } from '@/utils/iconUtil';
 import routes from '../../config/routes';
-
-let rootMenuList = [];
-let childrenMenuList = [];
+const rootMenuList = [];
+const childrenMenuList = [];
 
 const getRootMenuAndChildrenMenu = (menuList) => {
   menuList.forEach((menu) => {
-    if (!menu.children) {
-      childrenMenuList.push(menu);
-      return;
-    }
+    if (!menu.children) return childrenMenuList.push(menu);
     rootMenuList.push(menu);
-    getRootMenuAndChildrenMenu(menu.children);
+    return getRootMenuAndChildrenMenu(menu.children);
   });
 };
 
-const buildMenu = (menuList, accessList = []) => {
-  rootMenuList = [];
-  childrenMenuList = [];
+const accessList = ['allowAnyoneAccessRoute', 'allowAccessDemoRoute'];
+
+/**
+ * 构建菜单，注：该方法适用于父菜单下只包含一级子菜单的情况
+ * @param menuList
+ * @returns {{menuData: (*&{routes: []})[], routeList: *[]}}
+ */
+const buildMenu = (menuList) => {
   getRootMenuAndChildrenMenu(menuList);
+  const routeList = childrenMenuList.map((menu) => menu.route);
 
-  // 生成完整的路由白名单列表
-  const routeList = childrenMenuList
-    .filter((menu) => menu?.route) // 增加空值保护
-    .map((menu) => menu.route);
-
-  const menuData = routes
+  let menuData = routes
     .map((item) => {
+      if (item.icon !== undefined) {
+        item.icon = <MyIcon type={item.icon} />;
+      }
       if (item.routes) {
-        const filteredRoutes = item.routes
+        const hasPermissionAccessRouteList = item.routes
           .filter(
             (route) =>
-              route.access === 'allowAnyoneAccessRoute' ||
+              accessList.includes(route.access) ||
               routeList.includes(route.path),
           )
           .map((route) => {
-            const targetMenu = childrenMenuList.find(
-              (menu) => menu.route === route.path,
-            );
-            return targetMenu
-              ? {
-                  ...route,
-                  id: targetMenu.id,
-                  menuId: targetMenu.menuId,
-                }
-              : route;
+            const menuIndex = routeList.indexOf(route.path);
+            if (menuIndex !== -1) {
+              route.id = childrenMenuList[menuIndex].id;
+              route.menuId = childrenMenuList[menuIndex].menuId;
+              route.name = childrenMenuList[menuIndex].text;
+              route.rank = childrenMenuList[menuIndex].rank;
+            }
+            return route;
           });
-
-        return filteredRoutes.length > 0
-          ? { ...item, routes: filteredRoutes }
-          : null;
+        return { ...item, routes: hasPermissionAccessRouteList };
+      } else if (
+        accessList.includes(item.access) ||
+        routeList.includes(item.path)
+      ) {
+        return item;
       }
-
-      const isValidItem =
-        accessList.includes(item.access) || routeList.includes(item.path);
-      return isValidItem ? item : null;
+      return null; // 明确返回 null
     })
-    .filter(Boolean) // 简化过滤逻辑
-    .map((menu) => ({
-      ...menu,
-      routes: menu.routes?.sort((a, b) => a.rank - b.rank),
-    }));
+    .filter((item) => {
+      if (!item) return false; // 过滤掉 null
+      if (item.routes) {
+        return item.routes.length > 0; // 保留有非空 routes 的项
+      }
+      return true; // 保留没有 routes 的项
+    });
 
-  return {
-    menuData,
-    routeList, // 确保返回 routeList
-  };
+  menuData = menuData.map((menu) => {
+    if (menu.routes) {
+      menu.routes.sort((menu1, menu2) => menu1.rank - menu2.rank);
+    }
+    return menu;
+  });
+
+  return { menuData, routeList };
 };
-
 export default buildMenu;

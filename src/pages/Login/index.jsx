@@ -57,8 +57,7 @@ const Login = () => {
       // };
       if (success && menuList.length > 0) {
         let { menuData, routeList } = buildMenu(menuList);
-        console.log(menuData);
-        setInitialState({
+        await setInitialState({
           ...initialState,
           currentUser: { name: loginParams.username },
           menuData,

@@ -1,4 +1,6 @@
-﻿const routes = [
+﻿import formalRoutes from './formalRoutes';
+
+const routes = [
   {
     path: '/',
     redirect: '/home',
@@ -18,69 +20,25 @@
     icon: 'HomeOutlined',
     access: 'allowAnyoneAccessRoute',
   },
-  {
-    path: 'account',
-    name: '记账',
-    icon: 'VideoCameraOutlined',
-    access: 'allowAnyoneAccessRoute',
-    routes: [
-      {
-        path: '/account/personage',
-        name: '个人记账',
-        component: '@/pages/Account/PersonAge',
-        access: 'validationRoute',
-      },
-      {
-        path: '/account/team',
-        name: '共同记账',
-        component: '@/pages/Account/Team',
-        access: 'validationRoute',
-      },
-      {
-        path: '/account/statistic',
-        name: '账单统计',
-        component: '@/pages/Account/Statistic',
-        access: 'validationRoute',
-      },
-    ],
-  },
-  {
-    path: 'map',
-    name: '旅行地图',
-    icon: 'VideoCameraOutlined',
-    access: 'allowAnyoneAccessRoute',
-    component: '@/pages/Map',
-  },
-  {
-    path: 'agent',
-    name: 'AI智能',
-    icon: 'VideoCameraOutlined',
-    access: 'allowAnyoneAccessRoute',
-    routes: [
-      {
-        path: '/agent/ask',
-        name: 'AI问答',
-        component: '@/pages/Agent/Ask',
-        access: 'validationRoute',
-      },
-      {
-        path: '/agent/image',
-        name: 'AI图像',
-        component: '@/pages/Agent/Image',
-        access: 'validationRoute',
-      },
-      {
-        path: '/agent/video',
-        name: 'AI视频',
-        component: '@/pages/Agent/Video',
-        access: 'validationRoute',
-      },
-    ],
-  },
+  ...formalRoutes,
   {
     path: '/*',
     component: '@/pages/404.jsx',
   },
 ];
 
+function combineRoutes(routes, fatherPath) {
+  routes.map((item) => {
+    if (item.path) {
+      if (!item.path.startsWith('/') && !fatherPath.endsWith('/'))
+        item.path = '/' + item.path;
+      item.path = fatherPath + item.path;
+    }
+    if (item.routes) combineRoutes(item.routes, item.path);
+    if (!item.access) item.access = 'allowAnyoneAccessRoute';
+    return item;
+  });
+}
+
+combineRoutes(routes, '');
 export default routes;
