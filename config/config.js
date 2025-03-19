@@ -1,10 +1,10 @@
-import {defineConfig} from "umi";
-import routes from "./routes";
+import { defineConfig } from 'umi';
+import routes from './routes';
 
 export default defineConfig({
-  base: "/",
-  publicPath: "/",
-  outputPath: "../web",
+  base: '/',
+  publicPath: '/',
+  outputPath: '../web',
   routes,
   antd: {},
   layout: {},
@@ -13,7 +13,7 @@ export default defineConfig({
   dva: {},
   access: {},
   mock: {},
-  history: { type: "hash" },
+  history: { type: 'hash' },
   hash: true,
-  npmClient: "pnpm",
-})
+  npmClient: 'pnpm',
+});

@@ -1,5 +1,4 @@
 import { withAuth } from '@/components/Auth';
-import { MyIcon } from '@/utils/iconUtil';
 import { PageContainer, ProCard } from '@ant-design/pro-components';
 import { Button } from 'antd';
 import coupleImage from '/public/img/couple/us.jpg';
@@ -96,7 +95,6 @@ const HomePage = () => {
           开始记录
         </Button>
       </div>
-      <MyIcon type="icon-keji"></MyIcon>
     </PageContainer>
   );
 };

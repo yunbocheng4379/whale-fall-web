@@ -2,7 +2,7 @@ const formalRoutes = [
   {
     path: '/account',
     name: '记账',
-    icon: 'VideoCameraOutlined',
+    icon: 'icon-hashiqi',
     routes: [
       {
         path: '/personage',
@@ -27,14 +27,14 @@ const formalRoutes = [
   {
     path: '/map',
     name: '旅行地图',
-    icon: 'VideoCameraOutlined',
+    icon: 'icon-jinmao',
     component: '@/pages/Map',
     access: 'allowAnyoneAccessRoute',
   },
   {
     path: '/agent',
     name: 'AI智能',
-    icon: 'VideoCameraOutlined',
+    icon: 'icon-fadou',
     routes: [
       {
         path: '/ask',

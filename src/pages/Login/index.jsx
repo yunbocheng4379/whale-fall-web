@@ -45,16 +45,6 @@ const Login = () => {
       setUsername(loginParams.username);
       const { success, data } = await LoginApi.getMenu(loginParams.username);
       const menuList = data.data;
-      // const { success, data: menuList } = {
-      //   data: [
-      //     {
-      //       text: '欢迎',
-      //       route: '/welcome',
-      //       rank: 0,
-      //     },
-      //   ],
-      //   success: true,
-      // };
       if (success && menuList.length > 0) {
         let { menuData, routeList } = buildMenu(menuList);
         await setInitialState({
@@ -64,6 +54,7 @@ const Login = () => {
           routeList,
         });
       }
+      message.success('登录成功');
       await setLoginBtnDisabled(false);
       history.push(HOME_PATH);
     } else {

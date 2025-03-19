@@ -1,13 +1,13 @@
 import LoginApi from '@/api/LoginApi';
 import { AVATAR, LOGIN_PATH, LOGO, TITLE } from '@/config';
 import buildMenu from '@/utils/buildMenu';
+import { MyIcon } from '@/utils/iconUtil';
 import {
   getToken,
   getUsername,
   removeToken,
   removeUsername,
 } from '@/utils/tokenUtil';
-import { LogoutOutlined } from '@ant-design/icons';
 import { DefaultFooter } from '@ant-design/pro-components';
 import { Dropdown } from 'antd';
 import message from 'antd/es/message';
@@ -45,16 +45,6 @@ export async function getInitialState() {
   //从后端获取菜单权限
   const { success, data } = await LoginApi.getMenu(getUsername());
   const menuList = data.data;
-  // const { success, data } = {
-  //   data: [
-  //     {
-  //       text: '欢迎',
-  //       route: '/welcome',
-  //       rank: 0,
-  //     },
-  //   ],
-  //   success: true,
-  // };
   if (success && menuList.length > 0) {
     let { menuData, routeList } = buildMenu(menuList);
     return {
@@ -82,12 +72,24 @@ export const layout = ({ initialState }) => {
               items: [
                 {
                   key: 'logout',
-                  icon: <LogoutOutlined />,
+                  icon: (
+                    <MyIcon type={'icon-tuichu'} style={{ fontSize: 20 }} />
+                  ),
                   label: '退出登录',
                   onClick: () => {
                     removeToken();
                     removeUsername();
                     history.push(LOGIN_PATH);
+                  },
+                },
+                {
+                  key: 'flowering',
+                  icon: (
+                    <MyIcon type={'icon-yanhua'} style={{ fontSize: 20 }} />
+                  ),
+                  label: '劈里啪啦',
+                  onClick: () => {
+                    message.success('放花咯');
                   },
                 },
               ],
@@ -100,7 +102,9 @@ export const layout = ({ initialState }) => {
     },
     menuFooterRender: (props) => {
       if (props?.collapsed) return false;
-      return <DefaultFooter copyright={`${new Date().getFullYear()}`} />;
+      return (
+        <DefaultFooter copyright={`${new Date().getFullYear()} ${TITLE}`} />
+      );
     },
     waterMarkProps: {
       width: 120,
