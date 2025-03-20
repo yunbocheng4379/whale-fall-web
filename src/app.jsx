@@ -71,6 +71,16 @@ export const layout = ({ initialState }) => {
             menu={{
               items: [
                 {
+                  key: 'flowering',
+                  icon: (
+                    <MyIcon type={'icon-yanhua'} style={{ fontSize: 20 }} />
+                  ),
+                  label: '劈里啪啦',
+                  onClick: () => {
+                    message.success('放花咯');
+                  },
+                },
+                {
                   key: 'logout',
                   icon: (
                     <MyIcon type={'icon-tuichu'} style={{ fontSize: 20 }} />
@@ -81,16 +91,6 @@ export const layout = ({ initialState }) => {
                     removeUsername();
                     message.success('退出成功');
                     history.push(LOGIN_PATH);
-                  },
-                },
-                {
-                  key: 'flowering',
-                  icon: (
-                    <MyIcon type={'icon-yanhua'} style={{ fontSize: 20 }} />
-                  ),
-                  label: '劈里啪啦',
-                  onClick: () => {
-                    message.success('放花咯');
                   },
                 },
               ],
