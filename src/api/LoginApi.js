@@ -15,4 +15,11 @@ export default {
       method: 'GET',
     });
   },
+
+  sendVerificationCode(email) {
+    return request({
+      url: '/user/sendVerificationCode?email=' + email,
+      method: 'GET',
+    });
+  },
 };

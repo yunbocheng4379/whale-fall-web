@@ -79,6 +79,7 @@ export const layout = ({ initialState }) => {
                   onClick: () => {
                     removeToken();
                     removeUsername();
+                    message.success('退出成功');
                     history.push(LOGIN_PATH);
                   },
                 },
