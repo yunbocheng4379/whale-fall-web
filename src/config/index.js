@@ -1,6 +1,6 @@
 const BACK_PORT = 8009;
 const TITLE = '鲸落';
-const LOGO = '/img/logo/wahleLogo.png';
+const LOGO = '/img/logo/whaleLogo.png';
 const AVATAR = '/img/defaultAvatar.jpg';
 
 const HOME_PATH = '/home';

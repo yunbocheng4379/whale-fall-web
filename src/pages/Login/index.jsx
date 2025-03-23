@@ -1,7 +1,7 @@
 import LoginApi from '@/api/LoginApi';
 import { HOME_PATH, LOGO, TITLE } from '@/config';
 import buildMenu from '@/utils/buildMenu';
-import { waitTime } from '@/utils/commonUtil';
+import { MyIcon } from '@/utils/iconUtil';
 import { getToken, setToken, setUsername } from '@/utils/tokenUtil';
 import { LockOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
 import {
@@ -10,7 +10,7 @@ import {
   ProFormCaptcha,
   ProFormText,
 } from '@ant-design/pro-components';
-import { message, Tabs } from 'antd';
+import { Button, Divider, message, Space, Tabs, Tooltip } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { history, useModel } from 'umi';
 
@@ -58,7 +58,6 @@ const Login = () => {
 
   const handleLogin = async (loginParams) => {
     setLoginBtnDisabled(true);
-    await waitTime(0.5);
     await login({ ...loginParams, loginType });
   };
 
@@ -173,13 +172,122 @@ const Login = () => {
   );
 
   return (
-    <ProConfigProvider dark>
+    <ProConfigProvider>
       <LoginFormPage
         backgroundImageUrl="/img/background.jpg"
         logo={LOGO}
         title={TITLE}
         disabled={loginBtnDisabled}
         onFinish={handleLogin}
+        actions={
+          <>
+            <div>
+              <Divider plain style={{ color: '#7e8299' }}>
+                其他登录方式
+              </Divider>
+            </div>
+            <Space
+              style={{
+                width: '100%',
+                justifyContent: 'space-between',
+                padding: '0 8px',
+                flexWrap: 'nowrap',
+              }}
+            >
+              <Button
+                style={{
+                  padding: 0,
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  boxShadow: 'none',
+                }}
+                onClick={() => {
+                  LoginApi.getGithubLoginURL().then((res) => {
+                    if (res.success) {
+                      window.open(res.data.url, '_parent');
+                    }
+                  });
+                }}
+              >
+                <Tooltip placement="top" title={'使用GitHub账号登录'}>
+                  <MyIcon type={'icon-github'} style={{ fontSize: 30 }} />
+                </Tooltip>
+              </Button>
+              <Button
+                style={{
+                  padding: 0,
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  boxShadow: 'none',
+                }}
+                onClick={() => {
+                  LoginApi.getGiteeLoginURL('lns').then((res) => {
+                    if (res.success) {
+                      window.open(res.data.url, '_parent');
+                    }
+                  });
+                }}
+              >
+                <Tooltip placement="top" title={'使用Gitee账号登录'}>
+                  <MyIcon type={'icon-gitee'} style={{ fontSize: 30 }} />
+                </Tooltip>
+              </Button>
+              <Button
+                style={{
+                  padding: 0,
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  boxShadow: 'none',
+                }}
+                onClick={() => {
+                  LoginApi.getGitLibURL('cos').then((res) => {
+                    if (res.success) {
+                      window.open(res.data.url, '_parent');
+                    }
+                  });
+                }}
+              >
+                <Tooltip placement="top" title={'使用GitLib账号登录'}>
+                  <MyIcon type={'icon-gitlib'} style={{ fontSize: 30 }} />
+                </Tooltip>
+              </Button>
+              <Button
+                style={{
+                  padding: 0,
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  boxShadow: 'none',
+                }}
+                onClick={() => {
+                  LoginApi.getFeiShuLoginURL('cos').then((res) => {
+                    if (res.success) {
+                      window.open(res.data.url, '_parent');
+                    }
+                  });
+                }}
+              >
+                <Tooltip placement="top" title={'使用飞书账号登录'}>
+                  <MyIcon type={'icon-feishu'} style={{ fontSize: 30 }} />
+                </Tooltip>
+              </Button>
+              <Button
+                style={{
+                  padding: 0,
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  boxShadow: 'none',
+                }}
+                onClick={() => {
+                  message.warning('敬请期待...');
+                }}
+              >
+                <Tooltip placement="top" title={'更多登录方式'}>
+                  <MyIcon type={'icon-gengduo'} style={{ fontSize: 30 }} />
+                </Tooltip>
+              </Button>
+            </Space>
+          </>
+        }
         submitter={{
           searchConfig: {
             submitText: loginBtnDisabled ? '登录中...' : '立即登录',

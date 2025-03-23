@@ -22,4 +22,32 @@ export default {
       method: 'GET',
     });
   },
+
+  getGithubLoginURL() {
+    return request({
+      url: '/user/getGithubLoginURL',
+      method: 'GET',
+    });
+  },
+
+  getGiteeLoginURL() {
+    return request({
+      url: '/user/getGiteeLoginURL',
+      method: 'GET',
+    });
+  },
+
+  getFeiShuLoginURL() {
+    return request({
+      url: '/user/getFeiShuLoginURL',
+      method: 'GET',
+    });
+  },
+
+  getGitLibURL() {
+    return request({
+      url: '/user/getGitLibURL',
+      method: 'GET',
+    });
+  },
 };

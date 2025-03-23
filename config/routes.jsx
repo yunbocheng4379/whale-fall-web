@@ -17,7 +17,7 @@ const routes = [
     name: '首页',
     path: '/home',
     component: '@/pages/Home',
-    icon: 'icon-keji',
+    icon: 'icon-first',
     access: 'allowAnyoneAccessRoute',
   },
   ...formalRoutes,
