@@ -7,7 +7,7 @@ const HomePage = () => {
     <PageContainer title={false}>
       <ProCard>
         <MDEditor.Markdown
-          source={'# AI视频概述\n' + '\n' + '> 欢迎使用AI问视频功能。\n' + '\n'}
+          source={'# AI概述\n' + '\n' + '> 欢迎使用AI功能。\n' + '\n'}
         />
       </ProCard>
     </PageContainer>

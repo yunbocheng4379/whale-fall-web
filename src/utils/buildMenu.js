@@ -1,7 +1,7 @@
 import { MyIcon } from '@/utils/iconUtil';
 import routes from '../../config/routes';
-const rootMenuList = [];
-const childrenMenuList = [];
+let rootMenuList = [];
+let childrenMenuList = [];
 
 const getRootMenuAndChildrenMenu = (menuList) => {
   menuList.forEach((menu) => {
@@ -19,6 +19,8 @@ const accessList = ['allowAnyoneAccessRoute', 'allowAccessDemoRoute'];
  * @returns {{menuData: (*&{routes: []})[], routeList: *[]}}
  */
 const buildMenu = (menuList) => {
+  rootMenuList = [];
+  childrenMenuList = [];
   getRootMenuAndChildrenMenu(menuList);
   const routeList = childrenMenuList.map((menu) => menu.route);
 
