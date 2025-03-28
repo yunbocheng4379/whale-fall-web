@@ -36,10 +36,9 @@ export async function getInitialState() {
   if (!getToken()) {
     // 当前页为登录页
     if (history.location.pathname === LOGIN_PATH) {
+      message.warning('未登录');
       return defaultInitialState;
     }
-    message.warning('未登录');
-    history.push(LOGIN_PATH);
     return defaultInitialState;
   }
   //从后端获取菜单权限

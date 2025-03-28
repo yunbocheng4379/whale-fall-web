@@ -2,6 +2,7 @@ import LoginApi from '@/api/LoginApi';
 import { HOME_PATH, LOGO, TITLE } from '@/config';
 import buildMenu from '@/utils/buildMenu';
 import { MyIcon } from '@/utils/iconUtil';
+import { baseURL } from '@/utils/request';
 import { getToken, setToken, setUsername } from '@/utils/tokenUtil';
 import { LockOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
 import {
@@ -102,7 +103,7 @@ const Login = () => {
           routeList,
         });
       }
-      message.success('登录成功');
+      message.success('欢迎回来');
       history.push(HOME_PATH);
     }
     setLoginBtnDisabled(false);
@@ -202,11 +203,8 @@ const Login = () => {
                   boxShadow: 'none',
                 }}
                 onClick={() => {
-                  LoginApi.getGithubLoginURL().then((res) => {
-                    if (res.success) {
-                      window.open(res.data.url, '_parent');
-                    }
-                  });
+                  window.location.href =
+                    baseURL + '/oauth2/authorization/github';
                 }}
               >
                 <Tooltip placement="top" title={'使用GitHub账号登录'}>
@@ -221,11 +219,8 @@ const Login = () => {
                   boxShadow: 'none',
                 }}
                 onClick={() => {
-                  LoginApi.getGiteeLoginURL('lns').then((res) => {
-                    if (res.success) {
-                      window.open(res.data.url, '_parent');
-                    }
-                  });
+                  window.location.href =
+                    baseURL + '/oauth2/authorization/gitee';
                 }}
               >
                 <Tooltip placement="top" title={'使用Gitee账号登录'}>

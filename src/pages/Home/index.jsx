@@ -1,4 +1,3 @@
-import WhaleApi from '@/api/WhaleApi';
 import { withAuth } from '@/components/Auth';
 import { PageContainer, ProCard } from '@ant-design/pro-components';
 import { Button } from 'antd';
@@ -93,9 +92,8 @@ const HomePage = () => {
             padding: '12px 24px',
           }}
           onClick={() => {
-            const { success, data } = WhaleApi.queryWhale({ id: 1 });
-            console.log(success);
-            console.log(data);
+            window.location.href =
+              'http://192.168.8.105:8009/oauth2/authorization/github';
           }}
         >
           开始记录

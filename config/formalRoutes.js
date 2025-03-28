@@ -72,6 +72,11 @@ const formalRoutes = [
     component: '@/pages/Map',
     access: 'allowAnyoneAccessRoute',
   },
+  {
+    path: 'oauth-callback',
+    component: '@/pages/OAuthCallback',
+    layout: false,
+  },
 ];
 
 export default formalRoutes;
