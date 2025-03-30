@@ -23,6 +23,13 @@ export default {
     });
   },
 
+  sendSmsCode(phone) {
+    return request({
+      url: '/user/sendSmsCode?phone=' + phone,
+      method: 'GET',
+    });
+  },
+
   getGithubLoginURL() {
     return request({
       url: '/user/getGithubLoginURL',
