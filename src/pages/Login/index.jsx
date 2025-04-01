@@ -90,7 +90,6 @@ const Login = () => {
         : loginType === 'mailbox'
           ? { email: values.email, code: values.code }
           : values;
-
     const { success, data } = await LoginApi.login({ ...params, loginType });
     if (success) {
       await afterLoginSuccess(data?.data);
@@ -139,20 +138,21 @@ const Login = () => {
     history.push(HOME_PATH);
   };
 
-  const handleSendCaptcha = async (email) => {
+  const handleSendCaptcha = async (info) => {
     try {
       const isEmail = loginType === 'mailbox';
       const regex = isEmail
         ? /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/
         : /^1[3-9]\d{9}$/;
-      if (!regex.test(email)) {
+      if (!regex.test(info)) {
         const msg = isEmail ? '邮箱格式不正确' : '手机号格式不正确';
         message.warning(msg);
         return Promise.reject();
       }
+      console.log(info);
       const { success } = isEmail
-        ? await LoginApi.sendVerificationCode(email)
-        : await LoginApi.sendSmsCode(email);
+        ? await LoginApi.sendVerificationCode(info)
+        : await LoginApi.sendSmsCode(info);
       if (success) {
         message.success('验证码已发送,请注意查收');
         startCountdown();
@@ -336,6 +336,15 @@ const Login = () => {
         fieldProps={{
           size: 'large',
           prefix: <MailOutlined />,
+        }}
+      />
+      <ProFormText
+        name="phone"
+        placeholder="手机号"
+        rules={[{ type: 'phone', message: '手机号格式不正确' }]}
+        fieldProps={{
+          size: 'large',
+          prefix: <MobileOutlined />,
         }}
       />
       <ProFormText
