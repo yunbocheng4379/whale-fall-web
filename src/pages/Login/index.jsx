@@ -98,18 +98,18 @@ const Login = () => {
 
   const handleRegister = async (values) => {
     if (values.captcha !== mathCaptcha.answer) {
-      message.error('验证码错误');
+      message.warning('验证码错误');
       return;
     }
     if (values.password !== values.confirmPassword) {
-      message.error('两次密码输入不一致');
+      message.warning('两次密码输入不一致');
       return;
     }
-
     const { success } = await LoginApi.register({
-      username: values.username,
+      userName: values.username,
       password: values.password,
       email: values.email,
+      phone: values.phone,
     });
 
     if (success) {
@@ -149,7 +149,6 @@ const Login = () => {
         message.warning(msg);
         return Promise.reject();
       }
-      console.log(info);
       const { success } = isEmail
         ? await LoginApi.sendVerificationCode(info)
         : await LoginApi.sendSmsCode(info);
@@ -341,7 +340,10 @@ const Login = () => {
       <ProFormText
         name="phone"
         placeholder="手机号"
-        rules={[{ type: 'phone', message: '手机号格式不正确' }]}
+        rules={[
+          { required: true, message: '请输入手机号！' },
+          { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
+        ]}
         fieldProps={{
           size: 'large',
           prefix: <MobileOutlined />,
@@ -351,7 +353,6 @@ const Login = () => {
         name="captcha"
         placeholder={mathCaptcha.question}
         rules={[
-          { required: true, message: '请输入验证码' },
           {
             validator: (_, value) =>
               value === mathCaptcha.answer
