@@ -67,9 +67,9 @@ export default {
     });
   },
 
-  getGitLibURL() {
+  getGitLabURL() {
     return request({
-      url: '/user/getGitLibURL',
+      url: '/user/getGitLabURL',
       method: 'GET',
     });
   },

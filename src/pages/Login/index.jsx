@@ -425,7 +425,7 @@ const Login = () => {
                     tip: 'GitHub',
                   },
                   { icon: 'gitee', handler: 'getGiteeLoginURL', tip: 'Gitee' },
-                  { icon: 'gitlib', handler: 'getGitLibURL', tip: 'GitLab' },
+                  { icon: 'gitlab', handler: 'getGitLabURL', tip: 'GitLab' },
                   { icon: 'feishu', handler: 'getFeiShuLoginURL', tip: '飞书' },
                 ].map((item, index) => (
                   <Button
