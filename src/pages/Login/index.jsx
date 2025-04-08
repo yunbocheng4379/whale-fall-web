@@ -84,13 +84,20 @@ const Login = () => {
   };
 
   const handleLogin = async (values) => {
-    const params =
+    const { success, data } =
       loginType === 'phone'
-        ? { phone: values.phone, code: values.code }
+        ? await LoginApi.loginByPhone({
+            phone: values.phone,
+            code: values.code,
+            loginType,
+          })
         : loginType === 'mailbox'
-          ? { email: values.email, code: values.code }
-          : values;
-    const { success, data } = await LoginApi.login({ ...params, loginType });
+          ? await LoginApi.loginByEmail({
+              email: values.email,
+              code: values.code,
+              loginType,
+            })
+          : await LoginApi.loginByAccount({ ...values, loginType });
     if (success) {
       await afterLoginSuccess(data?.data);
     }
@@ -414,14 +421,10 @@ const Login = () => {
                 {[
                   {
                     icon: 'github',
-                    url: '/oauth2/authorization/github',
+                    handler: 'getGithubLoginURL',
                     tip: 'GitHub',
                   },
-                  {
-                    icon: 'gitee',
-                    url: '/oauth2/authorization/gitee',
-                    tip: 'Gitee',
-                  },
+                  { icon: 'gitee', handler: 'getGiteeLoginURL', tip: 'Gitee' },
                   { icon: 'gitlib', handler: 'getGitLibURL', tip: 'GitLab' },
                   { icon: 'feishu', handler: 'getFeiShuLoginURL', tip: '飞书' },
                 ].map((item, index) => (
@@ -429,13 +432,10 @@ const Login = () => {
                     key={index}
                     type="text"
                     onClick={() => {
-                      if (item.handler) {
-                        LoginApi[item.handler]('cos').then((res) => {
-                          res.success && window.open(res.data.url, '_parent');
-                        });
-                      } else {
-                        window.location.href = baseURL + item.url;
-                      }
+                      LoginApi[item.handler]('cos').then((res) => {
+                        res.success &&
+                          window.open(baseURL + res.data.url, '_parent');
+                      });
                     }}
                   >
                     <Tooltip title={`使用${item.tip}登录`}>
@@ -450,7 +450,9 @@ const Login = () => {
                   type="text"
                   onClick={() => message.warning('敬请期待...')}
                 >
-                  <MyIcon type="icon-gengduo" style={{ fontSize: 30 }} />
+                  <Tooltip title="更多登录方式">
+                    <MyIcon type="icon-gengduo" style={{ fontSize: 30 }} />
+                  </Tooltip>
                 </Button>
               </Space>
             </>

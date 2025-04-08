@@ -1,9 +1,25 @@
 import request from '@/utils/request';
 
 export default {
-  login(data) {
+  loginByPhone(data) {
     return request({
-      url: 'user/login',
+      url: 'user/loginByPhone',
+      method: 'POST',
+      data,
+    });
+  },
+
+  loginByEmail(data) {
+    return request({
+      url: 'user/loginByEmail',
+      method: 'POST',
+      data,
+    });
+  },
+
+  loginByAccount(data) {
+    return request({
+      url: 'user/loginByAccount',
       method: 'POST',
       data,
     });
