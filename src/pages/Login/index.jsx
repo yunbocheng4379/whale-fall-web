@@ -310,7 +310,7 @@ const Login = () => {
         }}
       />
       <div style={{ margin: '16px 0', textAlign: 'center' }}>
-        <a onClick={() => setLoginType('account')}>返回登录</a>
+        <a onClick={() => setLoginType('account')}>返回账号登录</a>
       </div>
     </div>
   );
