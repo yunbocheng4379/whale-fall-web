@@ -8,6 +8,7 @@ import {
   LockOutlined,
   MailOutlined,
   MobileOutlined,
+  NumberOutlined,
   SafetyOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -53,6 +54,9 @@ const Login = () => {
   const [loginBtnDisabled, setLoginBtnDisabled] = useState(false);
   const [mathCaptcha, setMathCaptcha] = useState({ question: '', answer: '' });
   const { countdown: captchaCountdown, start: startCountdown } = useCountdown();
+  const [resetAccount, setResetAccount] = useState('');
+  const [verifyStage, setVerifyStage] = useState(false);
+  const formRef = useRef();
 
   useEffect(() => {
     if (getToken()) {
@@ -62,6 +66,7 @@ const Login = () => {
   }, []);
 
   const generateMathCaptcha = () => {
+    formRef.current?.resetFields(['captcha']);
     const num1 = Math.floor(Math.random() * 10);
     const num2 = Math.floor(Math.random() * 10);
     setMathCaptcha({
@@ -75,6 +80,12 @@ const Login = () => {
     try {
       if (loginType === 'register') {
         await handleRegister(values);
+      } else if (loginType === 'forget') {
+        if (verifyStage) {
+          await handleResetPassword(values);
+        } else {
+          await handleVerifyAccount(values);
+        }
       } else {
         await handleLogin(values);
       }
@@ -122,6 +133,7 @@ const Login = () => {
     if (success) {
       message.success('注册成功，请登录');
       setLoginType('account');
+    } else {
       generateMathCaptcha();
     }
   };
@@ -141,7 +153,7 @@ const Login = () => {
         routeList,
       });
     }
-    message.success('欢迎回来');
+    message.success(data.username + '，欢迎回来');
     history.push(HOME_PATH);
   };
 
@@ -160,7 +172,7 @@ const Login = () => {
         ? await LoginApi.sendVerificationCode(info)
         : await LoginApi.sendSmsCode(info);
       if (success) {
-        message.success('验证码已发送,请注意查收');
+        message.success('证码已发送至' + info + '，请注意查收');
         startCountdown();
         return Promise.resolve();
       } else {
@@ -205,6 +217,169 @@ const Login = () => {
     );
   };
 
+  const retrievePassword = () => {
+    setLoginType('forget');
+    setVerifyStage(false);
+    generateMathCaptcha();
+  };
+
+  // 新增账号验证方法
+  const handleVerifyAccount = async (values) => {
+    if (values.captcha !== mathCaptcha.answer) {
+      message.warning('验证码错误');
+      return;
+    }
+    try {
+      const { success, data } = await LoginApi.verifyAccount(values.account);
+      if (success) {
+        message.success('账号信息认证成功');
+        setVerifyStage(true);
+        setResetAccount(data.username);
+      }
+    } catch (e) {
+      message.warning('账号信息验证失败');
+    } finally {
+      generateMathCaptcha();
+    }
+  };
+
+  // 新增密码重置方法
+  const handleResetPassword = async (values) => {
+    if (values.password !== values.confirmPassword) {
+      message.warning('两次密码输入不一致');
+      return;
+    }
+    if (values.captcha !== mathCaptcha.answer) {
+      message.warning('验证码错误');
+      return;
+    }
+
+    try {
+      const { success } = await LoginApi.resetPassword({
+        userName: resetAccount,
+        password: values.password,
+      });
+
+      if (success) {
+        message.success('密码重置成功');
+        setLoginType('account');
+        setVerifyStage(false);
+      }
+    } catch (e) {
+      message.warning('密码重置失败');
+    } finally {
+      generateMathCaptcha();
+    }
+  };
+
+  // 新增忘记密码表单
+  const forgetForm = (
+    <div style={{ marginTop: 20 }}>
+      <ProFormText
+        name="account"
+        placeholder="账号/手机/邮箱"
+        rules={[{ required: true, message: '请输入账号信息' }]}
+        fieldProps={{
+          size: 'large',
+          prefix: <UserOutlined />,
+        }}
+      />
+      <ProFormText
+        name="captcha"
+        placeholder={mathCaptcha.question}
+        rules={[
+          {
+            validator: (_, value) =>
+              value === mathCaptcha.answer
+                ? Promise.resolve()
+                : Promise.reject('验证码错误'),
+          },
+        ]}
+        fieldProps={{
+          size: 'large',
+          prefix: <SafetyOutlined />,
+          suffix: (
+            <Button
+              type="link"
+              onClick={generateMathCaptcha}
+              style={{ height: 25, padding: '0 15px' }}
+            >
+              刷新验证码
+            </Button>
+          ),
+        }}
+      />
+      <div style={{ margin: '16px 0', textAlign: 'center' }}>
+        <a onClick={() => setLoginType('account')}>返回登录</a>
+      </div>
+    </div>
+  );
+
+  // 新增重置密码表单
+  const resetPasswordForm = (
+    <div style={{ marginTop: 20 }}>
+      <ProFormText
+        name="username"
+        placeholder="账号"
+        fieldProps={{
+          size: 'large',
+          prefix: <UserOutlined />,
+          disabled: true,
+        }}
+        initialValue={resetAccount}
+      />
+      <ProFormText.Password
+        name="password"
+        placeholder="新密码"
+        rules={[
+          { required: true, message: '请输入新密码' },
+          { min: 6, message: '密码至少6位' },
+        ]}
+        fieldProps={{
+          size: 'large',
+          prefix: <LockOutlined />,
+        }}
+      />
+      <ProFormText.Password
+        name="confirmPassword"
+        placeholder="确认密码"
+        rules={[{ required: true, message: '请确认密码' }]}
+        fieldProps={{
+          size: 'large',
+          prefix: <LockOutlined />,
+        }}
+      />
+      <ProFormText
+        name="captcha"
+        placeholder={mathCaptcha.question}
+        rules={[
+          {
+            validator: (_, value) =>
+              value === mathCaptcha.answer
+                ? Promise.resolve()
+                : Promise.reject('验证码错误'),
+          },
+        ]}
+        fieldProps={{
+          size: 'large',
+          prefix: <SafetyOutlined />,
+          suffix: (
+            <Button
+              type="link"
+              onClick={generateMathCaptcha}
+              style={{ height: 25, padding: '0 15px' }}
+            >
+              刷新验证码
+            </Button>
+          ),
+        }}
+      />
+      <div style={{ margin: '16px 0', textAlign: 'center' }}>
+        <a onClick={() => setLoginType('account')}>返回登录</a>
+      </div>
+    </div>
+  );
+
   const accountForm = (
     <>
       <ProFormText
@@ -247,7 +422,7 @@ const Login = () => {
         name="code"
         fieldProps={{
           size: 'large',
-          prefix: <LockOutlined />,
+          prefix: <NumberOutlined />,
         }}
         placeholder="验证码"
         phoneName="email"
@@ -284,7 +459,7 @@ const Login = () => {
         name="code"
         fieldProps={{
           size: 'large',
-          prefix: <LockOutlined />,
+          prefix: <NumberOutlined />,
         }}
         phoneName="phone"
         placeholder="验证码"
@@ -389,9 +564,70 @@ const Login = () => {
     </div>
   );
 
+  const loginFormActions = (
+    <>
+      {!['forget', 'register'].includes(loginType) && (
+        <div
+          style={{
+            margin: '16px 0',
+            textAlign: 'center',
+            width: '100%',
+            fontSize: 14,
+          }}
+        >
+          <a onClick={() => retrievePassword()}>已有账号，忘记密码？</a>
+        </div>
+      )}
+      {!['register'].includes(loginType) && (
+        <>
+          <Divider plain style={{ color: '#7e8299' }}>
+            其他登录方式
+          </Divider>
+          <Space className="w-full justify-between px-2" wrap={false}>
+            {[
+              {
+                icon: 'github',
+                handler: 'getGithubLoginURL',
+                tip: 'GitHub',
+              },
+              { icon: 'gitee', handler: 'getGiteeLoginURL', tip: 'Gitee' },
+              { icon: 'gitlab', handler: 'getGitLabURL', tip: 'GitLab' },
+              { icon: 'feishu', handler: 'getFeiShuLoginURL', tip: '飞书' },
+            ].map((item, index) => (
+              <Button
+                key={index}
+                type="text"
+                onClick={() => {
+                  if (item.handler === 'getFeiShuLoginURL') {
+                    message.warning('该功能尚未开发完成');
+                    return;
+                  }
+                  LoginApi[item.handler]('cos').then((res) => {
+                    res.success &&
+                      window.open(baseURL + res.data.url, '_parent');
+                  });
+                }}
+              >
+                <Tooltip title={`使用${item.tip}登录`}>
+                  <MyIcon type={`icon-${item.icon}`} style={{ fontSize: 30 }} />
+                </Tooltip>
+              </Button>
+            ))}
+            <Button type="text" onClick={() => message.warning('敬请期待...')}>
+              <Tooltip title="更多登录方式">
+                <MyIcon type="icon-gengduo" style={{ fontSize: 30 }} />
+              </Tooltip>
+            </Button>
+          </Space>
+        </>
+      )}
+    </>
+  );
+
   return (
     <ProConfigProvider>
       <LoginFormPage
+        formRef={formRef}
         backgroundImageUrl="/img/background.jpg"
         logo={LOGO}
         title={TITLE}
@@ -401,63 +637,17 @@ const Login = () => {
           searchConfig: {
             submitText:
               loginType === 'register'
-                ? loginBtnDisabled
-                  ? '注册中...'
-                  : '立即注册'
-                : loginBtnDisabled
-                  ? '登录中...'
+                ? '立即注册'
+                : loginType === 'forget'
+                  ? verifyStage
+                    ? '重置密码'
+                    : '立即认证'
                   : '立即登录',
           },
           resetButtonProps: { style: { display: 'none' } },
           render: (_, dom) => dom,
         }}
-        actions={
-          loginType !== 'register' && (
-            <>
-              <Divider plain style={{ color: '#7e8299' }}>
-                其他登录方式
-              </Divider>
-              <Space className="w-full justify-between px-2" wrap={false}>
-                {[
-                  {
-                    icon: 'github',
-                    handler: 'getGithubLoginURL',
-                    tip: 'GitHub',
-                  },
-                  { icon: 'gitee', handler: 'getGiteeLoginURL', tip: 'Gitee' },
-                  { icon: 'gitlab', handler: 'getGitLabURL', tip: 'GitLab' },
-                  { icon: 'feishu', handler: 'getFeiShuLoginURL', tip: '飞书' },
-                ].map((item, index) => (
-                  <Button
-                    key={index}
-                    type="text"
-                    onClick={() => {
-                      LoginApi[item.handler]('cos').then((res) => {
-                        res.success &&
-                          window.open(baseURL + res.data.url, '_parent');
-                      });
-                    }}
-                  >
-                    <Tooltip title={`使用${item.tip}登录`}>
-                      <MyIcon
-                        type={`icon-${item.icon}`}
-                        style={{ fontSize: 30 }}
-                      />
-                    </Tooltip>
-                  </Button>
-                ))}
-                <Button
-                  type="text"
-                  onClick={() => message.warning('敬请期待...')}
-                >
-                  <Tooltip title="更多登录方式">
-                    <MyIcon type="icon-gengduo" style={{ fontSize: 30 }} />
-                  </Tooltip>
-                </Button>
-              </Space>
-            </>
-          )
-        }
+        actions={loginFormActions}
       >
         {['account', 'mailbox'].includes(loginType) && (
           <Tabs
@@ -476,6 +666,7 @@ const Login = () => {
             mailbox: mailboxForm,
             phone: phoneForm,
             register: registerForm,
+            forget: verifyStage ? resetPasswordForm : forgetForm,
           }[loginType]
         }
       </LoginFormPage>

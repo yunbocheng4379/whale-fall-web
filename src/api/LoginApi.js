@@ -81,4 +81,19 @@ export default {
       data,
     });
   },
+
+  verifyAccount(account) {
+    return request({
+      url: '/user/verifyAccount?account=' + account,
+      method: 'GET',
+    });
+  },
+
+  resetPassword(data) {
+    return request({
+      url: 'user/resetPassword',
+      method: 'POST',
+      data,
+    });
+  },
 };
