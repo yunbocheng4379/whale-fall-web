@@ -41,7 +41,6 @@ instance.interceptors.response.use(
       message.error('服务器缺少响应数据');
       return;
     }
-    console.log(response);
     const { code, message: msg } = response.data;
     if (code === JWT_LOSE_CODE || code === JWT_FAIL_CODE) {
       message.warning(msg);
@@ -57,7 +56,7 @@ instance.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    console.log(error.response); // debug
+    console.log(error.response);
     message.error('服务器响应错误');
     return Promise.reject(error);
   },

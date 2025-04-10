@@ -8,7 +8,7 @@ import { history, useLocation, useModel } from 'umi';
 const OAuthCallback = () => {
   const { setInitialState } = useModel('@@initialState');
   const location = useLocation();
-  const handleAuth = async (token, username) => {
+  const handleAuth = async (token, username, error) => {
     if (!token || !username) {
       message.warning('授权参数缺失');
       removeToken();
@@ -17,7 +17,6 @@ const OAuthCallback = () => {
       setToken(token);
       setUsername(username);
       const { success, data } = await LoginApi.getMenu(username);
-      console.log(success);
       if (!success) message.warning('获取菜单失败');
       await setInitialState((initialState) => ({
         ...initialState,
@@ -32,10 +31,15 @@ const OAuthCallback = () => {
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
+    const error = queryParams.get('error');
     const token = queryParams.get('token');
     const username = queryParams.get('username');
-
-    handleAuth(token, username).then(() => {});
+    if (error !== null) {
+      message.warning(error);
+      history.replace('/login');
+    } else {
+      handleAuth(token, username, error).then(() => {});
+    }
   }, [location.search, setInitialState]);
 
   return <></>;
