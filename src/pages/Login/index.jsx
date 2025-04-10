@@ -223,7 +223,6 @@ const Login = () => {
     generateMathCaptcha();
   };
 
-  // 新增账号验证方法
   const handleVerifyAccount = async (values) => {
     if (values.captcha !== mathCaptcha.answer) {
       message.warning('验证码错误');
@@ -243,7 +242,6 @@ const Login = () => {
     }
   };
 
-  // 新增密码重置方法
   const handleResetPassword = async (values) => {
     if (values.password !== values.confirmPassword) {
       message.warning('两次密码输入不一致');
@@ -272,7 +270,6 @@ const Login = () => {
     }
   };
 
-  // 新增忘记密码表单
   const forgetForm = (
     <div style={{ marginTop: 20 }}>
       <ProFormText
@@ -315,7 +312,6 @@ const Login = () => {
     </div>
   );
 
-  // 新增重置密码表单
   const resetPasswordForm = (
     <div style={{ marginTop: 20 }}>
       <ProFormText
