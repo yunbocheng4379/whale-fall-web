@@ -385,7 +385,7 @@ const Login = () => {
           prefix: <UserOutlined />,
         }}
         placeholder="用户名"
-        rules={[{ required: true, message: '请输入用户名！' }]}
+        rules={[{ required: true, message: '请输入用户名' }]}
       />
       <ProFormText.Password
         name="password"
@@ -394,7 +394,7 @@ const Login = () => {
           prefix: <LockOutlined />,
         }}
         placeholder="密码"
-        rules={[{ required: true, message: '请输入密码！' }]}
+        rules={[{ required: true, message: '请输入密码' }]}
       />
       {renderSwitchLinks()}
     </>
@@ -410,7 +410,7 @@ const Login = () => {
         }}
         placeholder="邮箱"
         rules={[
-          { required: true, message: '请输入邮箱！' },
+          { required: true, message: '请输入邮箱' },
           { type: 'email', message: '邮箱格式不正确' },
         ]}
       />
@@ -447,7 +447,7 @@ const Login = () => {
         }}
         placeholder="手机号"
         rules={[
-          { required: true, message: '请输入手机号！' },
+          { required: true, message: '请输入手机号' },
           { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
         ]}
       />
@@ -479,7 +479,7 @@ const Login = () => {
       <ProFormText
         name="username"
         placeholder="用户名"
-        rules={[{ required: true, message: '请输入用户名！' }]}
+        rules={[{ required: true, message: '请输入用户名' }]}
         fieldProps={{
           size: 'large',
           prefix: <UserOutlined />,
@@ -489,8 +489,13 @@ const Login = () => {
         name="password"
         placeholder="密码"
         rules={[
-          { required: true, message: '请输入密码！' },
-          { min: 6, message: '密码至少6位' },
+          { required: true, message: '请输入新密码' },
+          { min: 8, message: '密码至少8位' },
+          { max: 32, message: '密码最多32位' },
+          {
+            pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
+            message: '必须包含大写字母、小写字母和数字',
+          },
         ]}
         fieldProps={{
           size: 'large',
@@ -500,7 +505,7 @@ const Login = () => {
       <ProFormText.Password
         name="confirmPassword"
         placeholder="确认密码"
-        rules={[{ required: true, message: '请确认密码！' }]}
+        rules={[{ required: true, message: '请确认密码' }]}
         fieldProps={{
           size: 'large',
           prefix: <LockOutlined />,
@@ -519,7 +524,7 @@ const Login = () => {
         name="phone"
         placeholder="手机号"
         rules={[
-          { required: true, message: '请输入手机号！' },
+          { required: true, message: '请输入手机号' },
           { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
         ]}
         fieldProps={{
