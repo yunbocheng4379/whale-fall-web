@@ -1,12 +1,22 @@
 import LoginApi from '@/api/LoginApi';
-import { AVATAR, LOGIN_PATH, LOGO, TITLE } from '@/config';
+import {
+  AVATAR,
+  HOME_PATH,
+  LOGIN_PATH,
+  LOGO,
+  MENU_TYPE,
+  TITLE,
+} from '@/config';
 import buildMenu from '@/utils/buildMenu';
 import { MyIcon } from '@/utils/iconUtil';
+import { getCounter, setCounter } from '@/utils/storage';
 import {
   getToken,
   getUsername,
+  getUserRole,
   removeToken,
   removeUsername,
+  removeUserRole,
 } from '@/utils/tokenUtil';
 import { DefaultFooter } from '@ant-design/pro-components';
 import { Dropdown } from 'antd';
@@ -36,13 +46,17 @@ export async function getInitialState() {
   if (!getToken()) {
     // 当前页为登录页
     if (history.location.pathname === LOGIN_PATH) {
+      removeUsername();
+      removeUserRole();
       message.warning('未登录');
       return defaultInitialState;
     }
     return defaultInitialState;
   }
-  //从后端获取菜单权限
-  const { success, data } = await LoginApi.getMenu(getUsername());
+  const { success, data } = await LoginApi.getMenu({
+    userName: getUsername(),
+    menuType: getCounter(MENU_TYPE),
+  });
   const menuList = data.data;
   if (success && menuList.length > 0) {
     let { menuData, routeList } = buildMenu(menuList);
@@ -79,6 +93,40 @@ export const layout = ({ initialState }) => {
                     message.success('放花咯');
                   },
                 },
+                //管理员可以看到后台管理
+                getUserRole() === 'ADMINISTRATOR_USER'
+                  ? getCounter() === 0
+                    ? {
+                        key: 'management',
+                        icon: (
+                          <MyIcon
+                            type={'icon-yanhua'}
+                            style={{ fontSize: 20 }}
+                          />
+                        ),
+                        label: '后台管理',
+                        onClick: () => {
+                          setCounter(1);
+                          history.push(HOME_PATH);
+                          location.reload();
+                        },
+                      }
+                    : {
+                        key: 'business',
+                        icon: (
+                          <MyIcon
+                            type={'icon-yanhua'}
+                            style={{ fontSize: 20 }}
+                          />
+                        ),
+                        label: '业务系统',
+                        onClick: () => {
+                          setCounter(0);
+                          history.push(HOME_PATH);
+                          location.reload();
+                        },
+                      }
+                  : {},
                 {
                   key: 'logout',
                   icon: (
@@ -88,6 +136,8 @@ export const layout = ({ initialState }) => {
                   onClick: () => {
                     removeToken();
                     removeUsername();
+                    removeUserRole();
+                    setCounter(0);
                     message.success('退出成功');
                     history.push(LOGIN_PATH);
                   },

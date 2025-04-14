@@ -8,6 +8,8 @@ const LOGIN_PATH = '/login';
 
 const TOKEN_KEY = 'Authorization';
 const USERNAME_KEY = 'USERNAME';
+const MENU_TYPE = 'menuType';
+const USER_ROLE = 'ROLE';
 
 export {
   AVATAR,
@@ -15,7 +17,9 @@ export {
   HOME_PATH,
   LOGIN_PATH,
   LOGO,
+  MENU_TYPE,
   TITLE,
   TOKEN_KEY,
   USERNAME_KEY,
+  USER_ROLE,
 };

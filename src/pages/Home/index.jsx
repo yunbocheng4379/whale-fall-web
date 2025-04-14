@@ -1,7 +1,9 @@
 import WhaleApi from '@/api/WhaleApi';
 import { withAuth } from '@/components/Auth';
+import { getCounter } from '@/utils/storage';
 import { PageContainer, ProCard } from '@ant-design/pro-components';
 import { Button } from 'antd';
+import JKImage from '/public/img/couple/jk.png';
 import coupleImage from '/public/img/couple/us.jpg';
 
 const HomePage = () => {
@@ -20,7 +22,7 @@ const HomePage = () => {
       >
         <div style={{ textAlign: 'center' }}>
           <img
-            src={coupleImage}
+            src={getCounter() === 0 ? coupleImage : JKImage}
             alt="情侣图片"
             style={{
               width: '300px',

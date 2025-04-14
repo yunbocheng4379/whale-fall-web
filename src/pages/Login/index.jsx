@@ -1,9 +1,18 @@
 import LoginApi from '@/api/LoginApi';
-import { HOME_PATH, LOGO, TITLE } from '@/config';
+import { HOME_PATH, LOGO, MENU_TYPE, TITLE } from '@/config';
 import buildMenu from '@/utils/buildMenu';
 import { MyIcon } from '@/utils/iconUtil';
 import { baseURL } from '@/utils/request';
-import { getToken, setToken, setUsername } from '@/utils/tokenUtil';
+import { getCounter } from '@/utils/storage';
+import {
+  getToken,
+  removeToken,
+  removeUsername,
+  removeUserRole,
+  setToken,
+  setUsername,
+  setUserRole,
+} from '@/utils/tokenUtil';
 import {
   LockOutlined,
   MailOutlined,
@@ -139,11 +148,15 @@ const Login = () => {
   };
 
   const afterLoginSuccess = async (data) => {
+    console.log(data.role);
     setToken(data.token);
     setUsername(data.username);
+    setUserRole(data.role);
     const { success: menuSuccess, data: menuDataResponse } =
-      await LoginApi.getMenu(data?.username);
-
+      await LoginApi.getMenu({
+        userName: data?.username,
+        menuType: getCounter(MENU_TYPE),
+      });
     if (menuSuccess && menuDataResponse?.data?.length > 0) {
       const { menuData, routeList } = buildMenu(menuDataResponse.data);
       await setInitialState({
@@ -152,9 +165,13 @@ const Login = () => {
         menuData,
         routeList,
       });
+      message.success(data.username + '，欢迎回来');
+      history.push(HOME_PATH);
+    } else {
+      removeToken();
+      removeUsername();
+      removeUserRole();
     }
-    message.success(data.username + '，欢迎回来');
-    history.push(HOME_PATH);
   };
 
   const handleSendCaptcha = async (info) => {

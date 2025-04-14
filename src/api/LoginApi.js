@@ -25,10 +25,11 @@ export default {
     });
   },
 
-  getMenu(username) {
+  getMenu(data) {
     return request({
-      url: '/user/getMenu?username=' + username,
-      method: 'GET',
+      url: '/user/getMenu',
+      method: 'POST',
+      data,
     });
   },
 

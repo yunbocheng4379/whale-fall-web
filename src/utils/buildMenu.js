@@ -5,8 +5,8 @@ let childrenMenuList = [];
 
 const getRootMenuAndChildrenMenu = (menuList) => {
   menuList.forEach((menu) => {
+    childrenMenuList.push(menu);
     if (!menu.children) return childrenMenuList.push(menu);
-    rootMenuList.push(menu);
     return getRootMenuAndChildrenMenu(menu.children);
   });
 };
@@ -23,7 +23,6 @@ const buildMenu = (menuList) => {
   childrenMenuList = [];
   getRootMenuAndChildrenMenu(menuList);
   const routeList = childrenMenuList.map((menu) => menu.route);
-
   let menuData = routes
     .map((item) => {
       if (item.icon !== undefined) {

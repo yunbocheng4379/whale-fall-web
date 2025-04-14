@@ -1,4 +1,5 @@
 ﻿import formalRoutes from './formalRoutes';
+import managementRoutes from './managementRoutes';
 
 const routes = [
   {
@@ -21,6 +22,7 @@ const routes = [
     access: 'allowAnyoneAccessRoute',
   },
   ...formalRoutes,
+  ...managementRoutes,
   {
     path: '/*',
     component: '@/pages/404.jsx',

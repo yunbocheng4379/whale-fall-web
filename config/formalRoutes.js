@@ -3,6 +3,7 @@ const formalRoutes = [
     path: 'account',
     name: '记账',
     icon: 'icon-jizhang',
+    access: 'allowAdminAccessRoute',
     routes: [
       {
         index: true,
@@ -36,6 +37,7 @@ const formalRoutes = [
     path: 'agent',
     name: 'AI智能',
     icon: 'icon-rengongzhineng',
+    access: 'allowAdminAccessRoute',
     routes: [
       {
         index: true,
@@ -70,7 +72,7 @@ const formalRoutes = [
     name: '旅行地图',
     icon: 'icon-shijieditu',
     component: '@/pages/Map',
-    access: 'allowAnyoneAccessRoute',
+    access: 'allowAdminAccessRoute',
   },
   {
     path: 'oauth-callback',
