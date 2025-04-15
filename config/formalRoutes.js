@@ -2,7 +2,7 @@ const formalRoutes = [
   {
     path: 'account',
     name: '记账',
-    icon: 'icon-jizhang',
+    icon: 'icon-account',
     access: 'allowAdminAccessRoute',
     routes: [
       {
@@ -36,7 +36,7 @@ const formalRoutes = [
   {
     path: 'agent',
     name: 'AI智能',
-    icon: 'icon-rengongzhineng',
+    icon: 'icon-agent',
     access: 'allowAdminAccessRoute',
     routes: [
       {
@@ -47,7 +47,7 @@ const formalRoutes = [
       {
         path: 'ask',
         name: 'AI问答',
-        icon: 'icon-wenda',
+        icon: 'icon-ask',
         component: '@/pages/Agent/Ask',
         access: 'allowAdminAccessRoute',
       },
@@ -61,7 +61,7 @@ const formalRoutes = [
       {
         path: 'video',
         name: 'AI视频',
-        icon: 'icon-shipin',
+        icon: 'icon-video',
         component: '@/pages/Agent/Video',
         access: 'allowAdminAccessRoute',
       },
@@ -70,7 +70,7 @@ const formalRoutes = [
   {
     path: 'map',
     name: '旅行地图',
-    icon: 'icon-shijieditu',
+    icon: 'icon-map',
     component: '@/pages/Map',
     access: 'allowAdminAccessRoute',
   },

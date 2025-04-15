@@ -86,7 +86,7 @@ export const layout = ({ initialState }) => {
                 {
                   key: 'flowering',
                   icon: (
-                    <MyIcon type={'icon-yanhua'} style={{ fontSize: 20 }} />
+                    <MyIcon type={'icon-firework'} style={{ fontSize: 20 }} />
                   ),
                   label: '劈里啪啦',
                   onClick: () => {
@@ -100,7 +100,7 @@ export const layout = ({ initialState }) => {
                         key: 'management',
                         icon: (
                           <MyIcon
-                            type={'icon-yanhua'}
+                            type={'icon-system'}
                             style={{ fontSize: 20 }}
                           />
                         ),
@@ -115,7 +115,7 @@ export const layout = ({ initialState }) => {
                         key: 'business',
                         icon: (
                           <MyIcon
-                            type={'icon-yanhua'}
+                            type={'icon-business'}
                             style={{ fontSize: 20 }}
                           />
                         ),

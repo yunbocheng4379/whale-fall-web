@@ -18,7 +18,7 @@ const routes = [
     name: '首页',
     path: '/home',
     component: '@/pages/Home',
-    icon: 'icon-first',
+    icon: 'icon-home',
     access: 'allowAnyoneAccessRoute',
   },
   ...formalRoutes,
