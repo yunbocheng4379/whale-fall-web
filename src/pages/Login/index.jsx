@@ -165,8 +165,7 @@ const Login = () => {
         menuData,
         routeList,
       });
-      message.success(data.username + '，欢迎回来');
-      history.push(HOME_PATH);
+      history.push(HOME_PATH, { fromLogin: true });
     } else {
       removeToken();
       removeUsername();

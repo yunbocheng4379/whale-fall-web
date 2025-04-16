@@ -38,8 +38,7 @@ const OAuthCallback = () => {
         menuData: buildMenu(data.data).menuData,
         routeList: buildMenu(data.data).routeList,
       }));
-      message.success('欢迎回来');
-      history.replace('/home');
+      history.replace('/home', { fromLogin: true });
     }
   };
 
