@@ -48,7 +48,7 @@ export async function getInitialState() {
     if (history.location.pathname === LOGIN_PATH) {
       removeUsername();
       removeUserRole();
-      message.warning('未登录');
+      message.warning('账号身份已过期，请重新登录');
       return defaultInitialState;
     }
     return defaultInitialState;
