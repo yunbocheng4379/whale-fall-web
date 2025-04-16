@@ -3,3 +3,24 @@ body,
 #root {
   height: 100%;
 }
+
+.custom-fullscreen-btn {
+  &::after {
+    display: none !important;
+  }
+
+  &:hover,
+  &:focus,
+  &:active {
+    background: transparent !important;
+    color: inherit !important;
+  }
+
+  .anticon {
+    transition: transform 0.2s;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+}

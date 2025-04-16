@@ -1,9 +1,9 @@
 import LoginApi from '@/api/LoginApi';
-import { HOME_PATH, LOGO, MENU_TYPE, TITLE } from '@/config';
+import {HOME_PATH, LOGO, MENU_TYPE, TITLE} from '@/config';
 import buildMenu from '@/utils/buildMenu';
-import { MyIcon } from '@/utils/iconUtil';
-import { baseURL } from '@/utils/request';
-import { getCounter } from '@/utils/storage';
+import {MyIcon} from '@/utils/iconUtil';
+import {baseURL} from '@/utils/request';
+import {getCounter} from '@/utils/storage';
 import {
   getToken,
   removeToken,
@@ -21,15 +21,11 @@ import {
   SafetyOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import {
-  LoginFormPage,
-  ProConfigProvider,
-  ProFormCaptcha,
-  ProFormText,
-} from '@ant-design/pro-components';
-import { Button, Divider, message, Space, Tabs, Tooltip } from 'antd';
-import { useEffect, useRef, useState } from 'react';
-import { history, useModel } from 'umi';
+import {LoginFormPage, ProConfigProvider, ProFormCaptcha, ProFormText,} from '@ant-design/pro-components';
+import {Button, Divider, message, Space, Tabs, Tooltip} from 'antd';
+import {useEffect, useRef, useState} from 'react';
+import {history, useModel} from 'umi';
+import Footer from '@/components/Footer';
 
 const useCountdown = (initialSeconds = 60) => {
   const [countdown, setCountdown] = useState(0);
@@ -687,6 +683,7 @@ const Login = () => {
           }[loginType]
         }
       </LoginFormPage>
+      <Footer />
     </ProConfigProvider>
   );
 };
