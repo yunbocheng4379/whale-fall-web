@@ -1,15 +1,28 @@
 import LoginApi from '@/api/LoginApi';
-import {AVATAR, HOME_PATH, LOGIN_PATH, LOGO, MENU_TYPE, TITLE,} from '@/config';
+import FullscreenAvatar from '@/components/FullscreenAvatar';
+import {
+  AVATAR,
+  HOME_PATH,
+  LOGIN_PATH,
+  LOGO,
+  MENU_TYPE,
+  TITLE,
+} from '@/config';
 import buildMenu from '@/utils/buildMenu';
-import {MyIcon} from '@/utils/iconUtil';
-import {getCounter, setCounter} from '@/utils/storage';
-import {getToken, getUsername, getUserRole, removeToken, removeUsername, removeUserRole,} from '@/utils/tokenUtil';
-import {DefaultFooter} from '@ant-design/pro-components';
-import {Dropdown} from 'antd';
+import { MyIcon } from '@/utils/iconUtil';
+import { getCounter, setCounter } from '@/utils/storage';
+import {
+  getToken,
+  getUsername,
+  getUserRole,
+  removeToken,
+  removeUsername,
+  removeUserRole,
+} from '@/utils/tokenUtil';
+import { DefaultFooter } from '@ant-design/pro-components';
+import { Dropdown } from 'antd';
 import message from 'antd/es/message';
-import {history} from 'umi';
-import React from "react";
-import FullscreenAvatar from "@/components/FullscreenAvatar";
+import { history } from 'umi';
 
 const defaultInitialState = {
   currentUser: { name: '临时用户' },
@@ -34,10 +47,11 @@ export async function getInitialState() {
   if (!getToken()) {
     // 当前页为登录页
     if (history.location.pathname === LOGIN_PATH) {
+      message.warning('未登录，请重新登录');
+    } else {
       removeUsername();
       removeUserRole();
       message.warning('账号身份已过期，请重新登录');
-      return defaultInitialState;
     }
     return defaultInitialState;
   }
@@ -87,35 +101,35 @@ export const layout = ({ initialState }) => {
                   getUserRole() === 'ADMINISTRATOR_USER'
                     ? getCounter() === 0
                       ? {
-                        key: 'management',
-                        icon: (
-                          <MyIcon
-                            type={'icon-system'}
-                            style={{ fontSize: 20 }}
-                          />
-                        ),
-                        label: '后台管理',
-                        onClick: () => {
-                          setCounter(1);
-                          history.push(HOME_PATH);
-                          location.reload();
-                        },
-                      }
+                          key: 'management',
+                          icon: (
+                            <MyIcon
+                              type={'icon-system'}
+                              style={{ fontSize: 20 }}
+                            />
+                          ),
+                          label: '后台管理',
+                          onClick: () => {
+                            setCounter(1);
+                            history.push(HOME_PATH);
+                            location.reload();
+                          },
+                        }
                       : {
-                        key: 'business',
-                        icon: (
-                          <MyIcon
-                            type={'icon-business'}
-                            style={{ fontSize: 20 }}
-                          />
-                        ),
-                        label: '业务系统',
-                        onClick: () => {
-                          setCounter(0);
-                          history.push(HOME_PATH);
-                          location.reload();
-                        },
-                      }
+                          key: 'business',
+                          icon: (
+                            <MyIcon
+                              type={'icon-business'}
+                              style={{ fontSize: 20 }}
+                            />
+                          ),
+                          label: '业务系统',
+                          onClick: () => {
+                            setCounter(0);
+                            history.push(HOME_PATH);
+                            location.reload();
+                          },
+                        }
                     : {},
                   {
                     key: 'logout',
