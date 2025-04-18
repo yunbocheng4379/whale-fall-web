@@ -1,4 +1,4 @@
-import { MENU_TYPE } from '@/config';
+import { AVATAR, DEFAULT_AVATAR, MENU_TYPE } from '@/config';
 function getCounter() {
   try {
     return localStorage.getItem(MENU_TYPE) === null
@@ -18,4 +18,31 @@ function setCounter(value) {
   }
 }
 
-export { getCounter, setCounter };
+function getAvatarUrl() {
+  try {
+    return localStorage.getItem(AVATAR) === null
+      ? DEFAULT_AVATAR
+      : localStorage.getItem(AVATAR);
+  } catch (error) {
+    console.warn('读取存储失败:', error);
+    return 0;
+  }
+}
+
+function setAvatarUrl(value) {
+  try {
+    localStorage.setItem(AVATAR, value);
+  } catch (error) {
+    console.warn('设置存储失败:', error);
+  }
+}
+
+function removeAvatarUrl() {
+  try {
+    localStorage.removeItem(AVATAR);
+  } catch (error) {
+    console.warn('删除存储失败:', error);
+  }
+}
+
+export { getAvatarUrl, getCounter, removeAvatarUrl, setAvatarUrl, setCounter };

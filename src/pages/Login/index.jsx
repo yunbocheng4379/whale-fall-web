@@ -1,10 +1,11 @@
 import LoginApi from '@/api/LoginApi';
+import AvatarUpload from '@/components/AvatarUpload';
 import Footer from '@/components/Footer';
-import { HOME_PATH, LOGO, MENU_TYPE, TITLE } from '@/config';
+import { HOME_PATH, LOGO, TITLE } from '@/config';
 import buildMenu from '@/utils/buildMenu';
 import { MyIcon } from '@/utils/iconUtil';
 import { baseURL } from '@/utils/request';
-import { getCounter } from '@/utils/storage';
+import { getCounter, removeAvatarUrl, setAvatarUrl } from '@/utils/storage';
 import {
   getToken,
   removeToken,
@@ -125,10 +126,6 @@ const Login = () => {
   };
 
   const handleRegister = async (values) => {
-    if (values.captcha !== mathCaptcha.answer) {
-      message.warning('验证码错误');
-      return;
-    }
     if (values.password !== values.confirmPassword) {
       message.warning('两次密码输入不一致');
       return;
@@ -138,6 +135,7 @@ const Login = () => {
       password: values.password,
       email: values.email,
       phone: values.phone,
+      avatarUrl: values.avatarUrl,
     });
 
     if (success) {
@@ -149,13 +147,14 @@ const Login = () => {
   };
 
   const afterLoginSuccess = async (data) => {
-    setToken(data.token);
-    setUsername(data.username);
-    setUserRole(data.role);
+    setAvatarUrl(data?.avatarUrl);
+    setToken(data?.token);
+    setUsername(data?.username);
+    setUserRole(data?.role);
     const { success: menuSuccess, data: menuDataResponse } =
       await LoginApi.getMenu({
         userName: data?.username,
-        menuType: getCounter(MENU_TYPE),
+        menuType: getCounter(),
       });
     if (menuSuccess && menuDataResponse?.data?.length > 0) {
       const { menuData, routeList } = buildMenu(menuDataResponse.data);
@@ -170,6 +169,7 @@ const Login = () => {
       removeToken();
       removeUsername();
       removeUserRole();
+      removeAvatarUrl();
     }
   };
 
@@ -239,11 +239,13 @@ const Login = () => {
     generateMathCaptcha();
   };
 
+  const handleAvatarUpload = (url) => {
+    formRef.current?.setFieldsValue({
+      avatarUrl: url,
+    });
+  };
+
   const handleVerifyAccount = async (values) => {
-    if (values.captcha !== mathCaptcha.answer) {
-      message.warning('验证码错误');
-      return;
-    }
     try {
       const { success, data } = await LoginApi.verifyAccount(values.account);
       if (success) {
@@ -261,10 +263,6 @@ const Login = () => {
   const handleResetPassword = async (values) => {
     if (values.password !== values.confirmPassword) {
       message.warning('两次密码输入不一致');
-      return;
-    }
-    if (values.captcha !== mathCaptcha.answer) {
-      message.warning('验证码错误');
       return;
     }
 
@@ -548,6 +546,19 @@ const Login = () => {
           prefix: <MobileOutlined />,
         }}
       />
+      <ProFormText
+        name="avatarUrl"
+        rules={[
+          {
+            validator: (_, value) =>
+              value !== null && value !== undefined
+                ? Promise.resolve()
+                : Promise.reject('请上传头像'),
+          },
+        ]}
+      >
+        <AvatarUpload onUploadSuccess={handleAvatarUpload} />
+      </ProFormText>
       <ProFormText
         name="captcha"
         placeholder={mathCaptcha.question}

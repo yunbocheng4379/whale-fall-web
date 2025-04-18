@@ -1,6 +1,6 @@
 import LoginApi from '@/api/LoginApi';
 import buildMenu from '@/utils/buildMenu';
-import { getCounter } from '@/utils/storage';
+import { getCounter, removeAvatarUrl, setAvatarUrl } from '@/utils/storage';
 import {
   removeToken,
   removeUsername,
@@ -16,17 +16,19 @@ import { history, useLocation, useModel } from 'umi';
 const OAuthCallback = () => {
   const { setInitialState } = useModel('@@initialState');
   const location = useLocation();
-  const handleAuth = async (token, username, role) => {
+  const handleAuth = async (token, username, role, avatarUrl) => {
     if (!token || !username || !role) {
       message.warning('授权参数缺失');
       removeToken();
       removeUsername();
       removeUserRole();
+      removeAvatarUrl();
       history.replace('/login');
     } else {
       setToken(token);
       setUsername(username);
       setUserRole(role);
+      setAvatarUrl(avatarUrl);
       const { success, data } = await LoginApi.getMenu({
         userName: username,
         menuType: getCounter(),
@@ -48,11 +50,12 @@ const OAuthCallback = () => {
     const token = queryParams.get('token');
     const role = queryParams.get('role');
     const username = queryParams.get('username');
+    const avatarUrl = queryParams.get('avatarUrl');
     if (error !== null) {
       message.warning(error);
       history.replace('/login');
     } else {
-      handleAuth(token, username, role).then(() => {});
+      handleAuth(token, username, role, avatarUrl).then(() => {});
     }
   }, [location.search, setInitialState]);
 

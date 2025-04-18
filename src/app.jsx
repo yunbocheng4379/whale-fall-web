@@ -1,16 +1,14 @@
 import LoginApi from '@/api/LoginApi';
 import FullscreenAvatar from '@/components/FullscreenAvatar';
-import {
-  AVATAR,
-  HOME_PATH,
-  LOGIN_PATH,
-  LOGO,
-  MENU_TYPE,
-  TITLE,
-} from '@/config';
+import { HOME_PATH, LOGIN_PATH, LOGO, TITLE } from '@/config';
 import buildMenu from '@/utils/buildMenu';
 import { MyIcon } from '@/utils/iconUtil';
-import { getCounter, setCounter } from '@/utils/storage';
+import {
+  getAvatarUrl,
+  getCounter,
+  removeAvatarUrl,
+  setCounter,
+} from '@/utils/storage';
 import {
   getToken,
   getUsername,
@@ -51,13 +49,14 @@ export async function getInitialState() {
     } else {
       removeUsername();
       removeUserRole();
+      removeAvatarUrl();
       message.warning('账号身份已过期，请重新登录');
     }
     return defaultInitialState;
   }
   const { success, data } = await LoginApi.getMenu({
     userName: getUsername(),
-    menuType: getCounter(MENU_TYPE),
+    menuType: getCounter(),
   });
   const menuList = data.data;
   if (success && menuList.length > 0) {
@@ -77,7 +76,7 @@ export const layout = ({ initialState }) => {
     title: TITLE,
     logo: LOGO,
     avatarProps: {
-      src: AVATAR,
+      src: getAvatarUrl(),
       shape: 'square',
       title: initialState?.currentUser.name,
       render: (props, dom) => {
@@ -141,6 +140,7 @@ export const layout = ({ initialState }) => {
                       removeToken();
                       removeUsername();
                       removeUserRole();
+                      removeAvatarUrl();
                       setCounter(0);
                       message.success('退出成功');
                       history.push(LOGIN_PATH);

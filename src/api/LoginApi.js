@@ -97,4 +97,12 @@ export default {
       data,
     });
   },
+
+  uploadAvatar(data) {
+    return request({
+      url: '/user/uploadAvatar',
+      method: 'POST',
+      data,
+    });
+  },
 };
