@@ -59,6 +59,12 @@ const useCountdown = (initialSeconds = 60) => {
   return { countdown, start };
 };
 
+const RESET_STAGES = {
+  ACCOUNT_VERIFY: 1,
+  CODE_VERIFY: 2,
+  RESET_PASSWORD: 3,
+};
+
 const Login = () => {
   const { initialState, setInitialState } = useModel('@@initialState');
   const [loginType, setLoginType] = useState('account');
@@ -66,7 +72,8 @@ const Login = () => {
   const [mathCaptcha, setMathCaptcha] = useState({ question: '', answer: '' });
   const { countdown: captchaCountdown, start: startCountdown } = useCountdown();
   const [resetAccount, setResetAccount] = useState('');
-  const [verifyStage, setVerifyStage] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetStage, setResetStage] = useState(RESET_STAGES.ACCOUNT_VERIFY);
   const formRef = useRef();
 
   useEffect(() => {
@@ -92,10 +99,16 @@ const Login = () => {
       if (loginType === 'register') {
         await handleRegister(values);
       } else if (loginType === 'forget') {
-        if (verifyStage) {
-          await handleResetPassword(values);
-        } else {
-          await handleVerifyAccount(values);
+        switch (resetStage) {
+          case RESET_STAGES.ACCOUNT_VERIFY:
+            await handleVerifyAccount(values);
+            break;
+          case RESET_STAGES.CODE_VERIFY:
+            await handleVerifyCode(values);
+            break;
+          case RESET_STAGES.RESET_PASSWORD:
+            await handleResetPassword(values);
+            break;
         }
       } else {
         await handleLogin(values);
@@ -235,7 +248,8 @@ const Login = () => {
 
   const retrievePassword = () => {
     setLoginType('forget');
-    setVerifyStage(false);
+    setResetStage(RESET_STAGES.ACCOUNT_VERIFY);
+    setResetAccount('');
     generateMathCaptcha();
   };
 
@@ -249,9 +263,13 @@ const Login = () => {
     try {
       const { success, data } = await LoginApi.verifyAccount(values.account);
       if (success) {
-        message.success('账号信息认证成功');
-        setVerifyStage(true);
-        setResetAccount(data.username);
+        const info = data?.data;
+        const sendSuccess = await handleSendResetCode(info?.email, 0);
+        if (sendSuccess) {
+          setResetAccount(info?.userName);
+          setResetEmail(info?.email);
+          setResetStage(RESET_STAGES.CODE_VERIFY);
+        }
       }
     } catch (e) {
       message.warning('账号信息验证失败');
@@ -265,7 +283,6 @@ const Login = () => {
       message.warning('两次密码输入不一致');
       return;
     }
-
     try {
       const { success } = await LoginApi.resetPassword({
         userName: resetAccount,
@@ -275,12 +292,47 @@ const Login = () => {
       if (success) {
         message.success('密码重置成功');
         setLoginType('account');
-        setVerifyStage(false);
       }
     } catch (e) {
       message.warning('密码重置失败');
     } finally {
       generateMathCaptcha();
+    }
+  };
+
+  const handleSendResetCode = async (email, flag) => {
+    try {
+      const { success } = await LoginApi.sendResetCode(email);
+      if (success) {
+        if (flag === 0) {
+          message.success('账号信息认证成功，验证码已发送至' + email);
+        } else {
+          message.success('验证码已发送至' + email);
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      message.error('验证码发送失败');
+      return false;
+    }
+  };
+
+  const handleVerifyCode = async (values) => {
+    try {
+      const { success } = await LoginApi.verifyResetCode({
+        email: resetEmail,
+        code: values.code,
+      });
+      if (success) {
+        message.success('验证码校验成功');
+        setResetStage(RESET_STAGES.RESET_PASSWORD);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      message.error('验证码验证失败');
+      return false;
     }
   };
 
@@ -326,6 +378,34 @@ const Login = () => {
     </div>
   );
 
+  const verificationCodeForm = (
+    <div style={{ marginTop: 20 }}>
+      <ProFormText
+        name="code"
+        placeholder="请输入6位邮箱验证码"
+        rules={[{ required: true, message: '请输入验证码' }]}
+        fieldProps={{
+          size: 'large',
+          prefix: <SafetyOutlined />,
+          suffix: (
+            <Button
+              type="link"
+              onClick={() => handleSendResetCode(resetEmail, 1)}
+              style={{ height: 25, padding: '0 15px' }}
+            >
+              重新发送
+            </Button>
+          ),
+        }}
+      />
+      <div style={{ margin: '16px 0', textAlign: 'center' }}>
+        <a onClick={() => setResetStage(RESET_STAGES.ACCOUNT_VERIFY)}>
+          返回上一步
+        </a>
+      </div>
+    </div>
+  );
+
   const resetPasswordForm = (
     <div style={{ marginTop: 20 }}>
       <ProFormText
@@ -343,7 +423,12 @@ const Login = () => {
         placeholder="新密码"
         rules={[
           { required: true, message: '请输入新密码' },
-          { min: 6, message: '密码至少6位' },
+          { min: 8, message: '密码至少8位' },
+          { max: 32, message: '密码最多32位' },
+          {
+            pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
+            message: '必须包含大写字母、小写字母和数字',
+          },
         ]}
         fieldProps={{
           size: 'large',
@@ -667,9 +752,11 @@ const Login = () => {
               loginType === 'register'
                 ? '立即注册'
                 : loginType === 'forget'
-                  ? verifyStage
-                    ? '重置密码'
-                    : '立即认证'
+                  ? resetStage === RESET_STAGES.CODE_VERIFY
+                    ? '验证验证码'
+                    : resetStage === RESET_STAGES.RESET_PASSWORD
+                      ? '重置密码'
+                      : '立即认证'
                   : '立即登录',
           },
           resetButtonProps: { style: { display: 'none' } },
@@ -694,7 +781,12 @@ const Login = () => {
             mailbox: mailboxForm,
             phone: phoneForm,
             register: registerForm,
-            forget: verifyStage ? resetPasswordForm : forgetForm,
+            forget:
+              resetStage === RESET_STAGES.ACCOUNT_VERIFY
+                ? forgetForm
+                : resetStage === RESET_STAGES.CODE_VERIFY
+                  ? verificationCodeForm
+                  : resetPasswordForm,
           }[loginType]
         }
       </LoginFormPage>

@@ -105,4 +105,19 @@ export default {
       data,
     });
   },
+
+  verifyResetCode(data) {
+    return request({
+      url: 'user/verifyResetCode',
+      method: 'POST',
+      data,
+    });
+  },
+
+  sendResetCode(email) {
+    return request({
+      url: 'user/sendResetCode?email=' + email,
+      method: 'GET',
+    });
+  },
 };
