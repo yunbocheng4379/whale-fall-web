@@ -21,6 +21,13 @@ const routes = [
     icon: 'icon-home',
     access: 'allowAnyoneAccessRoute',
   },
+  {
+    name: '账号设置',
+    path: '/setting',
+    component: '@/pages/Setting',
+    access: 'allowAnyoneAccessRoute',
+    hideInMenu: true,
+  },
   ...formalRoutes,
   ...managementRoutes,
   {

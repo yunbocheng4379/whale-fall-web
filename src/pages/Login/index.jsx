@@ -2,6 +2,7 @@ import LoginApi from '@/api/LoginApi';
 import AvatarUpload from '@/components/AvatarUpload';
 import Footer from '@/components/Footer';
 import { HOME_PATH, LOGO, TITLE } from '@/config';
+import useCountdown from '@/hooks/useCountdown';
 import buildMenu from '@/utils/buildMenu';
 import { MyIcon } from '@/utils/iconUtil';
 import { baseURL } from '@/utils/request';
@@ -33,32 +34,6 @@ import { Button, Divider, message, Space, Tabs, Tooltip } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { history, useModel } from 'umi';
 
-const useCountdown = (initialSeconds = 60) => {
-  const [countdown, setCountdown] = useState(0);
-  const timerRef = useRef(null);
-
-  const start = (seconds = initialSeconds) => {
-    clearInterval(timerRef.current);
-    setCountdown(seconds);
-
-    timerRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  useEffect(() => {
-    return () => clearInterval(timerRef.current);
-  }, []);
-
-  return { countdown, start };
-};
-
 const RESET_STAGES = {
   ACCOUNT_VERIFY: 1,
   CODE_VERIFY: 2,
@@ -70,7 +45,12 @@ const Login = () => {
   const [loginType, setLoginType] = useState('account');
   const [loginBtnDisabled, setLoginBtnDisabled] = useState(false);
   const [mathCaptcha, setMathCaptcha] = useState({ question: '', answer: '' });
-  const { countdown: captchaCountdown, start: startCountdown } = useCountdown();
+  const {
+    countdown: captchaCountdown,
+    start: startCountdown,
+    reset: resetCountdown,
+  } = useCountdown();
+  const [lastCaptchaType, setLastCaptchaType] = useState('');
   const [resetAccount, setResetAccount] = useState('');
   const [resetEmail, setResetEmail] = useState('');
   const [resetStage, setResetStage] = useState(RESET_STAGES.ACCOUNT_VERIFY);
@@ -91,6 +71,13 @@ const Login = () => {
       question: `${num1} + ${num2} = ?`,
       answer: String(num1 + num2),
     });
+  };
+
+  const handleSwitchLoginType = (type) => {
+    if (type !== lastCaptchaType) {
+      resetCountdown();
+    }
+    setLoginType(type);
   };
 
   const handleSubmit = async (values) => {
@@ -202,6 +189,7 @@ const Login = () => {
         : await LoginApi.sendSmsCode(info);
       if (success) {
         message.success('证码已发送至' + info + '，请注意查收');
+        setLastCaptchaType(isEmail ? 'mailbox' : 'phone');
         startCountdown();
         return Promise.resolve();
       } else {
@@ -224,7 +212,7 @@ const Login = () => {
           }}
         >
           <Space>
-            <a onClick={() => setLoginType('phone')}>手机号登录</a>
+            <a onClick={() => handleSwitchLoginType('phone')}>手机号登录</a>
             <Divider type="vertical" style={{ marginLeft: 100 }} />
             <span>
               没有账号？<a onClick={() => setLoginType('register')}>点此注册</a>
@@ -519,6 +507,7 @@ const Login = () => {
           size: 'large',
           prefix: <NumberOutlined />,
         }}
+        rules={[{ required: true, message: '请输入验证码' }]}
         placeholder="验证码"
         phoneName="email"
         captchaProps={{
@@ -556,6 +545,7 @@ const Login = () => {
           size: 'large',
           prefix: <NumberOutlined />,
         }}
+        rules={[{ required: true, message: '请输入验证码' }]}
         phoneName="phone"
         placeholder="验证码"
         captchaProps={{
@@ -772,7 +762,7 @@ const Login = () => {
               { label: '账号登录', key: 'account' },
               { label: '邮箱登录', key: 'mailbox' },
             ]}
-            onChange={setLoginType}
+            onChange={(values) => handleSwitchLoginType(values)}
           />
         )}
         {

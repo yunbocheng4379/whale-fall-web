@@ -1,6 +1,13 @@
 import LoginApi from '@/api/LoginApi';
 import FullscreenAvatar from '@/components/FullscreenAvatar';
-import { HOME_PATH, LOGIN_PATH, LOGO, TITLE } from '@/config';
+import {
+  CALLBACK_PATH,
+  HOME_PATH,
+  LOGIN_PATH,
+  LOGO,
+  SETTING_PATH,
+  TITLE,
+} from '@/config';
 import buildMenu from '@/utils/buildMenu';
 import { MyIcon } from '@/utils/iconUtil';
 import {
@@ -44,13 +51,16 @@ export async function getInitialState() {
   // 未认证
   if (!getToken()) {
     // 当前页为登录页
-    if (history.location.pathname === LOGIN_PATH) {
+    let path = history.location.pathname;
+    if (path === LOGIN_PATH) {
       message.warning('未登录，请重新登录');
     } else {
-      removeUsername();
-      removeUserRole();
-      removeAvatarUrl();
-      message.warning('账号身份已过期，请重新登录');
+      if (path !== CALLBACK_PATH) {
+        removeUsername();
+        removeUserRole();
+        removeAvatarUrl();
+        message.warning('账号身份已过期，请重新登录');
+      }
     }
     return defaultInitialState;
   }
@@ -94,6 +104,16 @@ export const layout = ({ initialState }) => {
                     label: '劈里啪啦',
                     onClick: () => {
                       message.success('放花咯');
+                    },
+                  },
+                  {
+                    key: 'settings',
+                    icon: (
+                      <MyIcon type={'icon-settings'} style={{ fontSize: 20 }} />
+                    ),
+                    label: '账号设置',
+                    onClick: () => {
+                      history.push(SETTING_PATH);
                     },
                   },
                   //管理员可以看到后台管理
