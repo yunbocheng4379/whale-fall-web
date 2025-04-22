@@ -53,4 +53,12 @@ export default {
       data,
     });
   },
+
+  updateByPassword(data) {
+    return request({
+      url: 'account/updateByPassword',
+      method: 'POST',
+      data,
+    });
+  },
 };

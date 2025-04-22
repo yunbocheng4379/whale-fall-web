@@ -41,8 +41,13 @@ const SettingPage = () => {
   const [lastCaptchaType, setLastCaptchaType] = useState('');
   const [thirdPartyData, setThirdPartyData] = useState([]);
   const [oldEmail, setOldEmail] = useState('');
+  const [oldPassword, setOldPassword] = useState('');
   const [oldPhone, setOldPhone] = useState('');
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    fetchUserInfo().then((r) => {});
+  }, []);
 
   const handleSwitchLoginType = (type) => {
     if (type !== lastCaptchaType) {
@@ -58,6 +63,7 @@ const SettingPage = () => {
       setThirdPartyData(userInfo?.userAuthList);
       setOldPhone(userInfo?.phone);
       setOldEmail(userInfo?.email);
+      setOldPassword(userInfo?.password);
       setUserInfo({
         avatarUrl: userInfo?.avatarUrl,
         phone:
@@ -77,26 +83,6 @@ const SettingPage = () => {
     }
   };
 
-  useEffect(() => {
-    fetchUserInfo().then((r) => {});
-  }, []);
-
-  // 处理验证码发送
-  const handleSendCode = async () => {
-    try {
-      await updateAccountInfo({
-        type: 'send_verify_code',
-        field: currentField,
-        account: userInfo.username,
-      });
-      message.success('验证码已发送至您的原联系方式');
-      setCountdown(60);
-    } catch (error) {
-      message.error(error.message || '验证码发送失败');
-    }
-  };
-
-  // 处理表单提交
   const handleSubmit = async (values) => {
     if (currentField !== 'password') {
       if (currentStep === 1) {
@@ -135,23 +121,22 @@ const SettingPage = () => {
         }
       }
     } else {
-      // 密码提交
-      await updateAccountInfo(payload);
-      message.success('密码修改成功，请重新登录');
-      removeToken();
-      removeUsername();
-      removeUserRole();
-      removeAvatarUrl();
-      history.push(LOGIN_PATH);
+      const { success } = await AccountApi.updateByPassword({
+        userName: getUsername(),
+        password: values?.password,
+        newPassword: values?.newPassword,
+      });
+      if (success) {
+        message.success('密码修改成功，请重新登录');
+        removeToken();
+        removeUsername();
+        removeUserRole();
+        removeAvatarUrl();
+        history.push(LOGIN_PATH);
+      }
     }
-    const payload = {
-      ...values,
-      type: currentField,
-      account: userInfo.username,
-    };
   };
 
-  // 打开修改弹窗
   const showModifyModal = (field) => {
     handleSwitchLoginType(field);
     setLastCaptchaType(field);
@@ -419,8 +404,27 @@ const SettingPage = () => {
         content: (
           <>
             <ProFormText.Password
-              name="oldPassword"
-              label="原密码"
+              name="password"
+              label={
+                <label>
+                  原手机号&nbsp;
+                  <Tooltip
+                    color={'yellow'}
+                    title={
+                      <a
+                        href="http://www.beian.gov.cn"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#000000' }}
+                      >
+                        忘记密码？点此查看
+                      </a>
+                    }
+                  >
+                    <QuestionCircleOutlined style={{ color: 'green' }} />
+                  </Tooltip>
+                </label>
+              }
               rules={[{ required: true, message: '请输入原密码' }]}
               fieldProps={{
                 prefix: <LockOutlined />,
@@ -431,7 +435,12 @@ const SettingPage = () => {
               label="新密码"
               rules={[
                 { required: true, message: '请输入新密码' },
-                { min: 8, message: '至少8位字符' },
+                { min: 8, message: '密码至少8位' },
+                { max: 32, message: '密码最多32位' },
+                {
+                  pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
+                  message: '必须包含大写字母、小写字母和数字',
+                },
               ]}
               fieldProps={{
                 prefix: <LockOutlined />,
