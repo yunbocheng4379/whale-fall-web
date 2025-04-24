@@ -62,6 +62,14 @@ export default {
     });
   },
 
+  updateByAvatarUrl(data) {
+    return request({
+      url: 'account/updateByAvatarUrl',
+      method: 'POST',
+      data,
+    });
+  },
+
   handleBind(data) {
     return request({
       url: 'account/handleBind',
