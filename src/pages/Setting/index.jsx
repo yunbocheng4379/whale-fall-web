@@ -21,16 +21,29 @@ import {
   ProCard,
   ProForm,
   ProFormCaptcha,
+  ProFormItem,
   ProFormText,
   ProTable,
 } from '@ant-design/pro-components';
-import { Alert, Button, Form, Input, message, Space, Tag, Tooltip } from 'antd';
+import {
+  Alert,
+  Button,
+  Form,
+  Input,
+  message,
+  Popconfirm,
+  Space,
+  Tag,
+  Tooltip,
+} from 'antd';
 import { useEffect, useState } from 'react';
+import Marquee from 'react-fast-marquee';
 import { history } from 'umi';
 
 const SettingPage = () => {
   const [userInfo, setUserInfo] = useState({});
   const [visible, setVisible] = useState(false);
+  const [destroyVisible, setDestroyVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [currentField, setCurrentField] = useState('');
   const {
@@ -40,8 +53,8 @@ const SettingPage = () => {
   } = useCountdown();
   const [lastCaptchaType, setLastCaptchaType] = useState('');
   const [thirdPartyData, setThirdPartyData] = useState([]);
+  const [userId, setUserId] = useState(0);
   const [oldEmail, setOldEmail] = useState('');
-  const [oldPassword, setOldPassword] = useState('');
   const [oldPhone, setOldPhone] = useState('');
   const [form] = Form.useForm();
 
@@ -55,15 +68,112 @@ const SettingPage = () => {
     }
   };
 
+  const threePartyColumns = [
+    {
+      title: '用户id',
+      dataIndex: 'userId',
+      width: 120,
+      align: 'center',
+      hidden: true,
+    },
+    {
+      title: '平台名称',
+      dataIndex: 'authType',
+      width: 120,
+      align: 'center',
+      render: (text) => <strong>{text}</strong>,
+    },
+    {
+      title: '绑定账号',
+      dataIndex: 'authName',
+      width: 120,
+      align: 'center',
+      render: (text) => <strong>{text}</strong>,
+    },
+    {
+      title: '绑定状态',
+      dataIndex: 'flag',
+      width: 100,
+      align: 'center',
+      render: (flag) => (
+        <Tag color={flag ? 'success' : 'default'}>
+          {flag ? '已绑定' : '未绑定'}
+        </Tag>
+      ),
+    },
+    {
+      title: '绑定时间',
+      dataIndex: 'createTime',
+      width: 150,
+      align: 'center',
+    },
+    {
+      title: '操作',
+      width: 120,
+      align: 'center',
+      render: (_, record) => (
+        <Space>
+          {record.flag ? (
+            <Popconfirm
+              title={'确定要解绑【' + record.authType + '】？'}
+              onConfirm={() => handleUnBind(record)}
+              okText="确定"
+              cancelText="取消"
+              placement="top"
+            >
+              <Button danger size="small">
+                解除绑定
+              </Button>
+            </Popconfirm>
+          ) : (
+            <Button
+              color="primary"
+              variant="outlined"
+              size="small"
+              onClick={() => handleBind(record)}
+            >
+              绑定
+            </Button>
+          )}
+        </Space>
+      ),
+    },
+  ];
+
+  const handleUnBind = async (record) => {
+    const { success } = await AccountApi.handleUnBind({
+      authType: record.authType,
+      id: record.userId,
+      authName: record.authName,
+    });
+    if (success) {
+      message.success('账号与' + record.authType + '平台解除三方认证成功');
+      fetchUserInfo().then(() => {});
+    }
+  };
+
+  const handleBind = async (record) => {
+    const { success } = await AccountApi.handleBind({
+      authType: record.authType,
+      id: record.userId,
+      authName: record.authName,
+    });
+    if (success) {
+      message.success('账号与' + record.authType + '平台绑定三方认证成功');
+      fetchUserInfo().then(() => {});
+    }
+  };
+
   const fetchUserInfo = async () => {
     const { success, data } =
       await AccountApi.getCurrentUserInfo(getUsername());
     if (success) {
       let userInfo = data.data;
+      console.log(userInfo);
       setThirdPartyData(userInfo?.userAuthList);
       setOldPhone(userInfo?.phone);
       setOldEmail(userInfo?.email);
-      setOldPassword(userInfo?.password);
+      setUserId(userInfo?.id);
       setUserInfo({
         avatarUrl: userInfo?.avatarUrl,
         phone:
@@ -115,7 +225,7 @@ const SettingPage = () => {
           message.success(
             currentField === 'email' ? '邮箱修改成功' : '手机号修改成功',
           );
-          fetchUserInfo().then((r) => {});
+          fetchUserInfo().then(() => {});
           setVisible(false);
           setCurrentStep(1);
         }
@@ -178,6 +288,24 @@ const SettingPage = () => {
     }
   };
 
+  const deleteAccount = async (values) => {
+    console.log(values);
+    const { success } = await AccountApi.deleteAccount({
+      userName: getUsername(),
+      password: values?.password,
+      id: userId,
+    });
+    if (success) {
+      setDestroyVisible(false);
+      message.success('账户注销成功');
+      removeToken();
+      removeUserRole();
+      removeAvatarUrl();
+      removeUsername();
+      history.push(LOGIN_PATH);
+    }
+  };
+
   const modalSteps = {
     phone: [
       {
@@ -197,7 +325,11 @@ const SettingPage = () => {
                 你正在进行敏感操作，继续操作前请验证您的身份
               </div>
               <Alert
-                message="更换号码后，你将无法通过 【原手机号+验证码】登录"
+                message={
+                  <Marquee pauseOnHover gradient={false}>
+                    更换号码后，你将无法通过 【原手机号+验证码】登录
+                  </Marquee>
+                }
                 type="warning"
                 showIcon
                 style={{
@@ -261,7 +393,12 @@ const SettingPage = () => {
         content: (
           <>
             <Alert
-              message="更换手机号后，你将通过 【新手机号+验证码】登录，【旧手机号】将失效"
+              message={
+                <Marquee pauseOnHover gradient={false}>
+                  更换手机号后，你将通过
+                  【新手机号+验证码】登录，【旧手机号】将失效
+                </Marquee>
+              }
               type="success"
               showIcon
               style={{
@@ -303,7 +440,11 @@ const SettingPage = () => {
                 你正在进行敏感操作，继续操作前请验证您的身份
               </div>
               <Alert
-                message="更换邮箱后，你将无法通过 【原邮箱+验证码】登录"
+                message={
+                  <Marquee pauseOnHover gradient={false}>
+                    更换邮箱后，你将无法通过 【原邮箱+验证码】登录
+                  </Marquee>
+                }
                 type="warning"
                 showIcon
                 style={{
@@ -367,7 +508,11 @@ const SettingPage = () => {
         content: (
           <>
             <Alert
-              message="更换邮箱后，你将通过 【新邮箱+验证码】登录，【旧邮箱】将失效"
+              message={
+                <Marquee pauseOnHover gradient={false}>
+                  更换邮箱后，你将通过 【新邮箱+验证码】登录，【旧邮箱】将失效
+                </Marquee>
+              }
               type="success"
               showIcon
               style={{
@@ -403,33 +548,50 @@ const SettingPage = () => {
         title: '修改登录密码',
         content: (
           <>
-            <ProFormText.Password
-              name="password"
-              label={
-                <label>
-                  原手机号&nbsp;
-                  <Tooltip
-                    color={'yellow'}
-                    title={
-                      <a
-                        href="http://www.beian.gov.cn"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: '#000000' }}
-                      >
-                        忘记密码？点此查看
-                      </a>
-                    }
-                  >
-                    <QuestionCircleOutlined style={{ color: 'green' }} />
-                  </Tooltip>
-                </label>
+            <Alert
+              message={
+                <Marquee pauseOnHover gradient={false}>
+                  你正在进行敏感操作，输入原密码以验证您的身份，验证通过后可修改密码
+                </Marquee>
               }
-              rules={[{ required: true, message: '请输入原密码' }]}
-              fieldProps={{
-                prefix: <LockOutlined />,
+              type="warning"
+              showIcon
+              style={{
+                backgroundColor: '#fffbe6',
+                border: '1px solid #ffe58f',
+                borderRadius: 4,
+                marginTop: 20,
               }}
             />
+            <ProFormItem style={{ marginTop: 20, marginBottom: 0 }}>
+              <ProFormText.Password
+                name="password"
+                label={
+                  <label>
+                    原密码&nbsp;
+                    <Tooltip
+                      color={'yellow'}
+                      title={
+                        <a
+                          href="http://www.beian.gov.cn"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#000000' }}
+                        >
+                          忘记密码？点此查看
+                        </a>
+                      }
+                    >
+                      <QuestionCircleOutlined style={{ color: 'green' }} />
+                    </Tooltip>
+                  </label>
+                }
+                rules={[{ required: true, message: '请输入原密码' }]}
+                fieldProps={{
+                  prefix: <LockOutlined />,
+                }}
+              />
+            </ProFormItem>
             <ProFormText.Password
               name="newPassword"
               label="新密码"
@@ -530,7 +692,15 @@ const SettingPage = () => {
         <ModalForm
           title={modalSteps[currentField]?.[currentStep - 1]?.title}
           open={visible}
-          width={600}
+          width={500}
+          modalProps={{
+            closable: true,
+            onCancel: () => {
+              setVisible(false);
+              setCurrentStep(1);
+            },
+            maskClosable: false,
+          }}
           submitter={{
             render: (props, values) => {
               return [
@@ -570,6 +740,66 @@ const SettingPage = () => {
           {modalSteps[currentField]?.[currentStep - 1]?.content}
         </ModalForm>
 
+        <ModalForm
+          title="账号安全验证"
+          open={destroyVisible}
+          width={500}
+          modalProps={{
+            closable: true,
+            onCancel: () => {
+              setDestroyVisible(false);
+            },
+            maskClosable: false,
+          }}
+          layout="vertical"
+          onFinish={(values) => deleteAccount(values)}
+          form={form}
+        >
+          <Alert
+            message={
+              <Marquee pauseOnHover gradient={false}>
+                你正在进行敏感操作，输入密码以验证您的身份，验证通过后可以注销此账号
+              </Marquee>
+            }
+            type="error"
+            showIcon
+            style={{
+              marginTop: 20,
+              border: '1px solid #ffe58f',
+              borderRadius: 4,
+            }}
+          />
+          <ProFormItem style={{ marginTop: 20 }}>
+            <ProFormText.Password
+              name="password"
+              label={
+                <label>
+                  密码&nbsp;
+                  <Tooltip
+                    color={'yellow'}
+                    title={
+                      <a
+                        href="http://www.beian.gov.cn"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#000000' }}
+                      >
+                        忘记密码？点此查看
+                      </a>
+                    }
+                  >
+                    <QuestionCircleOutlined style={{ color: 'green' }} />
+                  </Tooltip>
+                </label>
+              }
+              rules={[{ required: true, message: '请输入密码' }]}
+              fieldProps={{
+                prefix: <LockOutlined />,
+              }}
+            />
+          </ProFormItem>
+        </ModalForm>
+
         {/* 第三方账号绑定区块 */}
         <ProCard
           title={
@@ -597,62 +827,49 @@ const SettingPage = () => {
             search={false}
             toolBarRender={false}
             pagination={false}
-            columns={[
-              {
-                title: '平台名称',
-                dataIndex: 'authType',
-                width: 120,
-                render: (text) => <strong>{text}</strong>,
-              },
-              {
-                title: '绑定账号',
-                dataIndex: 'authName',
-                width: 120,
-                render: (text) => <strong>{text}</strong>,
-              },
-              {
-                title: '绑定状态',
-                dataIndex: 'flag',
-                width: 100,
-                render: (flag) => (
-                  <Tag color={flag ? 'success' : 'default'}>
-                    {flag ? '已绑定' : '未绑定'}
-                  </Tag>
-                ),
-              },
-              {
-                title: '绑定时间',
-                dataIndex: 'createTime',
-                width: 150,
-              },
-              {
-                title: '操作',
-                width: 120,
-                render: (_, record) => (
-                  <Space>
-                    {record.flag ? (
-                      <Button
-                        danger
-                        size="small"
-                        onClick={() => handleBindUnbind(record.platform)}
-                      >
-                        解绑
-                      </Button>
-                    ) : (
-                      <Button
-                        type="primary"
-                        size="small"
-                        onClick={() => handleBindUnbind(record.platform)}
-                      >
-                        绑定
-                      </Button>
-                    )}
-                  </Space>
-                ),
-              },
-            ]}
+            columns={threePartyColumns}
           />
         </ProCard>
+      </ProCard>
+
+      {/* 账号注销 */}
+      <ProCard
+        title={
+          <>
+            <Space>
+              <div>
+                <b>账号注销</b>
+              </div>
+              <Tooltip title="账号注销后账户所有数据将被销毁，请谨慎操作">
+                <QuestionCircleOutlined />
+              </Tooltip>
+            </Space>
+          </>
+        }
+        bordered
+        headerBordered
+        style={{ borderRadius: 8 }}
+      >
+        <Alert
+          message="注销〖鲸鱼〗帐号是不可恢复的操作，你应自行备份〖鲸鱼〗帐号相关的信息和数据。注销帐号后你将丢失该帐号自注册以来产生的数据和记录，注销后相关数据将不可恢复。"
+          type="error"
+          showIcon
+          style={{
+            border: '1px solid #ffe58f',
+            borderRadius: 4,
+          }}
+          action={
+            <Button
+              size="small"
+              danger
+              onClick={() => {
+                setDestroyVisible(true);
+              }}
+            >
+              注销
+            </Button>
+          }
+        />
       </ProCard>
     </PageContainer>
   );

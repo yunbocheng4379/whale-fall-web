@@ -75,7 +75,6 @@ const AvatarUpload = ({ onUploadSuccess }) => {
           icon={!imageUrl && <UserOutlined />}
         />
 
-        {/* 删除按钮 */}
         {imageUrl && hovered && (
           <Popconfirm
             title="确定要删除头像吗？"

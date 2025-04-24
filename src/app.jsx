@@ -149,7 +149,7 @@ export const layout = ({ initialState }) => {
                             location.reload();
                           },
                         }
-                    : {},
+                    : null,
                   {
                     key: 'logout',
                     icon: (

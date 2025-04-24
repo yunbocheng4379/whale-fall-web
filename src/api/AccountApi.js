@@ -61,4 +61,28 @@ export default {
       data,
     });
   },
+
+  handleBind(data) {
+    return request({
+      url: 'account/handleBind',
+      method: 'POST',
+      data,
+    });
+  },
+
+  handleUnBind(data) {
+    return request({
+      url: 'account/handleUnBind',
+      method: 'POST',
+      data,
+    });
+  },
+
+  deleteAccount(data) {
+    return request({
+      url: 'account/deleteAccount',
+      method: 'POST',
+      data,
+    });
+  },
 };

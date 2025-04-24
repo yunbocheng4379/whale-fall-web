@@ -20,7 +20,7 @@ function setCounter(value) {
 
 function getAvatarUrl() {
   try {
-    return localStorage.getItem(AVATAR) === null
+    return localStorage.getItem(AVATAR) === 'undefined'
       ? DEFAULT_AVATAR
       : localStorage.getItem(AVATAR);
   } catch (error) {
