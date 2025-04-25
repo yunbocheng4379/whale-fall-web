@@ -645,6 +645,23 @@ const SettingPage = () => {
     ],
   };
 
+  const handleBindGitHub = () => {
+    // 绑定方式后续研究
+    console.log('handleBindGitHub')
+  }
+
+  const handleBindGitee = () => {
+    console.log('handleBindGitee')
+  }
+
+  const handleBindGitLab = () => {
+    console.log('handleBindGitLab')
+  }
+
+  const handleBindFeiShu = () => {
+    console.log('handleBindFeiShu')
+  }
+
   return (
     <PageContainer title={false}>
       <ProCard gutter={[24, 24]} wrap bodyStyle={{ padding: 0 }}>
@@ -805,6 +822,46 @@ const SettingPage = () => {
               pagination={false}
               columns={threePartyColumns}
             />
+            <div style={{ paddingTop: '40px' , borderTop: '1px solid #f0f0f0' }}>
+              <div style={{fontWeight: 'bold', fontSize: 15}}>你还可以绑定以下第三方帐号</div>
+              <Space size="large" style={{marginTop: 20}}>
+                {['github', 'gitee', 'gitlab', 'feishu'].map(authType => {
+                  const isBound = thirdPartyData.some(item => item.authType === authType);
+                  if (isBound) return null;
+
+                  return (
+                    <Tooltip key={authType} title={`绑定${authType}账号`}>
+                      <div
+                        style={{
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 100,
+                          transition: 'all 0.3s',
+                          '&:hover': {
+                            transform: 'scale(1.1)'
+                          },
+                          fontSize: 30
+                        }}
+                        onClick={() => {
+                          if (authType === 'github') handleBindGitHub();
+                          else if (authType === 'gitee') handleBindGitee();
+                          else if (authType === 'gitlab') handleBindGitLab();
+                          else if (authType === 'feishu') handleBindFeiShu();
+                        }}
+                      >
+                        {authType === 'github' && <MyIcon type={'icon-github'} />}
+                        {authType === 'gitee' && <MyIcon type={'icon-gitee'} />}
+                        {authType === 'gitlab' && <MyIcon type={'icon-gitlab'} />}
+                        {authType === 'feishu' && <MyIcon type={'icon-feishu'} />}
+                        {!['github', 'gitee', 'gitlab', 'feishu'].includes(authType) && authType}
+                      </div>
+                    </Tooltip>
+                  );
+                })}
+              </Space>
+            </div>
           </ProCard>
           <ProCard
             title={
