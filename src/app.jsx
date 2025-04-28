@@ -28,6 +28,7 @@ import { DefaultFooter } from '@ant-design/pro-components';
 import { Dropdown } from 'antd';
 import message from 'antd/es/message';
 import { history } from 'umi';
+import SearchMenu from "@/components/SearchMenu";
 
 const defaultInitialState = {
   currentUser: { name: '临时用户' },
@@ -45,6 +46,15 @@ const defaultInitialState = {
   },
   menuData: [],
   routeList: [],
+};
+
+let childrenMenuList = []
+const getRootMenuAndChildrenMenu = (menuList) => {
+  menuList.forEach((menu) => {
+    if (menu.children) childrenMenuList.push({name: menu?.text, path: menu?.route, icon: menu?.icon});
+    if (!menu.children) return childrenMenuList.push({name: menu?.text, path: menu?.route, icon: menu?.icon});
+    return getRootMenuAndChildrenMenu(menu.children);
+  });
 };
 
 export async function getInitialState() {
@@ -69,6 +79,7 @@ export async function getInitialState() {
     menuType: getCounter(),
   });
   const menuList = data.data;
+  getRootMenuAndChildrenMenu(menuList)
   if (success && menuList.length > 0) {
     let { menuData, routeList } = buildMenu(menuList);
     return {
@@ -92,6 +103,7 @@ export const layout = ({ initialState }) => {
       render: (props, dom) => {
         return (
           <>
+            <SearchMenu menuData={childrenMenuList} />
             <FullscreenAvatar />
             <Dropdown
               menu={{
