@@ -1,8 +1,10 @@
 import AccountApi from '@/api/AccountApi';
 import { withAuth } from '@/components/Auth';
+import AvatarUpload from '@/components/AvatarUpload';
 import { LOGIN_PATH } from '@/config';
 import useCountdown from '@/hooks/useCountdown';
-import {removeAvatarUrl, setAvatarUrl} from '@/utils/storage';
+import { MyIcon } from '@/utils/iconUtil';
+import { removeAvatarUrl, setAvatarUrl } from '@/utils/storage';
 import {
   getUsername,
   removeToken,
@@ -27,7 +29,8 @@ import {
 } from '@ant-design/pro-components';
 import {
   Alert,
-  Button, Descriptions,
+  Button,
+  Descriptions,
   Form,
   Input,
   message,
@@ -39,8 +42,6 @@ import {
 import { useEffect, useState } from 'react';
 import Marquee from 'react-fast-marquee';
 import { history } from 'umi';
-import AvatarUpload from "@/components/AvatarUpload";
-import {MyIcon} from "@/utils/iconUtil";
 
 const SettingPage = () => {
   const [userInfo, setUserInfo] = useState({});
@@ -189,7 +190,7 @@ const SettingPage = () => {
             /^([^@])(.*)([^@])(@.*)$/,
             (_, g1, g2, g3, g4) => g1 + '*'.repeat(g2.length) + g3 + g4,
           ) ?? '未知号码',
-        password: '********'
+        password: '********',
       });
     }
   };
@@ -312,8 +313,8 @@ const SettingPage = () => {
       avatarUrl: url,
     });
     if (success) {
-      message.success('头像修改成功')
-      setAvatarUrl(url)
+      message.success('头像修改成功');
+      setAvatarUrl(url);
     }
   };
 
@@ -338,7 +339,8 @@ const SettingPage = () => {
               <Alert
                 message={
                   <Marquee pauseOnHover gradient={false}>
-                    更换号码后，你将无法通过 【原手机号+验证码】登录
+                    更换号码后，你将无法通过
+                    【原手机号+验证码】登录。&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                   </Marquee>
                 }
                 type="warning"
@@ -406,8 +408,7 @@ const SettingPage = () => {
             <Alert
               message={
                 <Marquee pauseOnHover gradient={false}>
-                  更换手机号后，你将通过
-                  【新手机号+验证码】登录，【旧手机号】将失效
+                  更换手机号后，你将通过【新手机号+验证码】登录，【旧手机号】将失效。&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 </Marquee>
               }
               type="success"
@@ -453,7 +454,8 @@ const SettingPage = () => {
               <Alert
                 message={
                   <Marquee pauseOnHover gradient={false}>
-                    更换邮箱后，你将无法通过 【原邮箱+验证码】登录
+                    更换邮箱后，你将无法通过
+                    【原邮箱+验证码】登录。&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                   </Marquee>
                 }
                 type="warning"
@@ -521,7 +523,8 @@ const SettingPage = () => {
             <Alert
               message={
                 <Marquee pauseOnHover gradient={false}>
-                  更换邮箱后，你将通过 【新邮箱+验证码】登录，【旧邮箱】将失效
+                  更换邮箱后，你将通过
+                  【新邮箱+验证码】登录，【旧邮箱】将失效。&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 </Marquee>
               }
               type="success"
@@ -562,7 +565,7 @@ const SettingPage = () => {
             <Alert
               message={
                 <Marquee pauseOnHover gradient={false}>
-                  你正在进行敏感操作，输入原密码以验证您的身份，验证通过后可修改密码
+                  您正在进行敏感操作，输入原密码以验证您的身份，验证通过后可修改密码。&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 </Marquee>
               }
               type="warning"
@@ -622,9 +625,7 @@ const SettingPage = () => {
             <ProFormText.Password
               name="confirmPassword"
               label="确认密码"
-              dependencies={[
-                'newPassword'
-              ]}
+              dependencies={['newPassword']}
               rules={[
                 ({ getFieldValue }) => ({
                   validator(_, value) {
@@ -647,20 +648,20 @@ const SettingPage = () => {
 
   const handleBindGitHub = () => {
     // 绑定方式后续研究
-    console.log('handleBindGitHub')
-  }
+    console.log('handleBindGitHub');
+  };
 
   const handleBindGitee = () => {
-    console.log('handleBindGitee')
-  }
+    console.log('handleBindGitee');
+  };
 
   const handleBindGitLab = () => {
-    console.log('handleBindGitLab')
-  }
+    console.log('handleBindGitLab');
+  };
 
   const handleBindFeiShu = () => {
-    console.log('handleBindFeiShu')
-  }
+    console.log('handleBindFeiShu');
+  };
 
   return (
     <PageContainer title={false}>
@@ -674,7 +675,7 @@ const SettingPage = () => {
             style={{
               borderRadius: 10,
               border: '2px solid #d9d9d9',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             }}
             headStyle={{
               borderRadius: '8px 8px 0 0',
@@ -683,7 +684,7 @@ const SettingPage = () => {
               background: '#d996cb',
               overflow: 'hidden',
               position: 'relative',
-              zIndex: 1
+              zIndex: 1,
             }}
           >
             <ProFormItem>
@@ -691,13 +692,69 @@ const SettingPage = () => {
             </ProFormItem>
             <ProFormItem>
               <Descriptions column={1}>
-                <Descriptions.Item label={<><MyIcon type={'icon-user'} /> <b>用户名称</b></>}>{userInfo?.userName}</Descriptions.Item>
-                <Descriptions.Item label={<><MyIcon type={'icon-phone'} /> <b>手机号码</b></>}>{userInfo?.phone}</Descriptions.Item>
-                <Descriptions.Item label={<><MyIcon type={'icon-email'} /> <b>用户邮箱</b></>}>{userInfo?.email}</Descriptions.Item>
-                <Descriptions.Item label={<><MyIcon type={'icon-user_role'} /> <b>所属角色</b></>}>{userInfo?.roleName}</Descriptions.Item>
-                <Descriptions.Item label={<><MyIcon type={'icon-sign'} /> <b>个人签名</b></>}>{userInfo?.sign}</Descriptions.Item>
-                <Descriptions.Item label={<><MyIcon type={'icon-create_time'} /> <b>创建时间</b></>}>{userInfo?.createTime}</Descriptions.Item>
-                <Descriptions.Item label={<><MyIcon type={'icon-update_time'} /> <b>更改时间</b></>}>{userInfo?.updateTime}</Descriptions.Item>
+                <Descriptions.Item
+                  label={
+                    <>
+                      <MyIcon type={'icon-user'} /> <b>用户名称</b>
+                    </>
+                  }
+                >
+                  {userInfo?.userName}
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={
+                    <>
+                      <MyIcon type={'icon-phone'} /> <b>手机号码</b>
+                    </>
+                  }
+                >
+                  {userInfo?.phone}
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={
+                    <>
+                      <MyIcon type={'icon-email'} /> <b>用户邮箱</b>
+                    </>
+                  }
+                >
+                  {userInfo?.email}
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={
+                    <>
+                      <MyIcon type={'icon-user_role'} /> <b>所属角色</b>
+                    </>
+                  }
+                >
+                  {userInfo?.roleName}
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={
+                    <>
+                      <MyIcon type={'icon-sign'} /> <b>个人签名</b>
+                    </>
+                  }
+                >
+                  {userInfo?.sign}
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={
+                    <>
+                      <MyIcon type={'icon-create_time'} /> <b>创建时间</b>
+                    </>
+                  }
+                >
+                  {userInfo?.createTime}
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={
+                    <>
+                      <MyIcon type={'icon-update_time'} /> <b>更改时间</b>
+                    </>
+                  }
+                >
+                  {userInfo?.updateTime}
+                </Descriptions.Item>
               </Descriptions>
             </ProFormItem>
           </ProCard>
@@ -720,7 +777,7 @@ const SettingPage = () => {
             style={{
               borderRadius: 10,
               border: '2px solid #d9d9d9',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             }}
             headStyle={{
               borderRadius: '8px 8px 0 0',
@@ -729,7 +786,7 @@ const SettingPage = () => {
               background: '#d9896c',
               overflow: 'hidden',
               position: 'relative',
-              zIndex: 1
+              zIndex: 1,
             }}
           >
             <ProForm submitter={false}>
@@ -739,7 +796,10 @@ const SettingPage = () => {
                   value: userInfo.phone,
                   readOnly: true,
                   suffix: (
-                    <Button type="link" onClick={() => showModifyModal('phone')}>
+                    <Button
+                      type="link"
+                      onClick={() => showModifyModal('phone')}
+                    >
                       更换号码
                     </Button>
                   ),
@@ -753,7 +813,10 @@ const SettingPage = () => {
                   value: userInfo.email,
                   readOnly: true,
                   suffix: (
-                    <Button type="link" onClick={() => showModifyModal('email')}>
+                    <Button
+                      type="link"
+                      onClick={() => showModifyModal('email')}
+                    >
                       更换邮箱
                     </Button>
                   ),
@@ -780,7 +843,12 @@ const SettingPage = () => {
           </ProCard>
         </ProCard>
 
-        <ProCard colSpan={24} direction="column" gutter={[24, 24]} bodyStyle={{ padding: 0 }}>
+        <ProCard
+          colSpan={24}
+          direction="column"
+          gutter={[24, 24]}
+          bodyStyle={{ padding: 0 }}
+        >
           <ProCard
             title={
               <>
@@ -802,7 +870,7 @@ const SettingPage = () => {
             style={{
               borderRadius: 10,
               border: '2px solid #d9d9d9',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             }}
             headStyle={{
               borderRadius: '8px 8px 0 0',
@@ -811,7 +879,7 @@ const SettingPage = () => {
               background: '#a1cf9b',
               overflow: 'hidden',
               position: 'relative',
-              zIndex: 1
+              zIndex: 1,
             }}
           >
             <ProTable
@@ -822,11 +890,15 @@ const SettingPage = () => {
               pagination={false}
               columns={threePartyColumns}
             />
-            <div style={{ paddingTop: '40px' , borderTop: '1px solid #f0f0f0' }}>
-              <div style={{fontWeight: 'bold', fontSize: 15}}>你还可以绑定以下第三方帐号</div>
-              <Space size="large" style={{marginTop: 20}}>
-                {['github', 'gitee', 'gitlab', 'feishu'].map(authType => {
-                  const isBound = thirdPartyData.some(item => item.authType === authType);
+            <div style={{ paddingTop: '40px', borderTop: '1px solid #f0f0f0' }}>
+              <div style={{ fontWeight: 'bold', fontSize: 15 }}>
+                你还可以绑定以下第三方帐号
+              </div>
+              <Space size="large" style={{ marginTop: 20 }}>
+                {['github', 'gitee', 'gitlab', 'feishu'].map((authType) => {
+                  const isBound = thirdPartyData.some(
+                    (item) => item.authType === authType,
+                  );
                   if (isBound) return null;
 
                   return (
@@ -840,9 +912,9 @@ const SettingPage = () => {
                           gap: 100,
                           transition: 'all 0.3s',
                           '&:hover': {
-                            transform: 'scale(1.1)'
+                            transform: 'scale(1.1)',
                           },
-                          fontSize: 30
+                          fontSize: 30,
                         }}
                         onClick={() => {
                           if (authType === 'github') handleBindGitHub();
@@ -851,11 +923,19 @@ const SettingPage = () => {
                           else if (authType === 'feishu') handleBindFeiShu();
                         }}
                       >
-                        {authType === 'github' && <MyIcon type={'icon-github'} />}
+                        {authType === 'github' && (
+                          <MyIcon type={'icon-github'} />
+                        )}
                         {authType === 'gitee' && <MyIcon type={'icon-gitee'} />}
-                        {authType === 'gitlab' && <MyIcon type={'icon-gitlab'} />}
-                        {authType === 'feishu' && <MyIcon type={'icon-feishu'} />}
-                        {!['github', 'gitee', 'gitlab', 'feishu'].includes(authType) && authType}
+                        {authType === 'gitlab' && (
+                          <MyIcon type={'icon-gitlab'} />
+                        )}
+                        {authType === 'feishu' && (
+                          <MyIcon type={'icon-feishu'} />
+                        )}
+                        {!['github', 'gitee', 'gitlab', 'feishu'].includes(
+                          authType,
+                        ) && authType}
                       </div>
                     </Tooltip>
                   );
@@ -879,7 +959,7 @@ const SettingPage = () => {
             style={{
               borderRadius: 10,
               border: '2px solid #d9d9d9',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             }}
             headStyle={{
               height: 50,
@@ -889,7 +969,7 @@ const SettingPage = () => {
               background: '#e67e73',
               overflow: 'hidden',
               position: 'relative',
-              zIndex: 1
+              zIndex: 1,
             }}
           >
             <Alert
@@ -986,7 +1066,7 @@ const SettingPage = () => {
         <Alert
           message={
             <Marquee pauseOnHover gradient={false}>
-              你正在进行敏感操作，输入密码以验证您的身份，验证通过后可以注销此账号
+              您正在进行敏感操作，输入密码以验证您的身份，验证通过后可以注销此账号。&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             </Marquee>
           }
           type="error"

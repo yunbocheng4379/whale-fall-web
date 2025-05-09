@@ -93,4 +93,26 @@ export default {
       data,
     });
   },
+
+  queryDailyMessages(data) {
+    return request({
+      url: 'account/queryDailyMessages',
+      method: 'POST',
+      data,
+    });
+  },
+
+  getMessageByUserName(username) {
+    return request({
+      url: 'account/getMessageByUserName?username=' + username,
+      method: 'GET',
+    });
+  },
+
+  getMessageStatusInfo(username) {
+    return request({
+      url: 'account/getMessageStatusInfo?username=' + username,
+      method: 'GET',
+    });
+  },
 };
