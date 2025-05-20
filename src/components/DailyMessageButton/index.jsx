@@ -1,6 +1,10 @@
 import AccountApi from '@/api/AccountApi';
 import { getUsername } from '@/utils/tokenUtil';
-import { BellOutlined } from '@ant-design/icons';
+import {
+  BellOutlined,
+  CheckCircleOutlined,
+  FormOutlined,
+} from '@ant-design/icons';
 import {
   LightFilter,
   ModalForm,
@@ -64,6 +68,24 @@ const DailyMessageButton = () => {
       width: 150,
     },
     {
+      title: <b>消息类型</b>,
+      dataIndex: 'msgType',
+      key: 'msgType',
+      align: 'center',
+      ellipsis: true,
+      width: 100,
+      render: (text, record, _, action) => {
+        return (
+          <Tag
+            key={record.id}
+            style={{ color: record.msgType ? 'blue' : 'orange' }}
+          >
+            {record.msgType ? '处理类' : '通知类'}
+          </Tag>
+        );
+      },
+    },
+    {
       title: <b>状态</b>,
       dataIndex: 'status',
       key: 'status',
@@ -119,12 +141,12 @@ const DailyMessageButton = () => {
           {record?.status ? (
             <Tooltip placement="top" title={'处理详情'}>
               <Button
-                color="primary"
+                color="green"
                 variant="outlined"
                 size="small"
-                icon={<BellOutlined />}
-                onClick={() => {
-                  console.log(2);
+                icon={<CheckCircleOutlined />}
+                onClick={(record) => {
+                  processDetails(record);
                 }}
               />
             </Tooltip>
@@ -134,9 +156,9 @@ const DailyMessageButton = () => {
                 color="primary"
                 variant="outlined"
                 size="small"
-                icon={<BellOutlined />}
-                onClick={() => {
-                  console.log(1);
+                icon={<FormOutlined />}
+                onClick={(record) => {
+                  messageProcess(record);
                 }}
               />
             </Tooltip>
@@ -161,6 +183,14 @@ const DailyMessageButton = () => {
       setNumberOfType(data?.data);
     }
     setOpen(true);
+  };
+
+  const processDetails = (record) => {
+    console.log(record);
+  };
+
+  const messageProcess = (record) => {
+    console.log(record);
   };
 
   return (
