@@ -731,7 +731,8 @@ const Login = () => {
     <ProConfigProvider>
       <LoginFormPage
         formRef={formRef}
-        backgroundImageUrl="/img/background.jpg"
+        //backgroundImageUrl="/img/background.jpg"
+        backgroundVideoUrl="/img/background.mp4"
         logo={LOGO}
         title={TITLE}
         disabled={loginBtnDisabled}
