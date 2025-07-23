@@ -11,11 +11,12 @@ import {
 } from '@/utils/tokenUtil';
 import { message } from 'antd';
 import { useEffect } from 'react';
-import { history, useLocation, useModel } from 'umi';
+import { history, useLocation, useModel } from '@umijs/max';
 
 const OAuthCallback = () => {
   const { setInitialState } = useModel('@@initialState');
   const location = useLocation();
+
   const handleAuth = async (token, username, role, avatarUrl) => {
     if (!token || !username || !role) {
       message.warning('授权参数缺失');

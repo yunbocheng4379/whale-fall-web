@@ -1,0 +1,306 @@
+.couple-dashboard {
+  background: #f5f7fa;
+  min-height: 100vh;
+
+  .dashboard-container {
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  // 今日消费概览
+  .today-overview {
+    margin-bottom: 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 6%);
+    border: none;
+
+    .ant-pro-card-header {
+      border-bottom: 1px solid #f0f0f0;
+      padding: 16px 24px;
+
+      .ant-pro-card-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #262626;
+      }
+    }
+
+    .overview-item {
+      display: flex;
+      align-items: center;
+      padding: 16px 0;
+
+      .overview-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+        font-size: 20px;
+
+        &.expense {
+          background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+          color: #fff;
+        }
+
+        &.income {
+          background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+          color: #fff;
+        }
+
+        &.count {
+          background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+          color: #fff;
+        }
+      }
+
+      .overview-content {
+        flex: 1;
+
+        .overview-value {
+          font-size: 24px;
+          font-weight: 600;
+          color: #262626;
+          line-height: 1.2;
+        }
+
+        .overview-label {
+          font-size: 14px;
+          color: #8c8c8c;
+          margin: 4px 0;
+        }
+
+        .overview-trend {
+          font-size: 12px;
+
+          &.up {
+            color: #52c41a;
+          }
+
+          &.down {
+            color: #ff4d4f;
+          }
+        }
+      }
+    }
+  }
+
+  // 核心指标
+  .metrics-row {
+    margin-bottom: 24px;
+
+    .metric-card {
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 6%);
+      border: none;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 12%);
+      }
+
+      .metric-content {
+        display: flex;
+        align-items: center;
+        padding: 20px;
+
+        .metric-icon {
+          width: 56px;
+          height: 56px;
+          border-radius: 16px;
+          background: rgba(24, 144, 255, 10%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 16px;
+          font-size: 24px;
+        }
+
+        .metric-info {
+          flex: 1;
+
+          .metric-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: #262626;
+            line-height: 1.2;
+            margin-bottom: 4px;
+          }
+
+          .metric-label {
+            font-size: 14px;
+            color: #8c8c8c;
+            margin-bottom: 8px;
+          }
+
+          .ant-progress {
+            margin-bottom: 0;
+          }
+        }
+      }
+    }
+  }
+
+  // 图表区域
+  .charts-row {
+    margin-bottom: 24px;
+
+    .chart-card {
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 6%);
+      border: none;
+      transition: all 0.3s ease;
+
+      &:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 10%);
+      }
+    }
+  }
+
+  // 快捷操作
+  .action-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 6%);
+    border: none;
+
+    .ant-pro-card-header {
+      border-bottom: 1px solid #f0f0f0;
+      padding: 16px 24px;
+
+      .ant-pro-card-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #262626;
+      }
+    }
+
+    .action-item {
+      text-align: center;
+      border-radius: 12px;
+      border: 1px solid #f0f0f0;
+      transition: all 0.3s ease;
+      padding: 24px 16px;
+
+      &:hover {
+        border-color: #1890ff;
+        box-shadow: 0 4px 12px rgba(24, 144, 255, 15%);
+        transform: translateY(-2px);
+      }
+
+      .action-icon {
+        font-size: 32px;
+        color: #1890ff;
+        margin-bottom: 12px;
+        display: block;
+      }
+
+      .action-text {
+        font-size: 14px;
+        color: #595959;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .couple-dashboard {
+    .dashboard-container {
+      padding: 16px;
+    }
+
+    .today-overview {
+      .overview-item {
+        padding: 12px 0;
+
+        .overview-icon {
+          width: 40px;
+          height: 40px;
+          font-size: 18px;
+          margin-right: 12px;
+        }
+
+        .overview-content {
+          .overview-value {
+            font-size: 20px;
+          }
+        }
+      }
+    }
+
+    .metrics-row {
+      .metric-card {
+        .metric-content {
+          padding: 16px;
+
+          .metric-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+          }
+
+          .metric-info {
+            .metric-value {
+              font-size: 24px;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// 动画效果
+@keyframes slide-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.couple-dashboard-fullscreen {
+  .overview-section {
+    animation: slide-in-left 0.6s ease-out 0.1s both;
+  }
+
+  .metrics-section {
+    animation: slide-in-right 0.6s ease-out 0.2s both;
+  }
+
+  .charts-section {
+    animation: slide-in-up 0.6s ease-out 0.3s both;
+  }
+}
