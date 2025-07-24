@@ -105,7 +105,6 @@
       .metric-content {
         display: flex;
         align-items: center;
-        padding: 20px;
 
         .metric-icon {
           width: 56px;
@@ -128,6 +127,35 @@
             color: #262626;
             line-height: 1.2;
             margin-bottom: 4px;
+
+            // 实时时间显示样式
+            .real-time-counter {
+              display: flex;
+              align-items: baseline;
+              gap: 4px;
+              flex-wrap: wrap;
+              font-family: Arial, Helvetica, sans-serif;
+
+              .time-number {
+                font-size: 32px;
+                font-weight: 800;
+                color: #99f;
+                font-family: Impact, 'Arial Black', sans-serif;
+                letter-spacing: 1px;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 10%);
+                line-height: 1;
+              }
+
+              .time-unit {
+                font-size: 14px;
+                color: #666;
+                font-weight: 400;
+                margin-right: 8px;
+                line-height: 1;
+                align-self: flex-end;
+                margin-bottom: 2px;
+              }
+            }
           }
 
           .metric-label {
@@ -401,6 +429,20 @@
           .metric-info {
             .metric-value {
               font-size: 24px;
+
+              // 移动端实时时间样式
+              .real-time-counter {
+                gap: 3px;
+
+                .time-number {
+                  font-size: 24px;
+                }
+
+                .time-unit {
+                  font-size: 12px;
+                  margin-right: 6px;
+                }
+              }
             }
           }
         }

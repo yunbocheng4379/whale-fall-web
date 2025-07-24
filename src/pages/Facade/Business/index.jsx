@@ -56,6 +56,56 @@ const AnimatedNumber = ({ value, duration = 2000, suffix = '', prefix = '' }) =>
   return <span>{prefix}{current.toLocaleString()}{suffix}</span>;
 };
 
+// 实时时间组件
+const RealTimeCounter = ({ startDate }) => {
+  const [timeElapsed, setTimeElapsed] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
+
+  useEffect(() => {
+    const calculateTimeElapsed = () => {
+      const now = new Date();
+      const start = new Date(startDate);
+      const diffInMs = now - start;
+
+      const days = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diffInMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diffInMs % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diffInMs % (1000 * 60)) / 1000);
+
+      setTimeElapsed({ days, hours, minutes, seconds });
+    };
+
+    // 立即计算一次
+    calculateTimeElapsed();
+
+    // 每秒更新一次
+    const timer = setInterval(calculateTimeElapsed, 1000);
+
+    return () => clearInterval(timer);
+  }, [startDate]);
+
+  const formatNumber = (num, digits) => {
+    return num.toString().padStart(digits, '0');
+  };
+
+  return (
+    <div className="real-time-counter">
+      <span className="time-number">{formatNumber(timeElapsed.days, 4)}</span>
+      <span className="time-unit">天</span>
+      <span className="time-number">{formatNumber(timeElapsed.hours, 2)}</span>
+      <span className="time-unit">小时</span>
+      <span className="time-number">{formatNumber(timeElapsed.minutes, 2)}</span>
+      <span className="time-unit">分</span>
+      <span className="time-number">{formatNumber(timeElapsed.seconds, 2)}</span>
+      <span className="time-unit">秒</span>
+    </div>
+  );
+};
+
 const HomePage = () => {
   const handleStartRecord = () => {
     WhaleApi.queryWhale({ id: 1 });
@@ -126,7 +176,7 @@ const HomePage = () => {
     series: [{
       name: '消费类型',
       type: 'pie',
-      radius: ['40%', '70%'],
+      radius: ['40%', '60%'],
       center: ['50%', '45%'],
       data: [
         { value: 1048, name: '饮食', itemStyle: { color: '#5470c6' } },
@@ -481,17 +531,17 @@ const HomePage = () => {
             <ProCard className="metric-card">
               <div className="metric-content">
                 <div className="metric-icon">
-                  <CalendarOutlined style={{ color: '#1890ff' }} />
+                  <CalendarOutlined style={{ color: '#9999ff' }} />
                 </div>
                 <div className="metric-info">
                   <div className="metric-value">
-                    <AnimatedNumber value={365} suffix="天" />
+                    <RealTimeCounter startDate="2019-08-15T16:10:31" />
                   </div>
                   <div className="metric-label">甜蜜时光</div>
                   <Progress
                     percent={75}
                     showInfo={false}
-                    strokeColor="#1890ff"
+                    strokeColor="#9999ff"
                     size="small"
                   />
                 </div>
