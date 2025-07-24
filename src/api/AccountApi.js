@@ -70,14 +70,6 @@ export default {
     });
   },
 
-  handleBind(data) {
-    return request({
-      url: 'account/handleBind',
-      method: 'POST',
-      data,
-    });
-  },
-
   handleUnBind(data) {
     return request({
       url: 'account/handleUnBind',

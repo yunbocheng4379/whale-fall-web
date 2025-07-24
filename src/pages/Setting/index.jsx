@@ -16,6 +16,15 @@ import {
   MailOutlined,
   NumberOutlined,
   QuestionCircleOutlined,
+  UserOutlined,
+  PhoneOutlined,
+  SafetyOutlined,
+  LinkOutlined,
+  DeleteOutlined,
+  ContactsOutlined,
+  SecurityScanOutlined,
+  BranchesOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import {
   ModalForm,
@@ -42,6 +51,7 @@ import {
 import { useEffect, useState } from 'react';
 import Marquee from 'react-fast-marquee';
 import { history } from 'umi';
+import './index.less';
 
 const SettingPage = () => {
   const [userInfo, setUserInfo] = useState({});
@@ -98,9 +108,9 @@ const SettingPage = () => {
       dataIndex: 'flag',
       width: 100,
       align: 'center',
-      render: (flag) => (
-        <Tag color={flag ? 'success' : 'default'}>
-          {flag ? '已绑定' : '未绑定'}
+      render: () => (
+        <Tag color={'success'}>
+          已绑定
         </Tag>
       ),
     },
@@ -116,28 +126,17 @@ const SettingPage = () => {
       align: 'center',
       render: (_, record) => (
         <Space>
-          {record.flag ? (
-            <Popconfirm
-              title={'确定要解绑【' + record.authType + '】？'}
-              onConfirm={() => handleUnBind(record)}
-              okText="确定"
-              cancelText="取消"
-              placement="top"
-            >
-              <Button danger size="small">
-                解除绑定
-              </Button>
-            </Popconfirm>
-          ) : (
-            <Button
-              color="primary"
-              variant="outlined"
-              size="small"
-              onClick={() => handleBind(record)}
-            >
-              绑定
+          <Popconfirm
+            title={'确定要解绑【' + record.authType + '】？'}
+            onConfirm={() => handleUnBind(record)}
+            okText="确定"
+            cancelText="取消"
+            placement="top"
+          >
+            <Button danger size="small">
+              解除绑定
             </Button>
-          )}
+          </Popconfirm>
         </Space>
       ),
     },
@@ -155,18 +154,6 @@ const SettingPage = () => {
     }
   };
 
-  const handleBind = async (record) => {
-    const { success } = await AccountApi.handleBind({
-      authType: record.authType,
-      id: record.userId,
-      authName: record.authName,
-    });
-    if (success) {
-      message.success('账号与' + record.authType + '平台绑定三方认证成功');
-      fetchUserInfo().then(() => {});
-    }
-  };
-
   const fetchUserInfo = async () => {
     const { success, data } =
       await AccountApi.getCurrentUserInfo(getUsername());
@@ -176,20 +163,18 @@ const SettingPage = () => {
       setOldPhone(userInfo?.phone);
       setOldEmail(userInfo?.email);
       setUserId(userInfo?.id);
-      await setUserInfo({
+      setUserInfo({
         ...userInfo,
-        phone:
-          userInfo?.phone
-            ?.toString()
-            .replace(
-              /(\d{3})\d+(\d{4})/,
-              (_, g1, g2) => g1 + '*'.repeat(4) + g2,
-            ) ?? '未知号码',
-        email:
-          userInfo?.email?.replace(
-            /^([^@])(.*)([^@])(@.*)$/,
-            (_, g1, g2, g3, g4) => g1 + '*'.repeat(g2.length) + g3 + g4,
+        phone: userInfo?.phone
+          ?.toString()
+          .replace(
+            /(\d{3})\d+(\d{4})/,
+            (_, g1, g2) => g1 + '*'.repeat(4) + g2
           ) ?? '未知号码',
+        email: userInfo?.email?.replace(
+          /^([^@])(.*)([^@])(@.*)$/,
+          (_, g1, g2, g3, g4) => g1 + '*'.repeat(g2.length) + g3 + g4
+        ) ?? '未知号码',
         password: '********',
       });
     }
@@ -664,32 +649,26 @@ const SettingPage = () => {
   };
 
   return (
-    <PageContainer title={false}>
+    <PageContainer title={false} className="setting-page">
       <ProCard gutter={[24, 24]} wrap bodyStyle={{ padding: 0 }}>
         <ProCard gutter={24} wrap colSpan={24} bodyStyle={{ padding: 0 }}>
           <ProCard
             colSpan={{ xs: 24, sm: 12 }}
-            title={<b>账号信息</b>}
+            title={
+              <div>
+                <span className="title-icon">
+                  <ContactsOutlined />
+                </span>
+                账号信息
+              </div>
+            }
             bordered
             headerBordered
-            style={{
-              borderRadius: 10,
-              border: '2px solid #d9d9d9',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            }}
-            headStyle={{
-              borderRadius: '8px 8px 0 0',
-              borderBottomLeftRadius: 16,
-              borderBottomRightRadius: 16,
-              background: '#d996cb',
-              overflow: 'hidden',
-              position: 'relative',
-              zIndex: 1,
-            }}
+            className="setting-card account-info-card"
           >
-            <ProFormItem>
+            <div className="avatar-section">
               <AvatarUpload onUploadSuccess={handleAvatarUpload} />
-            </ProFormItem>
+            </div>
             <ProFormItem>
               <Descriptions column={1}>
                 <Descriptions.Item
@@ -761,85 +740,89 @@ const SettingPage = () => {
           <ProCard
             colSpan={{ xs: 24, sm: 12 }}
             title={
-              <>
-                <Space>
-                  <div>
-                    <b>账号安全</b>
-                  </div>
-                  <Tooltip title="可通过以下方式修改账号安全信息">
-                    <QuestionCircleOutlined />
-                  </Tooltip>
-                </Space>
-              </>
+              <div>
+                <span className="title-icon">
+                  <SecurityScanOutlined />
+                </span>
+                账号安全
+                <Tooltip title="可通过以下方式修改账号安全信息" style={{ marginLeft: 8 }}>
+                  <QuestionCircleOutlined style={{marginLeft: 4}}/>
+                </Tooltip>
+              </div>
             }
             bordered
             headerBordered
-            style={{
-              borderRadius: 10,
-              border: '2px solid #d9d9d9',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            }}
-            headStyle={{
-              borderRadius: '8px 8px 0 0',
-              borderBottomLeftRadius: 16,
-              borderBottomRightRadius: 16,
-              background: '#d9896c',
-              overflow: 'hidden',
-              position: 'relative',
-              zIndex: 1,
-            }}
+            className="setting-card security-card"
           >
-            <ProForm submitter={false}>
-              <ProFormText
-                label="手机号码"
-                fieldProps={{
-                  value: userInfo.phone,
-                  readOnly: true,
-                  suffix: (
-                    <Button
-                      type="link"
-                      onClick={() => showModifyModal('phone')}
-                    >
-                      更换号码
-                    </Button>
-                  ),
-                }}
-              />
-            </ProForm>
-            <ProForm submitter={false}>
-              <ProFormText
-                label="邮箱"
-                fieldProps={{
-                  value: userInfo.email,
-                  readOnly: true,
-                  suffix: (
-                    <Button
-                      type="link"
-                      onClick={() => showModifyModal('email')}
-                    >
-                      更换邮箱
-                    </Button>
-                  ),
-                }}
-              />
-            </ProForm>
-            <ProForm submitter={false}>
-              <ProFormText
-                label="登录密码"
-                fieldProps={{
-                  value: userInfo.password,
-                  readOnly: true,
-                  suffix: (
-                    <Button
-                      type="link"
-                      onClick={() => showModifyModal('password')}
-                    >
-                      修改密码
-                    </Button>
-                  ),
-                }}
-              />
-            </ProForm>
+            <div className="security-item">
+              <ProForm submitter={false}>
+                <ProFormText
+                  label={
+                    <span>
+                      <PhoneOutlined /> 手机号码
+                    </span>
+                  }
+                  fieldProps={{
+                    value: userInfo.phone,
+                    readOnly: true,
+                    suffix: (
+                      <Button
+                        type="link"
+                        onClick={() => showModifyModal('phone')}
+                      >
+                        更换号码
+                      </Button>
+                    ),
+                  }}
+                />
+              </ProForm>
+            </div>
+            <div className="security-item">
+              <ProForm submitter={false}>
+                <ProFormText
+                  label={
+                    <span>
+                      <MailOutlined /> 邮箱
+                    </span>
+                  }
+                  fieldProps={{
+                    value: userInfo.email,
+                    readOnly: true,
+                    suffix: (
+                      <Button
+                        type="link"
+                        onClick={() => showModifyModal('email')}
+                      >
+                        更换邮箱
+                      </Button>
+                    ),
+                  }}
+                />
+              </ProForm>
+            </div>
+            <div className="security-item">
+              <ProForm submitter={false}>
+                <ProFormText
+                  label={
+                    <span>
+                      <LockOutlined /> 登录密码
+                    </span>
+                  }
+                  fieldProps={{
+                    value: userInfo.password,
+                    readOnly: true,
+                    suffix: (
+                      <Button
+                        type="link"
+                        onClick={() => showModifyModal('password')}
+                      >
+                        修改密码
+                      </Button>
+                    ),
+                  }}
+                />
+              </ProForm>
+            </div>
           </ProCard>
         </ProCard>
 
@@ -851,126 +834,133 @@ const SettingPage = () => {
         >
           <ProCard
             title={
-              <>
-                <Space>
-                  <div>
-                    <b>第三方账号绑定</b>
-                  </div>
-                  <Tooltip title="三方账号绑定信息，可进行三方账号信息绑定、解除关联">
-                    <QuestionCircleOutlined />
-                  </Tooltip>
-                </Space>
-                <div style={{ marginTop: 20 }}>
+              <div>
+                <span className="title-icon">
+                  <BranchesOutlined />
+                </span>
+                第三方账号绑定
+                <Tooltip title="三方账号绑定信息，可进行三方账号信息绑定、解除关联" style={{ marginLeft: 8 }}>
+                  <QuestionCircleOutlined style={{marginLeft: 4}}/>
+                </Tooltip>
+                <div style={{ marginTop: 12, fontSize: 14, fontWeight: 400, opacity: 0.9 }}>
                   使用以下任一方式都可以登录到您的账号，避免由于某个账号失效导致无法登录
                 </div>
-              </>
+              </div>
             }
             bordered
             headerBordered
-            style={{
-              borderRadius: 10,
-              border: '2px solid #d9d9d9',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            }}
-            headStyle={{
-              borderRadius: '8px 8px 0 0',
-              borderBottomLeftRadius: 16,
-              borderBottomRightRadius: 16,
-              background: '#a1cf9b',
-              overflow: 'hidden',
-              position: 'relative',
-              zIndex: 1,
-            }}
+            className="setting-card third-party-card"
           >
-            <ProTable
-              dataSource={thirdPartyData}
-              rowKey="key"
-              search={false}
-              toolBarRender={false}
-              pagination={false}
-              columns={threePartyColumns}
-            />
-            <div style={{ paddingTop: '40px', borderTop: '1px solid #f0f0f0' }}>
-              <div style={{ fontWeight: 'bold', fontSize: 15 }}>
-                你还可以绑定以下第三方帐号
-              </div>
-              <Space size="large" style={{ marginTop: 20 }}>
-                {['github', 'gitee', 'gitlab', 'feishu'].map((authType) => {
-                  const isBound = thirdPartyData.some(
-                    (item) => item.authType === authType,
-                  );
-                  if (isBound) return null;
+            {thirdPartyData.length > 0
+              ?
+              <ProTable
+                dataSource={thirdPartyData}
+                rowKey="key"
+                search={false}
+                toolBarRender={false}
+                pagination={false}
+                columns={threePartyColumns}
+              />
+              :
+            <></>}
+            <div className="third-party-bind-section">
+              {(() => {
+                // 定义所有支持的平台
+                const allPlatforms = ['github', 'gitee', 'gitlab', 'feishu'];
 
+                // 计算已绑定的平台数量
+                const boundPlatforms = thirdPartyData.filter(item =>
+                  allPlatforms.includes(item.authType)
+                );
+
+                // 判断是否所有平台都已绑定
+                const allBound = boundPlatforms.length === allPlatforms.length;
+
+                if (allBound) {
+                  // 所有平台都已绑定，只显示完成状态
                   return (
-                    <Tooltip key={authType} title={`绑定${authType}账号`}>
-                      <div
-                        style={{
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 100,
-                          transition: 'all 0.3s',
-                          '&:hover': {
-                            transform: 'scale(1.1)',
-                          },
-                          fontSize: 30,
-                        }}
-                        onClick={() => {
-                          if (authType === 'github') handleBindGitHub();
-                          else if (authType === 'gitee') handleBindGitee();
-                          else if (authType === 'gitlab') handleBindGitLab();
-                          else if (authType === 'feishu') handleBindFeiShu();
-                        }}
-                      >
-                        {authType === 'github' && (
-                          <MyIcon type={'icon-github'} />
-                        )}
-                        {authType === 'gitee' && <MyIcon type={'icon-gitee'} />}
-                        {authType === 'gitlab' && (
-                          <MyIcon type={'icon-gitlab'} />
-                        )}
-                        {authType === 'feishu' && (
-                          <MyIcon type={'icon-feishu'} />
-                        )}
-                        {!['github', 'gitee', 'gitlab', 'feishu'].includes(
-                          authType,
-                        ) && authType}
-                      </div>
-                    </Tooltip>
+                    <div className="no-available-platforms">
+                      <div className="no-platforms-icon">🎉</div>
+                      <div className="no-platforms-text">所有支持的第三方平台都已绑定</div>
+                    </div>
                   );
-                })}
-              </Space>
+                } else {
+                  // 还有未绑定的平台，显示绑定选项
+                  return (
+                    <>
+                      <div className="section-header">
+                        <div className="section-title">
+                          <LinkOutlined className="section-icon" />
+                          <span>可绑定的第三方账号</span>
+                        </div>
+                        <div className="section-subtitle">
+                          绑定后可使用第三方账号快速登录，提升使用体验
+                        </div>
+                      </div>
+
+                      <div className="bind-cards">
+                        {[
+                          { type: 'github', name: 'GitHub', desc: '全球最大的代码托管平台' },
+                          { type: 'gitee', name: 'Gitee', desc: '国内领先的代码托管平台' },
+                          { type: 'gitlab', name: 'GitLab', desc: '企业级DevOps平台' },
+                          { type: 'feishu', name: '飞书', desc: '字节跳动旗下协作平台' }
+                        ].map((platform) => {
+                          const isBound = thirdPartyData.some(
+                            (item) => item.authType === platform.type,
+                          );
+                          if (isBound) return null;
+
+                          return (
+                            <div
+                              key={platform.type}
+                              className={`bind-card ${platform.type}`}
+                              onClick={() => {
+                                if (platform.type === 'github') handleBindGitHub();
+                                else if (platform.type === 'gitee') handleBindGitee();
+                                else if (platform.type === 'gitlab') handleBindGitLab();
+                                else if (platform.type === 'feishu') handleBindFeiShu();
+                              }}
+                            >
+                              <div className="bind-card-icon">
+                                {platform.type === 'github' && <MyIcon type={'icon-github'} />}
+                                {platform.type === 'gitee' && <MyIcon type={'icon-gitee'} />}
+                                {platform.type === 'gitlab' && <MyIcon type={'icon-gitlab'} />}
+                                {platform.type === 'feishu' && <MyIcon type={'icon-feishu'} />}
+                              </div>
+                              <div className="bind-card-content">
+                                <div className="bind-card-name">{platform.name}</div>
+                                <div className="bind-card-desc">{platform.desc}</div>
+                              </div>
+                              <div className="bind-card-action">
+                                <Button type="primary" size="small" ghost>
+                                  立即绑定
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  );
+                }
+              })()}
             </div>
           </ProCard>
           <ProCard
             title={
-              <>
-                <Space>
-                  <div>
-                    <b>账号注销</b>
-                  </div>
-                  <Tooltip title="账号注销后账户所有数据将被销毁，请谨慎操作">
-                    <QuestionCircleOutlined />
-                  </Tooltip>
-                </Space>
-              </>
+              <div>
+                <span className="title-icon">
+                  <WarningOutlined />
+                </span>
+                账号注销
+                <Tooltip title="账号注销后账户所有数据将被销毁，请谨慎操作" style={{ marginLeft: 8 }}>
+                  <QuestionCircleOutlined style={{marginLeft: 4}}/>
+                </Tooltip>
+              </div>
             }
-            style={{
-              borderRadius: 10,
-              border: '2px solid #d9d9d9',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            }}
-            headStyle={{
-              height: 50,
-              borderRadius: '8px 8px 0 0',
-              borderBottomLeftRadius: 16,
-              borderBottomRightRadius: 16,
-              background: '#e67e73',
-              overflow: 'hidden',
-              position: 'relative',
-              zIndex: 1,
-            }}
+            bordered
+            headerBordered
+            className="setting-card danger-card"
           >
             <Alert
               message="注销〖鲸鱼〗帐号是不可恢复的操作，你应自行备份〖鲸鱼〗帐号相关的信息和数据。注销帐号后你将丢失该帐号自注册以来产生的数据和记录，注销后相关数据将不可恢复。"
