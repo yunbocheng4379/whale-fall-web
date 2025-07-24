@@ -451,6 +451,112 @@
     }
   }
 
+  // 系统设置卡片
+  .system-setting-card {
+    .ant-pro-card-header {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border: 1px solid #bae7ff;
+      border-bottom: 1px solid #91d5ff;
+
+      .ant-pro-card-title {
+        color: #0050b3;
+
+        .title-icon {
+          color: #0050b3;
+        }
+      }
+    }
+
+    .system-setting-content {
+      .setting-description {
+        margin-bottom: 20px;
+        padding: 16px;
+        background: rgba(24, 144, 255, 5%);
+        border-radius: 8px;
+        border: 1px dashed rgba(24, 144, 255, 20%);
+
+        p {
+          margin: 0;
+          color: #595959;
+          font-size: 14px;
+          line-height: 1.6;
+        }
+      }
+
+      .setting-options {
+        .setting-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px;
+          background: #fafafa;
+          border-radius: 12px;
+          border: 1px solid #f0f0f0;
+          transition: all 0.3s ease;
+          position: relative;
+
+          &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #1890ff;
+            border-radius: 0 2px 2px 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+
+          &:hover {
+            background: #f0f9ff;
+            border-color: #bae7ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(24, 144, 255, 10%);
+
+            &::before {
+              opacity: 1;
+            }
+          }
+
+          .setting-item-info {
+            flex: 1;
+
+            .setting-item-title {
+              font-size: 16px;
+              font-weight: 600;
+              color: #262626;
+              margin-bottom: 8px;
+              display: flex;
+              align-items: center;
+            }
+
+            .setting-item-desc {
+              font-size: 14px;
+              color: #8c8c8c;
+              line-height: 1.5;
+            }
+          }
+
+          .setting-item-action {
+            margin-left: 20px;
+
+            .ant-btn {
+              border-radius: 8px;
+              font-weight: 500;
+              box-shadow: 0 2px 8px rgba(24, 144, 255, 15%);
+
+              &:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(24, 144, 255, 20%);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   // 危险区域
   .danger-card {
     border: 1px solid #ffccc7;
@@ -566,6 +672,39 @@
 
       .ant-pro-card-body {
         padding: 16px 20px 20px;
+      }
+    }
+
+    .system-setting-card {
+      .system-setting-content {
+        .setting-options {
+          .setting-item {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 16px;
+
+            .setting-item-info {
+              margin-bottom: 16px;
+
+              .setting-item-title {
+                font-size: 14px;
+              }
+
+              .setting-item-desc {
+                font-size: 13px;
+              }
+            }
+
+            .setting-item-action {
+              margin-left: 0;
+              width: 100%;
+
+              .ant-btn {
+                width: 100%;
+              }
+            }
+          }
+        }
       }
     }
 
