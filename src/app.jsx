@@ -10,6 +10,7 @@ import {
   SETTING_PATH,
   TITLE,
 } from '@/config';
+import '@/styles/headerButtons.less';
 import buildMenu from '@/utils/buildMenu';
 import { MyIcon } from '@/utils/iconUtil';
 import {
@@ -30,7 +31,9 @@ import { DefaultFooter } from '@ant-design/pro-components';
 import { Dropdown } from 'antd';
 import message from 'antd/es/message';
 import { history } from 'umi';
-import '@/styles/headerButtons.less';
+
+// 导入警告抑制器（抑制已知的第三方库警告）
+import '@/utils/suppressWarnings';
 
 const defaultInitialState = {
   currentUser: { name: '临时用户' },
@@ -134,7 +137,7 @@ export const layout = ({ initialState }) => {
                     ),
                     label: '劈里啪啦',
                     onClick: () => {
-                      message.success('放花咯');
+                      message.success('放花咯').then((r) => {});
                     },
                   },
                   {
@@ -193,8 +196,18 @@ export const layout = ({ initialState }) => {
                       removeUserRole();
                       removeAvatarUrl();
                       setCounter(0);
-                      message.success('退出成功');
+                      message.success('退出成功').then((r) => {});
                       history.push(LOGIN_PATH);
+                    },
+                  },
+                  {
+                    key: 'logout',
+                    icon: (
+                      <MyIcon type={'icon-tuichu'} style={{ fontSize: 20 }} />
+                    ),
+                    label: '锁定屏幕',
+                    onClick: () => {
+                      // 跳转到输入密码的页面，输入密码之后跳转到锁定屏幕界面
                     },
                   },
                 ],
