@@ -1,0 +1,228 @@
+// 头部功能按钮组样式
+.header-buttons-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  margin-right: 12px;
+
+  // 统一所有按钮的基础样式
+  .header-button-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    position: relative;
+
+    // 默认悬停效果
+    &:hover {
+      background-color: rgba(0, 0, 0, 4%);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    // 搜索菜单按钮特殊处理 - 去除所有交互效果
+    &.search-menu-button {
+      &:hover,
+      &:active,
+      &:focus {
+        background-color: transparent;
+        transform: none;
+      }
+
+      .anticon {
+        font-size: 18px;
+      }
+    }
+
+    // 确保内部按钮填满容器
+    .ant-btn {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+
+      &:hover,
+      &:focus {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+      }
+    }
+
+    // 按钮内的图标统一样式
+    .anticon {
+      font-size: 18px;
+      color: rgba(0, 0, 0, 65%);
+      transition: color 0.3s ease;
+    }
+
+    // 消息通知按钮特殊样式
+    &.message-button {
+      .anticon {
+        font-size: 18px;
+      }
+
+      // Badge 组件的特殊处理
+      .ant-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+      }
+    }
+
+    // 全屏头像按钮特殊样式
+    &.avatar-button {
+      .anticon {
+        font-size: 18px;
+      }
+    }
+
+    // 按钮文本样式（如果有）
+    .button-text {
+      margin-left: 4px;
+      font-size: 14px;
+      color: rgba(0, 0, 0, 65%);
+      white-space: nowrap;
+    }
+  }
+
+  // 按钮之间的分隔线（可选）
+  .button-divider {
+    width: 1px;
+    height: 20px;
+    background-color: rgba(0, 0, 0, 6%);
+    margin: 0 4px;
+  }
+}
+
+// 深色主题适配
+@media (prefers-color-scheme: dark) {
+  .header-buttons-container {
+    .header-button-item {
+      &:hover {
+        background-color: rgba(255, 255, 255, 8%);
+      }
+
+      // 搜索菜单按钮特殊处理 - 去除深色主题下的交互效果
+      &.search-menu-button {
+        &:hover,
+        &:active,
+        &:focus {
+          background-color: transparent;
+          transform: none;
+        }
+      }
+
+      .anticon {
+        color: rgba(255, 255, 255, 65%);
+      }
+
+      .button-text {
+        color: rgba(255, 255, 255, 65%);
+      }
+    }
+
+    .button-divider {
+      background-color: rgba(255, 255, 255, 12%);
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .header-buttons-container {
+    gap: 4px;
+    margin-right: 8px;
+
+    .header-button-item {
+      height: 36px;
+      min-width: 36px;
+
+      .anticon {
+        font-size: 16px;
+      }
+
+      .button-text {
+        display: none; // 移动端隐藏文本
+      }
+    }
+  }
+
+  // 特殊状态样式
+  // 活跃状态
+  .header-button-item.active {
+    background-color: rgba(24, 144, 255, 10%);
+
+    .anticon {
+      color: #1890ff;
+    }
+  }
+
+  // 禁用状态
+  .header-button-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  // 加载状态
+  .header-button-item.loading {
+    .anticon {
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+// 旋转动画
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Pro Layout 特定样式覆盖
+.ant-pro-global-header {
+  .header-buttons-container {
+    .header-button-item {
+      // 确保在 Pro Layout 中的样式一致性
+      background: transparent;
+      border: none;
+      box-shadow: none;
+
+      &:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(24, 144, 255, 20%);
+      }
+    }
+  }
+}
+
+// 工具提示样式优化
+.ant-tooltip {
+  .ant-tooltip-inner {
+    background-color: rgba(0, 0, 0, 85%);
+    border-radius: 6px;
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  .ant-tooltip-arrow {
+    &::before {
+      background-color: rgba(0, 0, 0, 85%);
+    }
+  }
+}

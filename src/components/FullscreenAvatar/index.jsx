@@ -6,35 +6,31 @@ const FullscreenAvatar = () => {
   const { isFullscreen, toggleFullscreen } = useFullscreen();
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-      }}
+    <Tooltip
+      title={isFullscreen ? '退出全屏' : '进入全屏'}
+      placement="bottom"
     >
-      <Tooltip
-        title={isFullscreen ? '退出全屏' : '进入全屏'}
-        placement="bottom"
-      >
-        <Button
-          type="text"
-          onClick={toggleFullscreen}
-          style={{
-            padding: 0,
-            height: 'auto',
-            color: 'inherit',
-          }}
-          className="custom-fullscreen-btn"
-        >
-          {isFullscreen ? (
-            <CompressOutlined style={{ fontSize: 20 }} />
+      <Button
+        type="text"
+        onClick={toggleFullscreen}
+        style={{
+          padding: 0,
+          height: 'auto',
+          color: 'inherit',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        className="custom-fullscreen-btn"
+        icon={
+          isFullscreen ? (
+            <CompressOutlined style={{ fontSize: 18 }} />
           ) : (
-            <ExpandOutlined style={{ fontSize: 20 }} />
-          )}
-        </Button>
-      </Tooltip>
-    </div>
+            <ExpandOutlined style={{ fontSize: 18 }} />
+          )
+        }
+      />
+    </Tooltip>
   );
 };
 

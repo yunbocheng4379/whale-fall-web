@@ -16,7 +16,7 @@ const Footer = () => {
         href="http://www.beian.gov.cn"
         target="_blank"
         rel="noopener noreferrer"
-        style={{ color: '#000000' }}
+        style={{ color: '#ffffff' }}
       >
         京公网安备 1234567890号
       </a>

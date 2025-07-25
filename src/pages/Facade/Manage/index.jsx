@@ -212,7 +212,7 @@ const ManagePage = () => {
   const efficiencyOption = {
     title: {
       text: '系统效率',
-      left: 'left',
+      left: 'center',
       textStyle: { fontSize: 16, fontWeight: 'bold', color: '#333' }
     },
     series: [{
@@ -309,7 +309,7 @@ const ManagePage = () => {
   const radarOption = {
     title: {
       text: 'XX指数',
-      left: 'center',
+      left: 'left',
       textStyle: { fontSize: 16, fontWeight: 'bold', color: '#333' }
     },
     tooltip: {
@@ -384,7 +384,7 @@ const ManagePage = () => {
   return (
     <PageContainer title={false} className="manage-dashboard">
       <div className="dashboard-container">
-        <h1>系统仪表板</h1>
+        <h1>管理仪表板</h1>
 
         {/* 简单的统计卡片 */}
         <Row gutter={[24, 16]} className="stats-row">
@@ -472,17 +472,17 @@ const ManagePage = () => {
         <Row gutter={[24, 24]} style={{ marginTop: '24px' }}>
           <Col xs={24} sm={12} md={8}>
             <ProCard className="chart-card">
+              <ReactECharts option={resourceOption} style={{ height: '280px' }} />
+            </ProCard>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <ProCard className="chart-card">
               <ReactECharts option={efficiencyOption} style={{ height: '280px' }} />
             </ProCard>
           </Col>
           <Col xs={24} sm={24} md={8}>
             <ProCard className="chart-card">
               <ReactECharts option={radarOption} style={{ height: '280px' }} />
-            </ProCard>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <ProCard className="chart-card">
-              <ReactECharts option={resourceOption} style={{ height: '280px' }} />
             </ProCard>
           </Col>
         </Row>

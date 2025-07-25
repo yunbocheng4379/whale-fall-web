@@ -1,0 +1,169 @@
+// 消息通知按钮样式
+.daily-message-button {
+  position: relative;
+
+  // Badge 红点样式优化
+  .ant-badge {
+    .ant-badge-dot {
+      background-color: #ff4d4f;
+      box-shadow:
+        0 0 0 1px #fff,
+        0 0 6px rgba(255, 77, 79, 50%);
+      animation: pulse 2s infinite;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    // 当有未读消息时的特殊效果
+    &.has-unread {
+      .ant-badge-dot {
+        animation:
+          pulse 2s infinite,
+          glow 3s ease-in-out infinite alternate;
+      }
+    }
+  }
+
+  // 按钮样式
+  .custom-fullscreen-btn {
+    transition: all 0.3s ease;
+    border-radius: 6px;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 4%);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    // 铃铛图标样式
+    .anticon-bell {
+      transition: all 0.3s ease;
+    }
+
+    // 有未读消息时的铃铛动画
+    &.has-unread-messages {
+      .anticon-bell {
+        animation: shake 0.5s ease-in-out;
+      }
+    }
+
+    // 加载状态
+    &.ant-btn-loading {
+      .anticon-bell {
+        opacity: 0.6;
+      }
+    }
+  }
+}
+
+// 动画定义
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes glow {
+  0% {
+    box-shadow:
+      0 0 0 1px #fff,
+      0 0 6px rgba(255, 77, 79, 50%);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 1px #fff,
+      0 0 12px rgba(255, 77, 79, 80%),
+      0 0 18px rgba(255, 77, 79, 40%);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: rotate(-10deg);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: rotate(10deg);
+  }
+}
+
+// 工具提示样式优化
+.ant-tooltip {
+  .ant-tooltip-inner {
+    background-color: rgba(0, 0, 0, 85%);
+    border-radius: 6px;
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  .ant-tooltip-arrow {
+    &::before {
+      background-color: rgba(0, 0, 0, 85%);
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .daily-message-button {
+    .ant-badge {
+      .ant-badge-dot {
+        width: 6px;
+        height: 6px;
+      }
+    }
+
+    .custom-fullscreen-btn {
+      .anticon-bell {
+        font-size: 18px;
+      }
+    }
+  }
+}
+
+// 深色主题适配
+@media (prefers-color-scheme: dark) {
+  .daily-message-button {
+    .custom-fullscreen-btn {
+      &:hover {
+        background-color: rgba(255, 255, 255, 8%);
+      }
+    }
+
+    .ant-badge {
+      .ant-badge-dot {
+        box-shadow:
+          0 0 0 1px #141414,
+          0 0 6px rgba(255, 77, 79, 50%);
+      }
+    }
+  }
+}

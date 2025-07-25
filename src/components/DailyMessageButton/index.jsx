@@ -14,8 +14,9 @@ import {
   ProFormText,
 } from '@ant-design/pro-components';
 import ProTable from '@ant-design/pro-table';
-import { Button, Space, Tag, Tooltip } from 'antd';
-import { useRef, useState } from 'react';
+import { Badge, Button, Space, Tag, Tooltip, message } from 'antd';
+import { useEffect, useRef, useState } from 'react';
+import './index.less';
 
 const DailyMessageButton = () => {
   const [open, setOpen] = useState(false);
@@ -29,6 +30,8 @@ const DailyMessageButton = () => {
     processed: 0,
   });
   const [filterParams, setFilterParams] = useState({});
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const actionTableRef = useRef();
 
   const columns = [
@@ -168,48 +171,126 @@ const DailyMessageButton = () => {
     },
   ];
   const getMessageByUserName = async () => {
-    const { success, data } =
-      await AccountApi.getMessageByUserName(getUsername());
-    if (success) {
-      setNotifyUserOptions(data?.list);
+    try {
+      const { success, data } =
+        await AccountApi.getMessageByUserName(getUsername());
+      if (success) {
+        setNotifyUserOptions(data?.list);
+      }
+      setOpen(true);
+    } catch (error) {
+      console.error('获取消息列表失败:', error);
     }
-    setOpen(true);
   };
 
-  const getMessageStatusInfo = async () => {
-    const { success, data } =
-      await AccountApi.getMessageStatusInfo(getUsername());
-    if (success) {
-      setNumberOfType(data?.data);
+  // 处理按钮点击
+  const handleButtonClick = async () => {
+    setIsLoading(true);
+    try {
+      // 并行获取消息列表和状态信息
+      await Promise.all([
+        getMessageByUserName(),
+        getMessageStatusInfo(true)
+      ]);
+    } finally {
+      setIsLoading(false);
     }
-    setOpen(true);
   };
+
+  const getMessageStatusInfo = async (shouldOpenModal = true) => {
+    setIsLoading(true);
+    try {
+      const { success, data } =
+        await AccountApi.getMessageStatusInfo(getUsername());
+      if (success) {
+        const statusData = data?.data;
+        setNumberOfType(statusData);
+        // 检查是否有待处理消息
+        setHasUnreadMessages(statusData?.untreated > 0);
+      }
+      if (shouldOpenModal) {
+        setOpen(true);
+      }
+    } catch (error) {
+      console.error('获取消息状态失败:', error);
+      if (shouldOpenModal) {
+        message.error('获取消息状态失败，请稍后重试');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 初始化获取消息状态（不打开弹窗）
+  const initializeMessageStatus = async () => {
+    await getMessageStatusInfo(false);
+  };
+
+  // 组件挂载时获取消息状态
+  useEffect(() => {
+    initializeMessageStatus();
+
+    // 可选：设置定时器定期检查消息状态
+    const interval = setInterval(() => {
+      initializeMessageStatus();
+    }, 30000); // 每30秒检查一次
+
+    return () => clearInterval(interval);
+  }, []);
 
   const processDetails = (record) => {
-    console.log(record);
+    console.log('查看处理详情:', record);
   };
 
-  const messageProcess = (record) => {
-    console.log(record);
+  const messageProcess = async (record) => {
+    console.log('处理消息:', record);
+    // 处理消息后刷新状态
+    setTimeout(() => {
+      initializeMessageStatus();
+      actionTableRef.current?.reload();
+    }, 1000);
   };
 
   return (
-    <>
-      <Tooltip title={'消息通知'} placement="bottom">
-        <Button
-          type="text"
-          onClick={() => {
-            getMessageByUserName().then((r) => {});
-            getMessageStatusInfo().then((r) => {});
-          }}
-          style={{
-            paddingTop: 5,
-            height: 'auto',
-            color: 'inherit',
-          }}
-          className="custom-fullscreen-btn"
-          icon={<BellOutlined style={{ fontSize: 20 }} />}
-        />
+    <div className="daily-message-button">
+      <Tooltip
+        title={
+          hasUnreadMessages
+            ? `消息通知 (${numberOfType.untreated}条待处理)`
+            : '消息通知'
+        }
+        placement="bottom"
+      >
+        <Badge
+          dot={hasUnreadMessages}
+          offset={[-4, 0]}
+          className={hasUnreadMessages ? 'has-unread' : ''}
+        >
+          <Button
+            type="text"
+            loading={isLoading}
+            onClick={handleButtonClick}
+            style={{
+              padding: 0,
+              height: 'auto',
+              color: 'inherit',
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            className={`custom-fullscreen-btn ${hasUnreadMessages ? 'has-unread-messages' : ''}`}
+            icon={
+              <BellOutlined
+                style={{
+                  fontSize: 18,
+                  color: hasUnreadMessages ? '#8c8c8c' : 'inherit',
+                  transition: 'color 0.3s ease'
+                }}
+              />
+            }
+          />
+        </Badge>
       </Tooltip>
 
       <ModalForm
@@ -218,7 +299,13 @@ const DailyMessageButton = () => {
         width={1200}
         submitter={false}
         modalProps={{
-          onCancel: () => setOpen(false),
+          onCancel: () => {
+            setOpen(false);
+            // 关闭弹窗时刷新消息状态
+            setTimeout(() => {
+              initializeMessageStatus();
+            }, 300);
+          },
           destroyOnClose: true,
           maskClosable: false,
         }}
@@ -314,7 +401,7 @@ const DailyMessageButton = () => {
           }}
         />
       </ModalForm>
-    </>
+    </div>
   );
 };
 

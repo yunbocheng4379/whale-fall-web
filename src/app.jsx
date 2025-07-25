@@ -30,6 +30,7 @@ import { DefaultFooter } from '@ant-design/pro-components';
 import { Dropdown } from 'antd';
 import message from 'antd/es/message';
 import { history } from 'umi';
+import '@/styles/headerButtons.less';
 
 const defaultInitialState = {
   currentUser: { name: '临时用户' },
@@ -114,9 +115,15 @@ export const layout = ({ initialState }) => {
       render: (props, dom) => {
         return (
           <>
-            <SearchMenu menuData={childrenMenuList} />
-            <DailyMessageButton />
-            <FullscreenAvatar />
+            <div className="header-button-item search-menu-button">
+              <SearchMenu menuData={childrenMenuList} />
+            </div>
+            <div className="header-button-item message-button">
+              <DailyMessageButton />
+            </div>
+            <div className="header-button-item avatar-button">
+              <FullscreenAvatar />
+            </div>
             <Dropdown
               menu={{
                 items: [
