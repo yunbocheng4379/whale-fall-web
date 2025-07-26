@@ -1,11 +1,13 @@
 import LoginApi from '@/api/LoginApi';
 import DailyMessageButton from '@/components/DailyMessageButton';
 import FullscreenAvatar from '@/components/FullscreenAvatar';
+import LockPasswordModal from '@/components/LockPasswordModal';
 import SearchMenu from '@/components/SearchMenu';
 import {
   CALLBACK_PATH,
   HOME_PATH,
   LOGIN_PATH,
+  LOCK_SCREEN_PATH,
   LOGO,
   SETTING_PATH,
   TITLE,
@@ -13,6 +15,7 @@ import {
 import '@/styles/headerButtons.less';
 import buildMenu from '@/utils/buildMenu';
 import { MyIcon } from '@/utils/iconUtil';
+import { isLocked, handleKeyDown } from '@/utils/lockScreenUtil';
 import {
   getAvatarUrl,
   getCounter,
@@ -31,6 +34,7 @@ import { DefaultFooter } from '@ant-design/pro-components';
 import { Dropdown } from 'antd';
 import message from 'antd/es/message';
 import { history } from 'umi';
+import React, { useState, useEffect } from 'react';
 
 // 导入警告抑制器（抑制已知的第三方库警告）
 import '@/utils/suppressWarnings';
@@ -53,7 +57,43 @@ const defaultInitialState = {
   routeList: [],
 };
 
+let rootMenuList = [];
 let childrenMenuList = [];
+
+// 全局状态管理锁屏模态框
+let setLockPasswordModalOpenCallback = null;
+
+// 全局键盘事件监听器
+let keyboardListenerAdded = false;
+
+const addGlobalKeyboardListener = () => {
+  if (!keyboardListenerAdded) {
+    const handleKeyDownEvent = (e) => {
+      handleKeyDown(e);
+    };
+    document.addEventListener('keydown', handleKeyDownEvent, true);
+    keyboardListenerAdded = true;
+  }
+};
+
+// 锁屏模态框组件
+const LockScreenModalWrapper = () => {
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // 设置全局回调
+  React.useEffect(() => {
+    setLockPasswordModalOpenCallback = setModalOpen;
+    addGlobalKeyboardListener();
+  }, []);
+
+  return (
+    <LockPasswordModal
+      open={modalOpen}
+      onCancel={() => setModalOpen(false)}
+    />
+  );
+};
+
 const getRootMenuAndChildrenMenu = (menuList) => {
   menuList.forEach((menu) => {
     if (menu.children)
@@ -73,6 +113,15 @@ const getRootMenuAndChildrenMenu = (menuList) => {
 };
 
 export async function getInitialState() {
+  // 检查是否处于锁屏状态
+  if (isLocked()) {
+    // 如果当前不在锁屏页面，跳转到锁屏页面
+    const currentPath = history.location.pathname;
+    if (currentPath !== LOCK_SCREEN_PATH) {
+      history.push(LOCK_SCREEN_PATH);
+    }
+  }
+
   // 未认证
   if (!getToken()) {
     // 当前页为登录页
@@ -80,7 +129,7 @@ export async function getInitialState() {
     if (path === LOGIN_PATH) {
       message.warning('未登录，请重新登录');
     } else {
-      if (path !== CALLBACK_PATH) {
+      if (path !== CALLBACK_PATH && path !== LOCK_SCREEN_PATH) {
         removeUsername();
         removeUserRole();
         removeAvatarUrl();
@@ -108,6 +157,7 @@ export async function getInitialState() {
 }
 
 export const layout = ({ initialState }) => {
+
   return {
     title: TITLE,
     logo: LOGO,
@@ -201,13 +251,15 @@ export const layout = ({ initialState }) => {
                     },
                   },
                   {
-                    key: 'logout',
+                    key: 'lockScreen',
                     icon: (
-                      <MyIcon type={'icon-tuichu'} style={{ fontSize: 20 }} />
+                      <MyIcon type={'icon-lock'} style={{ fontSize: 20 }} />
                     ),
                     label: '锁定屏幕',
                     onClick: () => {
-                      // 跳转到输入密码的页面，输入密码之后跳转到锁定屏幕界面
+                      if (setLockPasswordModalOpenCallback) {
+                        setLockPasswordModalOpenCallback(true);
+                      }
                     },
                   },
                 ],
@@ -215,6 +267,9 @@ export const layout = ({ initialState }) => {
             >
               {dom}
             </Dropdown>
+
+            {/* 锁屏密码设置Modal */}
+            <LockScreenModalWrapper />
           </>
         );
       },

@@ -15,6 +15,12 @@ const routes = [
     access: 'allowAnyoneAccessRoute',
   },
   {
+    path: '/lock-screen',
+    component: '@/pages/LockScreen',
+    layout: false,
+    access: 'allowAnyoneAccessRoute',
+  },
+  {
     name: '首页',
     path: '/home',
     component: '@/pages/Home',
