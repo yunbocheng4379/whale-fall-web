@@ -1,6 +1,11 @@
 import LoginApi from '@/api/LoginApi';
 import buildMenu from '@/utils/buildMenu';
-import { getCounter, removeAvatarUrl, setAvatarUrl } from '@/utils/storage';
+import {
+  getCounter,
+  removeAvatarUrl,
+  removeEmail,
+  setAvatarUrl,
+} from '@/utils/storage';
 import {
   removeToken,
   removeUsername,
@@ -9,9 +14,9 @@ import {
   setUsername,
   setUserRole,
 } from '@/utils/tokenUtil';
+import { history, useLocation, useModel } from '@umijs/max';
 import { message } from 'antd';
 import { useEffect } from 'react';
-import { history, useLocation, useModel } from '@umijs/max';
 
 const OAuthCallback = () => {
   const { setInitialState } = useModel('@@initialState');
@@ -24,6 +29,7 @@ const OAuthCallback = () => {
       removeUsername();
       removeUserRole();
       removeAvatarUrl();
+      removeEmail();
       history.replace('/login');
     } else {
       setToken(token);

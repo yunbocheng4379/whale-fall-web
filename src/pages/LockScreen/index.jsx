@@ -6,7 +6,7 @@ import {
   setLockStatus,
   verifyLockPassword,
 } from '@/utils/lockScreenUtil';
-import { removeAvatarUrl, setCounter } from '@/utils/storage';
+import { removeAvatarUrl, removeEmail, setCounter } from '@/utils/storage';
 import { removeToken, removeUsername, removeUserRole } from '@/utils/tokenUtil';
 import {
   EyeInvisibleOutlined,
@@ -179,12 +179,13 @@ const LockScreen = () => {
     removeUsername();
     removeUserRole();
     removeAvatarUrl();
+    removeEmail();
     setCounter(0);
 
     // 清除锁屏密码
     removeLockPassword();
 
-    message.success('退出成功');
+    message.success('退出成功').then((r) => {});
 
     // 跳转到登录页
     history.push(LOGIN_PATH);
@@ -192,10 +193,12 @@ const LockScreen = () => {
 
   return (
     <div className="lock-screen-container">
-      {/* 背景视频 */}
-      <video className="background-video" autoPlay muted loop playsInline>
-        <source src="/img/background.mp4" type="video/mp4" />
-      </video>
+      {/* 背景图片 */}
+      <img
+        className="background-image"
+        src="/img/system/lockBackground.png"
+        alt="锁屏背景"
+      />
 
       {/* 锁屏内容 */}
       <div className="lock-screen-content">

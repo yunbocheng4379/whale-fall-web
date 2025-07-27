@@ -1,0 +1,252 @@
+// 用户中心下拉菜单样式
+.user-center-overlay {
+  .ant-dropdown {
+    padding: 0;
+    border-radius: 8px;
+    box-shadow:
+      0 6px 16px 0 rgba(0, 0, 0, 8%),
+      0 3px 6px -4px rgba(0, 0, 0, 12%),
+      0 9px 28px 8px rgba(0, 0, 0, 5%);
+    border: 1px solid rgba(5, 5, 5, 6%);
+    overflow: hidden;
+  }
+}
+
+.user-center-dropdown {
+  width: 240px;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+
+  // 用户信息头部
+  .user-info-header {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background: #fafafa;
+    border-bottom: 1px solid #f0f0f0;
+
+    .user-avatar {
+      margin-right: 12px;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 10%);
+    }
+
+    .user-details {
+      flex: 1;
+
+      .user-name {
+        font-size: 14px;
+        font-weight: 500;
+        color: #262626;
+        line-height: 20px;
+        margin-bottom: 2px;
+      }
+
+      .user-email {
+        font-size: 12px;
+        color: #8c8c8c;
+        line-height: 16px;
+      }
+    }
+  }
+
+  // 菜单项列表
+  .menu-items-list {
+    padding: 8px 0;
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 0;
+
+      &:hover {
+        background-color: #f5f5f5;
+      }
+
+      &:active {
+        background-color: #e6f7ff;
+      }
+
+      .menu-item-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        margin-right: 12px;
+        color: #595959;
+        font-size: 16px;
+      }
+
+      .menu-item-label {
+        flex: 1;
+        font-size: 14px;
+        color: #262626;
+        line-height: 20px;
+      }
+    }
+  }
+
+  // 退出登录按钮区域
+  .logout-section {
+    padding: 8px 16px 16px;
+    border-top: 1px solid #f0f0f0;
+
+    .logout-button {
+      height: 36px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 400;
+      color: #262626;
+      background: #fff;
+      border: 1px solid #d9d9d9;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #e6f7ff;
+        border-color: #91d5ff;
+        color: #1890ff;
+      }
+
+      &:active {
+        background: #bae7ff;
+        border-color: #69c0ff;
+      }
+
+      &:focus {
+        background: #e6f7ff;
+        border-color: #91d5ff;
+        color: #1890ff;
+        box-shadow: 0 0 0 2px rgba(24, 144, 255, 20%);
+      }
+    }
+  }
+}
+
+// 触发器样式
+.user-center-trigger {
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 15%);
+  }
+}
+
+// 深色主题适配
+@media (prefers-color-scheme: dark) {
+  .user-center-dropdown {
+    background: #1f1f1f;
+    border: 1px solid #303030;
+
+    .user-info-header {
+      background: #262626;
+      border-bottom-color: #303030;
+
+      .user-name {
+        color: #fff;
+      }
+
+      .user-email {
+        color: #bfbfbf;
+      }
+    }
+
+    .menu-items-list {
+      .menu-item {
+        &:hover {
+          background-color: #262626;
+        }
+
+        &:active {
+          background-color: #1890ff;
+        }
+
+        .menu-item-icon {
+          color: #bfbfbf;
+        }
+
+        .menu-item-label {
+          color: #fff;
+        }
+      }
+    }
+
+    .logout-section {
+      border-top-color: #303030;
+
+      .logout-button {
+        background: #262626;
+        border-color: #434343;
+        color: #fff;
+
+        &:hover {
+          background: #1890ff;
+          border-color: #1890ff;
+          color: #fff;
+        }
+
+        &:active {
+          background: #096dd9;
+          border-color: #096dd9;
+        }
+
+        &:focus {
+          background: #1890ff;
+          border-color: #1890ff;
+          color: #fff;
+          box-shadow: 0 0 0 2px rgba(24, 144, 255, 20%);
+        }
+      }
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .user-center-dropdown {
+    width: 200px;
+
+    .user-info-header {
+      padding: 12px;
+
+      .user-details {
+        .user-name {
+          font-size: 13px;
+        }
+
+        .user-email {
+          font-size: 11px;
+        }
+      }
+    }
+
+    .menu-items-list {
+      .menu-item {
+        padding: 8px 12px;
+
+        .menu-item-icon {
+          width: 18px;
+          margin-right: 10px;
+          font-size: 14px;
+        }
+
+        .menu-item-label {
+          font-size: 13px;
+        }
+      }
+    }
+
+    .logout-section {
+      padding: 6px 12px 12px;
+
+      .logout-button {
+        height: 32px;
+        font-size: 13px;
+      }
+    }
+  }
+}

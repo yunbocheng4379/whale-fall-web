@@ -87,6 +87,15 @@
       }
     }
 
+    // 用户中心按钮特殊样式
+    &.user-center-button {
+      // 去除默认的悬停效果，因为组件内部已经处理
+      &:hover {
+        background-color: transparent;
+        transform: none;
+      }
+    }
+
     // 按钮文本样式（如果有）
     .button-text {
       margin-left: 4px;

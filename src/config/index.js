@@ -14,6 +14,8 @@ const MENU_TYPE = 'menuType';
 const USER_ROLE = 'ROLE';
 const LOCK_PASSWORD_KEY = 'LOCK_PASSWORD';
 const LOCK_STATUS_KEY = 'LOCK_STATUS';
+const EMAIL = 'email';
+const DEFAULT_EMAIL = 'xxx@email.com';
 
 export {
   AVATAR,
@@ -32,4 +34,6 @@ export {
   USER_ROLE,
   LOCK_PASSWORD_KEY,
   LOCK_STATUS_KEY,
+  EMAIL,
+  DEFAULT_EMAIL
 };

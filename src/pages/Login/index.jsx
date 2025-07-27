@@ -6,7 +6,7 @@ import useCountdown from '@/hooks/useCountdown';
 import buildMenu from '@/utils/buildMenu';
 import { MyIcon } from '@/utils/iconUtil';
 import { baseURL } from '@/utils/request';
-import { getCounter, removeAvatarUrl, setAvatarUrl } from '@/utils/storage';
+import {getCounter, removeAvatarUrl, removeEmail, setAvatarUrl, setEmail} from '@/utils/storage';
 import {
   getToken,
   removeToken,
@@ -147,10 +147,11 @@ const Login = () => {
   };
 
   const afterLoginSuccess = async (data) => {
-    setAvatarUrl(data?.avatarUrl);
     setToken(data?.token);
     setUsername(data?.username);
     setUserRole(data?.role);
+    setEmail(data?.email)
+    setAvatarUrl(data?.avatarUrl);
     const { success: menuSuccess, data: menuDataResponse } =
       await LoginApi.getMenu({
         userName: data?.username,
@@ -170,6 +171,7 @@ const Login = () => {
       removeUsername();
       removeUserRole();
       removeAvatarUrl();
+      removeEmail()
     }
   };
 

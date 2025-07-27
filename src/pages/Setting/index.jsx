@@ -4,7 +4,7 @@ import AvatarUpload from '@/components/AvatarUpload';
 import { LOGIN_PATH } from '@/config';
 import useCountdown from '@/hooks/useCountdown';
 import { MyIcon } from '@/utils/iconUtil';
-import { removeAvatarUrl, setAvatarUrl } from '@/utils/storage';
+import { removeAvatarUrl, removeEmail, setAvatarUrl } from '@/utils/storage';
 import {
   getUsername,
   removeToken,
@@ -12,20 +12,17 @@ import {
   removeUserRole,
 } from '@/utils/tokenUtil';
 import {
+  BranchesOutlined,
+  ContactsOutlined,
+  LinkOutlined,
   LockOutlined,
   MailOutlined,
   NumberOutlined,
-  QuestionCircleOutlined,
-  UserOutlined,
   PhoneOutlined,
-  SafetyOutlined,
-  LinkOutlined,
-  DeleteOutlined,
-  ContactsOutlined,
+  QuestionCircleOutlined,
   SecurityScanOutlined,
-  BranchesOutlined,
-  WarningOutlined,
   SettingOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import {
   ModalForm,
@@ -52,7 +49,7 @@ import {
 } from 'antd';
 import { useEffect, useState } from 'react';
 import Marquee from 'react-fast-marquee';
-import { history, useModel, useLocation } from 'umi';
+import { history, useLocation, useModel } from 'umi';
 import './index.less';
 
 const SettingPage = () => {
@@ -115,11 +112,7 @@ const SettingPage = () => {
       dataIndex: 'flag',
       width: 100,
       align: 'center',
-      render: () => (
-        <Tag color={'success'}>
-          已绑定
-        </Tag>
-      ),
+      render: () => <Tag color={'success'}>已绑定</Tag>,
     },
     {
       title: '绑定时间',
@@ -172,16 +165,18 @@ const SettingPage = () => {
       setUserId(userInfo?.id);
       setUserInfo({
         ...userInfo,
-        phone: userInfo?.phone
-          ?.toString()
-          .replace(
-            /(\d{3})\d+(\d{4})/,
-            (_, g1, g2) => g1 + '*'.repeat(4) + g2
+        phone:
+          userInfo?.phone
+            ?.toString()
+            .replace(
+              /(\d{3})\d+(\d{4})/,
+              (_, g1, g2) => g1 + '*'.repeat(4) + g2,
+            ) ?? '未知号码',
+        email:
+          userInfo?.email?.replace(
+            /^([^@])(.*)([^@])(@.*)$/,
+            (_, g1, g2, g3, g4) => g1 + '*'.repeat(g2.length) + g3 + g4,
           ) ?? '未知号码',
-        email: userInfo?.email?.replace(
-          /^([^@])(.*)([^@])(@.*)$/,
-          (_, g1, g2, g3, g4) => g1 + '*'.repeat(g2.length) + g3 + g4
-        ) ?? '未知号码',
         password: '********',
       });
     }
@@ -236,6 +231,7 @@ const SettingPage = () => {
         removeUsername();
         removeUserRole();
         removeAvatarUrl();
+        removeEmail();
         history.push(LOGIN_PATH);
       }
     }
@@ -295,6 +291,7 @@ const SettingPage = () => {
       removeUserRole();
       removeAvatarUrl();
       removeUsername();
+      removeEmail();
       history.push(LOGIN_PATH);
     }
   };
@@ -752,8 +749,11 @@ const SettingPage = () => {
                   <SecurityScanOutlined />
                 </span>
                 账号安全
-                <Tooltip title="可通过以下方式修改账号安全信息" style={{ marginLeft: 8 }}>
-                  <QuestionCircleOutlined style={{marginLeft: 4}}/>
+                <Tooltip
+                  title="可通过以下方式修改账号安全信息"
+                  style={{ marginLeft: 8 }}
+                >
+                  <QuestionCircleOutlined style={{ marginLeft: 4 }} />
                 </Tooltip>
               </div>
             }
@@ -846,10 +846,20 @@ const SettingPage = () => {
                   <BranchesOutlined />
                 </span>
                 第三方账号绑定
-                <Tooltip title="三方账号绑定信息，可进行三方账号信息绑定、解除关联" style={{ marginLeft: 8 }}>
-                  <QuestionCircleOutlined style={{marginLeft: 4}}/>
+                <Tooltip
+                  title="三方账号绑定信息，可进行三方账号信息绑定、解除关联"
+                  style={{ marginLeft: 8 }}
+                >
+                  <QuestionCircleOutlined style={{ marginLeft: 4 }} />
                 </Tooltip>
-                <div style={{ marginTop: 12, fontSize: 14, fontWeight: 400, opacity: 0.9 }}>
+                <div
+                  style={{
+                    marginTop: 12,
+                    fontSize: 14,
+                    fontWeight: 400,
+                    opacity: 0.9,
+                  }}
+                >
                   使用以下任一方式都可以登录到您的账号，避免由于某个账号失效导致无法登录
                 </div>
               </div>
@@ -858,8 +868,7 @@ const SettingPage = () => {
             headerBordered
             className="setting-card third-party-card"
           >
-            {thirdPartyData.length > 0
-              ?
+            {thirdPartyData.length > 0 ? (
               <ProTable
                 dataSource={thirdPartyData}
                 rowKey="key"
@@ -868,16 +877,17 @@ const SettingPage = () => {
                 pagination={false}
                 columns={threePartyColumns}
               />
-              :
-            <></>}
+            ) : (
+              <></>
+            )}
             <div className="third-party-bind-section">
               {(() => {
                 // 定义所有支持的平台
                 const allPlatforms = ['github', 'gitee', 'gitlab', 'feishu'];
 
                 // 计算已绑定的平台数量
-                const boundPlatforms = thirdPartyData.filter(item =>
-                  allPlatforms.includes(item.authType)
+                const boundPlatforms = thirdPartyData.filter((item) =>
+                  allPlatforms.includes(item.authType),
                 );
 
                 // 判断是否所有平台都已绑定
@@ -888,7 +898,9 @@ const SettingPage = () => {
                   return (
                     <div className="no-available-platforms">
                       <div className="no-platforms-icon">🎉</div>
-                      <div className="no-platforms-text">所有支持的第三方平台都已绑定</div>
+                      <div className="no-platforms-text">
+                        所有支持的第三方平台都已绑定
+                      </div>
                     </div>
                   );
                 } else {
@@ -907,10 +919,26 @@ const SettingPage = () => {
 
                       <div className="bind-cards">
                         {[
-                          { type: 'github', name: 'GitHub', desc: '全球最大的代码托管平台' },
-                          { type: 'gitee', name: 'Gitee', desc: '国内领先的代码托管平台' },
-                          { type: 'gitlab', name: 'GitLab', desc: '企业级DevOps平台' },
-                          { type: 'feishu', name: '飞书', desc: '字节跳动旗下协作平台' }
+                          {
+                            type: 'github',
+                            name: 'GitHub',
+                            desc: '全球最大的代码托管平台',
+                          },
+                          {
+                            type: 'gitee',
+                            name: 'Gitee',
+                            desc: '国内领先的代码托管平台',
+                          },
+                          {
+                            type: 'gitlab',
+                            name: 'GitLab',
+                            desc: '企业级DevOps平台',
+                          },
+                          {
+                            type: 'feishu',
+                            name: '飞书',
+                            desc: '字节跳动旗下协作平台',
+                          },
                         ].map((platform) => {
                           const isBound = thirdPartyData.some(
                             (item) => item.authType === platform.type,
@@ -922,21 +950,37 @@ const SettingPage = () => {
                               key={platform.type}
                               className={`bind-card ${platform.type}`}
                               onClick={() => {
-                                if (platform.type === 'github') handleBindGitHub();
-                                else if (platform.type === 'gitee') handleBindGitee();
-                                else if (platform.type === 'gitlab') handleBindGitLab();
-                                else if (platform.type === 'feishu') handleBindFeiShu();
+                                if (platform.type === 'github')
+                                  handleBindGitHub();
+                                else if (platform.type === 'gitee')
+                                  handleBindGitee();
+                                else if (platform.type === 'gitlab')
+                                  handleBindGitLab();
+                                else if (platform.type === 'feishu')
+                                  handleBindFeiShu();
                               }}
                             >
                               <div className="bind-card-icon">
-                                {platform.type === 'github' && <MyIcon type={'icon-github'} />}
-                                {platform.type === 'gitee' && <MyIcon type={'icon-gitee'} />}
-                                {platform.type === 'gitlab' && <MyIcon type={'icon-gitlab'} />}
-                                {platform.type === 'feishu' && <MyIcon type={'icon-feishu'} />}
+                                {platform.type === 'github' && (
+                                  <MyIcon type={'icon-github'} />
+                                )}
+                                {platform.type === 'gitee' && (
+                                  <MyIcon type={'icon-gitee'} />
+                                )}
+                                {platform.type === 'gitlab' && (
+                                  <MyIcon type={'icon-gitlab'} />
+                                )}
+                                {platform.type === 'feishu' && (
+                                  <MyIcon type={'icon-feishu'} />
+                                )}
                               </div>
                               <div className="bind-card-content">
-                                <div className="bind-card-name">{platform.name}</div>
-                                <div className="bind-card-desc">{platform.desc}</div>
+                                <div className="bind-card-name">
+                                  {platform.name}
+                                </div>
+                                <div className="bind-card-desc">
+                                  {platform.desc}
+                                </div>
                               </div>
                               <div className="bind-card-action">
                                 <Button type="primary" size="small" ghost>
@@ -961,8 +1005,11 @@ const SettingPage = () => {
                   <SettingOutlined />
                 </span>
                 系统设置
-                <Tooltip title="调整系统主题、布局和显示偏好" style={{ marginLeft: 8 }}>
-                  <QuestionCircleOutlined style={{marginLeft: 4}}/>
+                <Tooltip
+                  title="调整系统主题、布局和显示偏好"
+                  style={{ marginLeft: 8 }}
+                >
+                  <QuestionCircleOutlined style={{ marginLeft: 4 }} />
                 </Tooltip>
               </div>
             }
@@ -979,7 +1026,9 @@ const SettingPage = () => {
                 <div className="setting-item">
                   <div className="setting-item-info">
                     <div className="setting-item-title">
-                      <SettingOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+                      <SettingOutlined
+                        style={{ marginRight: 8, color: '#1890ff' }}
+                      />
                       主题与布局设置
                     </div>
                     <div className="setting-item-desc">
@@ -1007,8 +1056,11 @@ const SettingPage = () => {
                   <WarningOutlined />
                 </span>
                 账号注销
-                <Tooltip title="账号注销后账户所有数据将被销毁，请谨慎操作" style={{ marginLeft: 8 }}>
-                  <QuestionCircleOutlined style={{marginLeft: 4}}/>
+                <Tooltip
+                  title="账号注销后账户所有数据将被销毁，请谨慎操作"
+                  style={{ marginLeft: 8 }}
+                >
+                  <QuestionCircleOutlined style={{ marginLeft: 4 }} />
                 </Tooltip>
               </div>
             }
