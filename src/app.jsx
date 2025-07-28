@@ -1,4 +1,5 @@
 import LoginApi from '@/api/LoginApi';
+import FlowerEffect from '@/components/FlowerEffect';
 import HeaderWrapper from '@/components/HeaderWrapper';
 import { preloadLockScreenResources } from '@/utils/lockScreenPreloader';
 import {
@@ -57,7 +58,9 @@ const defaultInitialState = {
 let rootMenuList = [];
 let childrenMenuList = [];
 
-
+// 全局放花效果状态管理
+let flowerEffectActive = false;
+let setFlowerEffectCallback = null;
 
 // 全局键盘事件监听器
 let keyboardListenerAdded = false;
@@ -72,7 +75,26 @@ const addGlobalKeyboardListener = () => {
   }
 };
 
+// 放花效果包装组件
+const FlowerEffectWrapper = () => {
+  const [active, setActive] = useState(false);
 
+  // 设置全局回调
+  React.useEffect(() => {
+    setFlowerEffectCallback = setActive;
+  }, []);
+
+  const handleComplete = () => {
+    setActive(false);
+  };
+
+  return (
+    <FlowerEffect
+      active={active}
+      onComplete={handleComplete}
+    />
+  );
+};
 
 const getRootMenuAndChildrenMenu = (menuList) => {
   menuList.forEach((menu) => {

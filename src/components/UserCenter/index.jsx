@@ -1,3 +1,4 @@
+import FlowerEffect from '@/components/FlowerEffect';
 import { HOME_PATH, LOGIN_PATH, SETTING_PATH } from '@/config';
 import { MyIcon } from '@/utils/iconUtil';
 import { navigateToLockScreenWithPreload } from '@/utils/lockScreenPreloader';
@@ -24,6 +25,7 @@ import './index.less';
 
 const UserCenter = ({ setLockPasswordModalOpenCallback }) => {
   const [isPreloading, setIsPreloading] = useState(false);
+  const [flowerEffectActive, setFlowerEffectActive] = useState(false);
 
   const handleLogout = () => {
     removeToken();
@@ -55,14 +57,21 @@ const UserCenter = ({ setLockPasswordModalOpenCallback }) => {
     }
   };
 
+  const handleFlowerEffect = () => {
+    setFlowerEffectActive(true);
+    message.success('💥 劈里啪啦！花瓣爆炸啦！🎉🌸✨').then(() => {});
+  };
+
+  const handleFlowerComplete = () => {
+    setFlowerEffectActive(false);
+  };
+
   const menuItems = [
     {
       key: 'flowering',
       icon: <MyIcon type={'icon-firework'} style={{ fontSize: 16 }} />,
       label: '劈里啪啦',
-      onClick: () => {
-        message.success('放花咯').then((r) => {});
-      },
+      onClick: handleFlowerEffect,
     },
     {
       key: 'settings',
@@ -141,21 +150,29 @@ const UserCenter = ({ setLockPasswordModalOpenCallback }) => {
   );
 
   return (
-    <Dropdown
-      dropdownRender={dropdownRender}
-      trigger={['hover']}
-      placement="bottomRight"
-      overlayClassName="user-center-overlay"
-      mouseEnterDelay={0.1}
-      mouseLeaveDelay={0.1}
-    >
-      <Avatar
-        src={getAvatarUrl()}
-        shape="square"
-        className="user-center-trigger"
-        style={{ cursor: 'pointer' }}
+    <>
+      <Dropdown
+        dropdownRender={dropdownRender}
+        trigger={['hover']}
+        placement="bottomRight"
+        overlayClassName="user-center-overlay"
+        mouseEnterDelay={0.1}
+        mouseLeaveDelay={0.1}
+      >
+        <Avatar
+          src={getAvatarUrl()}
+          shape="square"
+          className="user-center-trigger"
+          style={{ cursor: 'pointer' }}
+        />
+      </Dropdown>
+
+      {/* 放花效果组件 */}
+      <FlowerEffect
+        active={flowerEffectActive}
+        onComplete={handleFlowerComplete}
       />
-    </Dropdown>
+    </>
   );
 };
 

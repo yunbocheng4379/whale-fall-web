@@ -1,0 +1,167 @@
+.flower-effect-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.flower-item {
+  position: absolute;
+  transform-origin: center;
+  user-select: none;
+  text-shadow:
+    0 0 15px rgba(255, 255, 255, 100%),
+    0 0 30px rgba(255, 255, 255, 80%),
+    0 0 45px rgba(255, 255, 255, 60%);
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 80%));
+  will-change: transform, opacity;
+
+  &.simple-firework {
+    animation:
+      firework-scatter var(--scatter-duration) ease-out forwards,
+      firework-fall var(--fall-duration) ease-in var(--scatter-duration)
+        forwards;
+  }
+}
+
+/* 爆炸中心点闪光效果 */
+.explosion-center {
+  position: absolute;
+  font-size: 40px;
+  animation: center-flash 0.5s ease-out forwards;
+  transform: translate(-50%, -50%);
+  z-index: 10000;
+  text-shadow:
+    0 0 20px rgba(255, 255, 255, 100%),
+    0 0 40px rgba(255, 255, 255, 80%),
+    0 0 60px rgba(255, 255, 255, 60%);
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 100%));
+}
+
+/* 爆炸中心点闪光动画 */
+@keyframes center-flash {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+
+  20% {
+    transform: translate(-50%, -50%) scale(3);
+    opacity: 1;
+  }
+
+  60% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* 第一阶段：从爆炸中心向四周散射 */
+@keyframes firework-scatter {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(0.2);
+    opacity: 0;
+  }
+
+  5% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(0.8);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate(var(--scatter-x), var(--scatter-y))
+      rotate(calc(var(--rotation-speed) * 0.3)) scale(1.2);
+  }
+}
+
+/* 第二阶段：自由落体到地面 */
+@keyframes firework-fall {
+  0% {
+    opacity: 1;
+    transform: translate(var(--scatter-x), var(--scatter-y))
+      rotate(calc(var(--rotation-speed) * 0.3)) scale(1.2);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translate(
+        calc(var(--scatter-x) + (var(--fall-x) - var(--scatter-x)) * 0.1),
+        calc(var(--scatter-y) + (var(--fall-y) - var(--scatter-y)) * 0.05)
+      )
+      rotate(calc(var(--rotation-speed) * 0.5)) scale(1.1);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: translate(
+        calc(var(--scatter-x) + (var(--fall-x) - var(--scatter-x)) * 0.4),
+        calc(var(--scatter-y) + (var(--fall-y) - var(--scatter-y)) * 0.3)
+      )
+      rotate(calc(var(--rotation-speed) * 0.7)) scale(1);
+  }
+
+  75% {
+    opacity: 0.6;
+    transform: translate(
+        calc(var(--scatter-x) + (var(--fall-x) - var(--scatter-x)) * 0.7),
+        calc(var(--scatter-y) + (var(--fall-y) - var(--scatter-y)) * 0.7)
+      )
+      rotate(calc(var(--rotation-speed) * 0.85)) scale(0.8);
+  }
+
+  90% {
+    opacity: 0.3;
+    transform: translate(
+        calc(var(--scatter-x) + (var(--fall-x) - var(--scatter-x)) * 0.9),
+        calc(var(--scatter-y) + (var(--fall-y) - var(--scatter-y)) * 0.9)
+      )
+      rotate(calc(var(--rotation-speed) * 0.95)) scale(0.6);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(var(--fall-x), var(--fall-y))
+      rotate(var(--rotation-speed)) scale(0.3);
+  }
+}
+
+/* 移除了旧的动画，现在使用真实的物理抛物线运动 */
+
+/* 为不同的烟花元素添加轻微的动画变化 */
+.flower-item:nth-child(odd) {
+  animation-timing-function: ease-out, ease-in;
+}
+
+.flower-item:nth-child(even) {
+  animation-timing-function:
+    cubic-bezier(0.68, -0.55, 0.265, 1.55),
+    cubic-bezier(0.55, 0.085, 0.68, 0.53);
+}
+
+.flower-item:nth-child(3n) {
+  animation-timing-function:
+    cubic-bezier(0.175, 0.885, 0.32, 1.275), ease-in-out;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .flower-item {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .flower-item {
+    font-size: 14px !important;
+  }
+}
