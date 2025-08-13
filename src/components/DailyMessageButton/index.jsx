@@ -189,8 +189,8 @@ const DailyMessageButton = () => {
     try {
       // 并行获取消息列表和状态信息
       await Promise.all([
-        getMessageByUserName(),
-        getMessageStatusInfo(true)
+        // getMessageByUserName(),
+        // getMessageStatusInfo(true)
       ]);
     } finally {
       setIsLoading(false);
