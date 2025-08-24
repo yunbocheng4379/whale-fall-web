@@ -6,6 +6,7 @@ import {isNull, isUndefined} from "lodash";
 import {waitTime, wgs84togcj02} from "@/utils/commonUtil";
 import {InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SearchOutlined} from "@ant-design/icons";
 import ThemeSelect from '@/components/Map/ThemeSelect';
+import Joyride, { STATUS, EVENTS } from 'react-joyride';
 
 let map
 const Map = () => {
@@ -13,6 +14,9 @@ const Map = () => {
   const [searchLoading, setSearchLoading] = useState(false)
   const [isHiddenFooter, setIsHiddenFooter] = useState(false)
   const [personalPosition, setPersonalPosition] = useState()
+  const [tourSteps, setTourSteps] = useState([]);
+  const [tourStepIndex, setTourStepIndex] = useState(0);
+  const [showTour, setShowTour] = useState(false);
 
   const moveEndRef = useRef(null);
   const zoomEndRef = useRef(null);
@@ -29,7 +33,7 @@ const Map = () => {
   }
 
   /* 缩放地图 */
-  const zoomEnd = () => {
+  const zoomEnd = () => {3
     if (timerId)
       clearTimeout(timerId)
     timerId = setTimeout(() => {
@@ -88,6 +92,11 @@ const Map = () => {
       moveEndRef.current = moveEnd;
       map.on('zoomend', zoomEnd,)
       zoomEndRef.current = zoomEnd;
+
+      // 默认打开引导
+      setShowTour(true)
+      setTourStepIndex(0);
+      initializeTourSteps();
     }).catch(e => {
       console.log(e)
     })
@@ -109,20 +118,175 @@ const Map = () => {
 
   const HiddenTool = props => {
     return (
-      <Button icon={!isHiddenFooter ? <MenuFoldOutlined/> : <MenuUnfoldOutlined/>} onClick={() => {
-        setIsHiddenFooter(!isHiddenFooter)
-      }}>{!isHiddenFooter ? '折叠工具' : '展开工具'}</Button>
+      <Button
+        className="smart-replenish-btn"
+        icon={!isHiddenFooter ? <MenuFoldOutlined/> : <MenuUnfoldOutlined/>}
+        onClick={() => {
+          setIsHiddenFooter(!isHiddenFooter)
+        }}
+      >{!isHiddenFooter ? '折叠工具' : '展开工具'}
+      </Button>
     )
+  }
+
+  // 初始化引导步骤
+  const initializeTourSteps = () => {
+    setTourSteps([
+      {
+        target: '.smart-replenish-btn',
+        content: '点击"智能补仓"按钮，系统将为您打开智能分析菜单，帮助您进行智能化的电池补仓决策',
+        placement: 'bottom',
+        disableBeacon: true,
+      },
+      {
+        target: '.position-mode-radio-group',
+        content: '在智能补仓菜单中，选择绘制模式：\n1. 补取模式：用于补充和获取电池\n2. 推荐模式：系统推荐的优化方案\n3. 新电池模式：新电池的部署方案',
+        placement: 'bottom',
+        disableBeacon: true,
+      },
+      {
+        target: '.region-select',
+        content: '选择指定的大区，系统将根据大区信息进行区域化的分析和推荐',
+        placement: 'bottom',
+        disableBeacon: true,
+      },
+      {
+        target: '.battery-group-select',
+        content: '选择具体的电池分组，系统会根据分组信息进行智能分析和推荐',
+        placement: 'bottom',
+        disableBeacon: true,
+      },
+      {
+        target: '.draw-button',
+        content: '点击"绘制"按钮，系统将根据您选择的模式和参数，在指定位置绘制相应的点位信息',
+        placement: 'bottom',
+        disableBeacon: true,
+      }
+    ]);
+  };
+
+  // 手动关闭引导
+  const closeTour = () => {
+    setShowTour(false);
+    setTourStepIndex(0);
+    setTourSteps([]);
+  };
+
+  // 引导事件处理
+  const handleTourEvent = (data) => {
+    const { action, index, status, type } = data;
+    // 处理所有关闭操作
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+      closeTour();
+      return;
+    }
+    if (type === EVENTS.STEP_AFTER) {
+      if (index === 0) {
+        setShowTour(true);
+        setTourStepIndex(1);
+      }
+    }
+    // 处理步骤跳转
+    if (type === EVENTS.STEP_AFTER && action === 'next') {
+      // 下一步
+      if (index < tourSteps.length - 1) {
+        const nextStep = index + 1;
+        setTourStepIndex(nextStep);
+      } else {
+        closeTour();
+      }
+    } else if (type === EVENTS.STEP_AFTER && action === 'prev') {
+      // 上一步
+      if (index > 0) {
+        const prevStep = index - 1;
+        setTourStepIndex(prevStep);
+      }
+    }
   }
 
   return (
     <>
+      {/* 引导组件 */}
+      <Joyride
+        steps={tourSteps}
+        run={showTour}
+        stepIndex={tourStepIndex}
+        continuous={true}
+        showProgress={true}
+        showSkipButton={true}
+        callback={handleTourEvent}
+        disableOverlayClose={true}
+        hideCloseButton={true}
+        showCloseButton={false}
+        spotlightClicks={false}
+        disableScrolling={false}
+        scrollToFirstStep={true}
+        scrollOffset={100}
+        disableOverlay={false}
+        floaterProps={{
+          disableAnimation: false,
+          hideArrow: false,
+        }}
+        styles={{
+          options: {
+            primaryColor: '#1890ff',
+            zIndex: 10000,
+            arrowColor: '#fff',
+          },
+          tooltip: {
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            maxWidth: '350px',
+            minWidth: '300px',
+          },
+          tooltipContent: {
+            whiteSpace: 'pre-line',
+            lineHeight: '1.6',
+          },
+          buttonNext: {
+            backgroundColor: '#1890ff',
+            borderRadius: '6px',
+            border: 'none',
+            color: '#fff',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            outline: 'none',
+            boxShadow: 'none'
+          },
+          buttonBack: {
+            color: '#666',
+            marginRight: 5,
+            border: '1px solid #d9d9d9',
+            borderRadius: '6px',
+            padding: '8px 16px',
+            cursor: 'pointer',
+          },
+          buttonSkip: {
+            color: '#999',
+            border: '1px solid #d9d9d9',
+            borderRadius: '6px',
+            padding: '8px 16px',
+            cursor: 'pointer',
+          },
+          overlay: {
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          },
+        }}
+        locale={{
+          back: '上一步',
+          last: '完成',
+          next: '下一步',
+          skip: '跳过'
+        }}
+      />
       <div style={{maxWidth: '100%', width: '100%', height: window.innerHeight - 60, maxHeight: '100vh'}}>
         <div style={{width: '100%', height: '100%', display: 'flex'}}>
           <div className={'toolbar'}>
             <Space>
               <HiddenTool/>
               <Button
+                className="position-mode-radio-group"
                 type={'primary'}
                 onClick={() => {
                   message.warning('待开发功能')
@@ -135,11 +299,13 @@ const Map = () => {
                 style={{ width: 120 }}
               />
               <Space.Compact>
-                <Input allowClear
-                       placeholder={'搜索框'}
-                       onChange={(e) => {
-                         console.log(e)
-                       }}
+                <Input
+                  allowClear
+                  className="region-select"
+                  placeholder={'搜索框'}
+                  onChange={(e) => {
+                    console.log(e)
+                  }}
                 />
               </Space.Compact>
               <div>
@@ -171,8 +337,20 @@ const Map = () => {
                 }</label>
                 <div style={{marginTop: '10px'}}>
                   <Space>
-                    <Button onClick={() => {message.warning('绘制围栏')}}>绘制围栏</Button>
-                    <Button onClick={() => {message.warning('数据保存')}}>数据保存</Button>
+                    <Button
+                      className="battery-group-select"
+                      onClick={() => {
+                        message.warning('绘制围栏')
+                      }}>
+                      绘制围栏
+                    </Button>
+                    <Button
+                      className="draw-button"
+                      onClick={() => {
+                        message.warning('数据保存')
+                      }}>
+                      数据保存
+                    </Button>
                   </Space>
                 </div>
               </div>
