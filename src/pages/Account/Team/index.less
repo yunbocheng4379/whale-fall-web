@@ -1,0 +1,88 @@
+/* CoupleLedgerPage.less */
+
+.ledger-page {
+  padding: 12px;
+}
+
+.ledger-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(250, 173, 20, 6%),
+    rgba(250, 173, 20, 2%)
+  );
+  border: 1px solid rgba(0, 0, 0, 4%);
+  border-radius: 10px;
+}
+
+.ledger-header .ant-typography {
+  margin-bottom: 0;
+}
+
+.ledger-stat {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ledger-stat-bg {
+  height: 46px;
+  border-radius: 10px;
+}
+
+.ledger-stat-bg.income {
+  background: linear-gradient(90deg, #52c41a 0%, rgba(82, 196, 26, 20%) 100%);
+}
+
+.ledger-stat-bg.expense {
+  background: linear-gradient(90deg, #ff4d4f 0%, rgba(255, 77, 79, 20%) 100%);
+}
+
+.ledger-stat-bg.positive {
+  background: linear-gradient(90deg, #1677ff 0%, rgba(22, 119, 255, 20%) 100%);
+}
+
+.ledger-stat-bg.negative {
+  background: linear-gradient(90deg, #faad14 0%, rgba(250, 173, 20, 20%) 100%);
+}
+
+.ledger-plus {
+  color: #3f8600;
+  font-weight: 600;
+}
+
+.ledger-minus {
+  color: #cf1322;
+  font-weight: 600;
+}
+
+.ant-pro-card {
+  border-radius: 12px;
+}
+
+.ant-pro-card-title {
+  font-weight: 600;
+}
+
+.ant-pro-table {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* ECharts 图表容器样式 */
+.react-echarts {
+  width: 100%;
+  height: 100%;
+}
+
+/* Modal 弹窗样式 */
+.ant-modal-content {
+  border-radius: 12px;
+}
+
+.ant-form-item-label > label {
+  font-weight: 500;
+}
