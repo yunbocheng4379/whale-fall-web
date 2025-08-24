@@ -1,0 +1,44 @@
+.investment-page {
+  padding: 12px;
+}
+
+.investment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(250, 173, 20, 6%),
+    rgba(250, 173, 20, 2%)
+  );
+  border: 1px solid rgba(0, 0, 0, 4%);
+  border-radius: 10px;
+}
+
+.investment-stat {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.investment-stat-bg {
+  height: 46px;
+  border-radius: 10px;
+}
+
+.investment-stat-bg.buy {
+  background: linear-gradient(90deg, #52c41a 0%, rgba(82, 196, 26, 20%) 100%);
+}
+
+.investment-stat-bg.sell {
+  background: linear-gradient(90deg, #ff4d4f 0%, rgba(255, 77, 79, 20%) 100%);
+}
+
+.investment-stat-bg.positive {
+  background: linear-gradient(90deg, #1677ff 0%, rgba(22, 119, 255, 20%) 100%);
+}
+
+.investment-stat-bg.negative {
+  background: linear-gradient(90deg, #faad14 0%, rgba(250, 173, 20, 20%) 100%);
+}
