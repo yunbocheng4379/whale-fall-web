@@ -1,0 +1,53 @@
+.statistics-page {
+  padding: 10px;
+
+  .ledger-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    background: linear-gradient(
+      90deg,
+      rgba(250, 173, 20, 6%),
+      rgba(250, 173, 20, 2%)
+    );
+    border: 1px solid rgba(0, 0, 0, 4%);
+    border-radius: 10px;
+  }
+
+  .filter-card {
+    margin-bottom: 10px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 5%);
+  }
+
+  .summary-row {
+    margin-bottom: 10px;
+
+    .ant-card {
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 5%);
+      text-align: center;
+
+      .ant-statistic {
+        font-size: 16px;
+
+        .ant-statistic-content-value {
+          font-size: 20px;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  .chart-card {
+    margin-bottom: 10px;
+    border-radius: 12px;
+
+    .ant-card-head {
+      font-weight: 600;
+      font-size: 16px;
+    }
+  }
+}
