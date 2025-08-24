@@ -35,7 +35,7 @@ const formalRoutes = [
         path: 'statistic',
         name: '账单统计',
         icon: 'icon-statistic',
-        component: '@/pages/Account/Statistic',
+        component: '@/pages/Account/StatisticsPage',
         access: 'allowAdminAccessRoute',
       },
     ],
