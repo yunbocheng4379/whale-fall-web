@@ -21,7 +21,6 @@ import {
   PhoneOutlined,
   QuestionCircleOutlined,
   SecurityScanOutlined,
-  SettingOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
 import {
@@ -33,7 +32,6 @@ import {
   ProFormItem,
   ProFormText,
   ProTable,
-  SettingDrawer,
 } from '@ant-design/pro-components';
 import {
   Alert,
@@ -49,7 +47,7 @@ import {
 } from 'antd';
 import { useEffect, useState } from 'react';
 import Marquee from 'react-fast-marquee';
-import { history, useLocation, useModel } from 'umi';
+import { history } from 'umi';
 import './index.less';
 
 const SettingPage = () => {
@@ -70,10 +68,6 @@ const SettingPage = () => {
   const [oldPhone, setOldPhone] = useState('');
   const [form] = Form.useForm();
 
-  // 系统设置相关状态
-  const [settingsVisible, setSettingsVisible] = useState(false);
-  const { initialState, setInitialState } = useModel('@@initialState');
-  const location = useLocation();
 
   useEffect(() => {
     fetchUserInfo().then((r) => {});
@@ -1002,57 +996,6 @@ const SettingPage = () => {
             title={
               <div>
                 <span className="title-icon">
-                  <SettingOutlined />
-                </span>
-                系统设置
-                <Tooltip
-                  title="调整系统主题、布局和显示偏好"
-                  style={{ marginLeft: 8 }}
-                >
-                  <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-                </Tooltip>
-              </div>
-            }
-            bordered
-            headerBordered
-            className="setting-card system-setting-card"
-          >
-            <div className="system-setting-content">
-              <div className="setting-description">
-                <p>个性化您的使用体验，调整系统外观和布局设置</p>
-              </div>
-
-              <div className="setting-options">
-                <div className="setting-item">
-                  <div className="setting-item-info">
-                    <div className="setting-item-title">
-                      <SettingOutlined
-                        style={{ marginRight: 8, color: '#1890ff' }}
-                      />
-                      主题与布局设置
-                    </div>
-                    <div className="setting-item-desc">
-                      调整系统主题色彩、明暗模式、菜单布局等显示选项
-                    </div>
-                  </div>
-                  <div className="setting-item-action">
-                    <Button
-                      type="primary"
-                      onClick={() => setSettingsVisible(true)}
-                      icon={<SettingOutlined />}
-                    >
-                      打开设置
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </ProCard>
-
-          <ProCard
-            title={
-              <div>
-                <span className="title-icon">
                   <WarningOutlined />
                 </span>
                 账号注销
@@ -1203,28 +1146,6 @@ const SettingPage = () => {
           />
         </ProFormItem>
       </ModalForm>
-
-      {/* 系统设置抽屉 */}
-      <SettingDrawer
-        pathname={location.pathname}
-        enableDarkTheme
-        getContainer={false}
-        settings={initialState?.settings}
-        onSettingChange={(changeSetting) => {
-          setInitialState((preInitialState) => ({
-            ...preInitialState,
-            settings: {
-              ...preInitialState?.settings,
-              ...changeSetting,
-            },
-          }));
-        }}
-        disableUrlParams={false}
-        hideHintAlert
-        hideCopyButton
-        onClose={() => setSettingsVisible(false)}
-        open={settingsVisible}
-      />
     </PageContainer>
   );
 };

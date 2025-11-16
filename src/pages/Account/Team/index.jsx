@@ -9,9 +9,8 @@ import {
   ProFormSelect,
   ProFormTextArea,
   ProTable,
-  StatisticCard
 } from '@ant-design/pro-components';
-import { Button, Col, Modal, Row, Select, Space, Tag, Typography } from 'antd';
+import { Button, Col, Modal, Row, Segmented, Select, Space, Tag, Typography } from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import moment from 'moment';
 import ReactECharts from 'echarts-for-react';
@@ -163,27 +162,56 @@ const Team = () => {
           <Text type="secondary">记录两人共同花销，如旅游、购物、聚餐等</Text>
         </div>
         <Space>
-          <Select value={quick} onChange={v=>{ setQuick(v); setRange(getQuickRange(v)); }} options={quickRanges} style={{ width:120 }} />
-          <ProFormRadio.Group name="type" options={typeOptions} value={type} onChange={setType} />
-          <Select allowClear placeholder="分类" value={category||undefined} onChange={v=>setCategory(v||'')} options={categoryOptions} style={{ width:140 }} />
+          <Segmented
+            options={[{label:'支出', value:'expense'},{label:'收入', value:'income'}]}
+            value={type}
+            onChange={setType}
+          />
+          <Select
+            value={quick}
+            onChange={(v)=>{ setQuick(v); setRange(getQuickRange(v)); }}
+            options={quickRanges}
+            style={{ width: 120 }}
+          />
+          <Select
+            allowClear
+            placeholder="分类"
+            value={category || undefined}
+            onChange={(v)=>setCategory(v||'')}
+            options={categoryOptions}
+            style={{ width: 140 }}
+          />
           <Button type="primary" onClick={handleOpenNew}>新增记录</Button>
         </Space>
       </div>
 
-      <Row gutter={[16,16]}>
-        <Col xs={24} md={8}><StatisticCard className="ledger-stat" statistic={{ title:'本期收入', value:formatCurrency(stats.income) }} chart={<div className="ledger-stat-bg income"/>}/></Col>
-        <Col xs={24} md={8}><StatisticCard className="ledger-stat" statistic={{ title:'本期支出', value:formatCurrency(stats.expense) }} chart={<div className="ledger-stat-bg expense"/>}/></Col>
-        <Col xs={24} md={8}><StatisticCard className="ledger-stat" statistic={{ title:'结余', value:formatCurrency(stats.balance) }} chart={<div className={stats.balance>=0?'ledger-stat-bg positive':'ledger-stat-bg negative'}/>}/></Col>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={8}>
+          <ProCard 
+            title={type === 'expense' ? '支出分类占比' : '收入分类占比'} 
+            bordered
+          >
+            <ReactECharts 
+              option={donutOption} 
+              style={{ height: 400 }} 
+              notMerge 
+              lazyUpdate 
+            />
+          </ProCard>
+        </Col>
+        <Col xs={24} md={16}>
+          <ProCard title="记账记录" bordered>
+            <ProTable 
+              rowKey="id" 
+              search={false} 
+              options={false} 
+              pagination={{ pageSize: 8 }} 
+              request={fetchLedgerData} 
+              columns={columns} 
+            />
+          </ProCard>
+        </Col>
       </Row>
-
-      <Row gutter={[16,16]} style={{ marginTop:8 }}>
-        <Col xs={24} md={10}><ProCard title={type==='expense'?'支出分类占比':'收入分类占比'} bordered><ReactECharts option={donutOption} style={{ height:360 }}/></ProCard></Col>
-        <Col xs={24} md={14}><ProCard title="收支趋势" bordered><ReactECharts option={lineOption} style={{ height:360 }}/></ProCard></Col>
-      </Row>
-
-      <ProCard title="记账记录" bordered style={{ marginTop: 8 }}>
-        <ProTable rowKey="id" search={false} options={false} pagination={{ pageSize:8 }} request={fetchLedgerData} columns={columns} />
-      </ProCard>
 
       <Modal title={editing?'编辑记录':'新增记录'} open={modalOpen} onCancel={()=>{ setModalOpen(false); setEditing(null); }} footer={null} destroyOnClose>
         <ProForm formRef={formRef} onFinish={handleSubmit} initialValues={editing || { type, date: new Date() }} submitter={{ searchConfig:{ submitText: editing?'保存':'新增' } }}>

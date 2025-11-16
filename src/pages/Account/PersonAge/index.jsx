@@ -9,97 +9,133 @@ import {
   ProFormSelect,
   ProFormTextArea,
   ProTable,
-  StatisticCard
 } from '@ant-design/pro-components';
-import {Button, Col, message, Modal, Row, Segmented, Select, Space, Tag, Typography} from 'antd';
+import {Button, Col, DatePicker, Input, message, Modal, Row, Segmented, Space, Tag, Typography} from 'antd';
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import moment from 'moment';
 import ReactECharts from 'echarts-for-react';
 import './index.less';
+import LedgerApi from "@/api/LedgerApi";
 
 const { Text, Title } = Typography;
 
 const STORAGE_KEY = 'ledger_records_v1';
-
-
-const defaultCategories = {
-  expense: ['餐饮','交通','购物','居住','娱乐','健康','教育','人情','旅行','数码','宠物','其他'],
-  income: ['工资','奖金','理财','转账','兼职','报销','红包','退款','其他'],
-};
 
 const typeOptions = [
   { label: '支出', value: 'expense' },
   { label: '收入', value: 'income' },
 ];
 
-const quickRanges = [
-  { label: '今天', value: 'today' },
-  { label: '本月', value: 'thisMonth' },
-  { label: '上月', value: 'lastMonth' },
-  { label: '近7天', value: 'last7' },
-  { label: '今年', value: 'thisYear' },
-];
+const { RangePicker } = DatePicker;
 
 function loadRecords() {
   try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; } catch { return []; }
 }
 function saveRecords(records) { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
 
-function getQuickRange(value) {
-  const now = moment();
-  switch (value) {
-    case 'today':
-      return [now.clone().startOf('day'), now.clone().endOf('day')]; // 👈 新增：今天
-    case 'thisMonth':
-      return [now.clone().startOf('month'), now.clone().endOf('month')];
-    case 'lastMonth': {
-      const last = now.clone().subtract(1, 'month');
-      return [last.startOf('month'), last.endOf('month')];
-    }
-    case 'last7':
-      return [now.clone().subtract(6, 'day').startOf('day'), now.clone().endOf('day')];
-    case 'thisYear':
-      return [now.clone().startOf('year'), now.clone().endOf('year')];
-    default:
-      return [now.clone().startOf('month'), now.clone().endOf('month')];
-  }
-}
-
 function formatCurrency(amount) { return new Intl.NumberFormat('zh-CN',{ style:'currency', currency:'CNY', minimumFractionDigits:2 }).format(amount || 0); }
 
 const PersonAge = () => {
   const [records, setRecords] = useState(() => loadRecords());
-  const [range, setRange] = useState(() => getQuickRange('today'));
+  const [categories, setCategories] = useState({});
   const [type, setType] = useState('expense');
   const [category, setCategory] = useState('');
-  const [quick, setQuick] = useState('today');
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [dateRangeInput, setDateRangeInput] = useState(null);
+  const [dateRange, setDateRange] = useState(null);
+  const [remarkInput, setRemarkInput] = useState('');
+  const [remark, setRemark] = useState('');
+  const [amountInput, setAmountInput] = useState('');
+  const [amount, setAmount] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const formRef = useRef();
+  const actionRef = useRef();
+  const [tableData, setTableData] = useState([]);
 
-  useEffect(() => { saveRecords(records); }, [records]);
+  useEffect(() => {
+    getCategories()
+  }, [])
+  
+  // 当 type 变化时，触发表格刷新，确保默认查询支出数据
+  useEffect(() => {
+    // 组件加载时或 type 变化时，刷新表格数据
+    if (actionRef.current) {
+      actionRef.current.reload();
+    }
+  }, [type])
+
+  useEffect(() => {
+    if (categories && (categories.expense || categories.income)) {
+      handleCategories(categories)
+    }
+  }, [type, categories])
+
+
+  const getPersonalLedger = async (data) => {
+    try {
+      LedgerApi.getPersonalLedger(data).then(res => {
+        if (res.success) {
+          setRecords(res?.data?.data)
+        }
+      });
+    }catch (e) {
+      message.error(`获取个人记账数据异常！`).then(r => {});
+    }
+  }
+
+  const getCategories = async () => {
+    try {
+      LedgerApi.getCategories().then(res => {
+        if (res.success) {
+          setCategories(res?.data?.data)
+          handleCategories(res?.data?.data)
+        }
+      });
+    }catch (e) {
+      message.error(`获取支出/收入类型数据异常！`).then(r => {});
+    }
+  }
+
+  const handleCategories = (categories) => {
+    if (!categories) {
+      setCategoryOptions([]);
+      return;
+    }
+    const list = type==='expense' ? categories.expense : categories.income;
+    if (!list || !Array.isArray(list)) {
+      setCategoryOptions([]);
+      return;
+    }
+    let map = list.map(c=>({ label:c, value:c }));
+    setCategoryOptions(map);
+  }
+
+  // 构建分类的 valueEnum（用于表格过滤）
+  const categoryValueEnum = useMemo(() => {
+    const enumObj = {};
+    categoryOptions.forEach(option => {
+      enumObj[option.value] = { text: option.label };
+    });
+    return enumObj;
+  }, [categoryOptions]);
 
   const columns = [
     {
       title: '日期',
-      dataIndex: 'date',
+      dataIndex: 'createTime',
       width: 160,
       sorter: true,
       align: 'center',
-      render: (_, r) => moment(r.date).format('YYYY-MM-DD HH:mm'),
+      render: (_, r) => moment(r.createTime).format('YYYY-MM-DD HH:mm:ss'),
     },
     {
       title: '类型',
       dataIndex: 'type',
       width: 80,
-      filters: true,
       align: 'center',
-      valueEnum: {
-        expense: { text: '支出' },
-        income: { text: '收入' },
-      },
       render: (_, r) =>
-        r.type === 'expense' ? (
+        r.type === 0 ? (
           <Tag color="red">支出</Tag>
         ) : (
           <Tag color="green">收入</Tag>
@@ -111,12 +147,8 @@ const PersonAge = () => {
       width: 100,
       align: 'center',
       filters: true,
-      valueEnum: {
-        '餐饮': { text: '餐饮' },
-        '交通': { text: '交通' },
-        '购物': { text: '购物' },
-        '工资': { text: '工资' },
-      },
+      valueEnum: categoryValueEnum,
+      render: (_, r) => r.category || '未分类',
     },
     {
       title: '金额',
@@ -124,14 +156,14 @@ const PersonAge = () => {
       width: 120,
       align: 'center',
       render: (_, r) => (
-        <span className={r.type === 'expense' ? 'ledger-minus' : 'ledger-plus'}>
-          {r.amount.toLocaleString()}
+        <span className={r.type === 0 ? 'ledger-minus' : 'ledger-plus'}>
+          {(Number(r.amount) || 0).toFixed(2)}元
         </span>
       ),
     },
     {
       title: '备注',
-      dataIndex: 'note',
+      dataIndex: 'remark',
       ellipsis: true,
       align: 'center',
     },
@@ -156,114 +188,252 @@ const PersonAge = () => {
     },
   ];
 
-  const filtered = useMemo(() => {
-    const [start, end] = range;
-    return records
-      .filter(r => {
-        const d = moment(r.date);
-        const inRange = (!start || d.isSameOrAfter(start)) && (!end || d.isSameOrBefore(end));
-        const typeOk = type ? r.type === type : true;
-        const catOk = category ? r.category === category : true;
-        return inRange && typeOk && catOk;
-      })
-      .sort((a, b) => moment(b.date).valueOf() - moment(a.date).valueOf());
-  }, [records, range, type, category]);
-
-  const stats = useMemo(() => {
-    const income = filtered.filter(r => r.type === 'income').reduce((s,r)=>s+Number(r.amount||0),0);
-    const expense = filtered.filter(r => r.type === 'expense').reduce((s,r)=>s+Number(r.amount||0),0);
-    return { income, expense, balance: income - expense };
-  }, [filtered]);
-
+  // 计算分类占比（基于表格数据）
   const categoryAgg = useMemo(() => {
+    if (!tableData || tableData.length === 0) return [];
     const map = new Map();
-    filtered.forEach(r => { const k = `${r.type}-${r.category||'未分类'}`; map.set(k, (map.get(k)||0) + Number(r.amount||0)); });
-    const currentType = type;
+    const currentTypeNum = type === 'expense' ? 0 : 1;
+    tableData
+      .filter(r => r.type === currentTypeNum)
+      .forEach(r => {
+        const cat = r.category || '未分类';
+        map.set(cat, (map.get(cat) || 0) + Number(r.amount || 0));
+      });
     return Array.from(map.entries())
-      .filter(([k])=>k.startsWith(currentType))
-      .map(([k,v])=>({ name:k.split('-')[1], value:v }))
-      .sort((a,b)=>b.value-a.value);
-  }, [filtered, type]);
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [tableData, type]);
 
-  const trendAgg = useMemo(() => {
-    const map = new Map();
-    filtered.forEach(r => { const key = moment(r.date).format('MM-DD'); map.set(key, (map.get(key)||0) + (r.type==='expense'?-1:1)*Number(r.amount||0)); });
-    const days = Array.from(map.keys()).sort();
-    return { days, values: days.map(d=>Number(map.get(d)||0)) };
-  }, [filtered]);
+  // 计算总金额
+  const totalAmount = useMemo(() => {
+    if (!tableData || tableData.length === 0) return 0;
+    const currentTypeNum = type === 'expense' ? 0 : 1;
+    return tableData
+      .filter(r => r.type === currentTypeNum)
+      .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  }, [tableData, type]);
 
+  // 扇形图配置
   const donutOption = useMemo(() => ({
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-    legend: { bottom: 0 },
+    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
+    legend: { bottom: 0, left: 'center' },
+    graphic: [
+      {
+        type: 'text',
+        left: 'center',
+        top: '45%',
+        style: {
+          text: `${(totalAmount || 0).toFixed(2)}元`,
+          fontSize: 20,
+          fontWeight: 'bold',
+          fill: '#333',
+        },
+      },
+      {
+        type: 'text',
+        left: 'center',
+        top: '55%',
+        style: {
+          text: type === 'expense' ? '总支出' : '总收入',
+          fontSize: 14,
+          fill: '#666',
+        },
+      },
+    ],
     series: [{
-      name: type==='expense'?'支出':'收入', type: 'pie', radius: ['56%','80%'],
+      name: type === 'expense' ? '支出' : '收入',
+      type: 'pie',
+      radius: ['40%', '70%'],
       itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
       label: { show: true, formatter: '{b}\n{d}%' },
       data: categoryAgg,
     }],
-  }), [categoryAgg, type]);
+  }), [categoryAgg, type, totalAmount]);
 
-  const lineOption = useMemo(() => ({
-    tooltip: { trigger: 'axis' },
-    grid: { left: 40, right: 16, top: 30, bottom: 40 },
-    xAxis: { type: 'category', data: trendAgg.days, boundaryGap: false, axisTick: { show:false } },
-    yAxis: { type: 'value' },
-    series: [{ type: 'line', data: trendAgg.values, smooth: true, areaStyle: {}, symbol: 'circle' }],
-  }), [trendAgg]);
+  const handleOpenNew = () => { 
+    setEditing(null); 
+    setModalOpen(true);
+    // 重置表单
+    setTimeout(() => {
+      formRef.current?.setFieldsValue({
+        type: type,
+        date: new Date(),
+        category: undefined,
+        amount: undefined,
+        note: undefined,
+      });
+    }, 100);
+  };
+  
+  const handleEdit = (record) => { 
+    setEditing(record); 
+    setModalOpen(true);
+    // 转换后端数据格式为表单格式
+    setTimeout(() => {
+      formRef.current?.setFieldsValue({
+        type: record.type === 0 ? 'expense' : 'income',
+        date: record.createTime ? moment(record.createTime) : new Date(),
+        category: record.category || undefined,
+        amount: record.amount || 0,
+        note: record.remark || '',
+      });
+    }, 100);
+  };
+  const handleDelete = async (id) => {
+    Modal.confirm({ 
+      title:'删除记录', 
+      content:'确认删除该条记录吗？', 
+      onOk: async () => {
+        try {
+          const res = await LedgerApi.deleteLedger(id);
+          if (res.success && res?.data?.data) {
+            message.success('已删除');
+            // 刷新表格数据
+            if (actionRef.current) {
+              actionRef.current.reload();
+            }
+          } else {
+            message.error(res.message || '删除失败');
+          }
+        } catch (error) {
+          console.error('删除记账记录失败:', error);
+          message.error('删除失败，请稍后重试');
+        }
+      }
+    });
+  };
 
-  const handleOpenNew = () => { setEditing(null); setModalOpen(true); };
-  const handleEdit = (record) => { setEditing(record); setModalOpen(true); };
-  const handleDelete = (id) => {
-    Modal.confirm({ title:'删除记录', content:'确认删除该条记录吗？', onOk:()=>{ setRecords(prev=>prev.filter(r=>r.id!==id)); message.success('已删除'); } });
+  // 处理查询按钮点击
+  const handleSearch = () => {
+    // 将输入框的值赋给查询状态，触发表格刷新
+    setDateRange(dateRangeInput);
+    setRemark(remarkInput.trim());
+    setAmount(amountInput.trim());
   };
 
   const handleSubmit = async (values) => {
     const rawDate = values.date;
     const m = rawDate && typeof rawDate?.toDate === 'function' ? moment(rawDate.toDate()) : moment(rawDate || undefined);
+    
+    // 转换为后端需要的格式
     const payload = {
-      id: editing?.id || Date.now(),
-      type: values.type,
+      id: editing?.id,
+      type: values.type === 'expense' ? 0 : 1, // 转换为数字：0=支出, 1=收入
       category: values.category,
       amount: Number(values.amount || 0),
-      date: m?.isValid() ? m.toISOString() : moment().toISOString(),
-      note: values.note || '',
+      createTime: m?.isValid() ? m.format('YYYY-MM-DD HH:mm:ss') : moment().format('YYYY-MM-DD HH:mm:ss'),
+      remark: values.note || '',
     };
-    if (editing) { setRecords(prev=>prev.map(r=>r.id===editing.id?payload:r)); message.success('已更新'); }
-    else { setRecords(prev=>[payload, ...prev]); message.success('已新增'); }
-    setModalOpen(false); setEditing(null); return true;
+    
+    try {
+      let res;
+      if (editing) {
+        // 编辑记录
+        res = await LedgerApi.updateLedger(payload);
+      } else {
+        // 新增记录
+        res = await LedgerApi.addLedger(payload);
+      }
+      
+      if (res.success && res?.data?.data) {
+        message.success(editing ? '已更新' : '已新增');
+        setModalOpen(false); 
+        setEditing(null);
+        // 刷新表格数据
+        if (actionRef.current) {
+          actionRef.current.reload();
+        }
+        return true;
+      } else {
+        message.error(res.message || (editing ? '更新失败' : '新增失败'));
+        return false;
+      }
+    } catch (error) {
+      console.error(editing ? '更新记账记录失败:' : '新增记账记录失败:', error);
+      message.error(editing ? '更新失败，请稍后重试' : '新增失败，请稍后重试');
+      return false;
+    }
   };
 
-  const categoryOptions = useMemo(() => {
-    const list = type==='expense' ? defaultCategories.expense : defaultCategories.income;
-    return list.map(c=>({ label:c, value:c }));
-  }, [type]);
-
-  // 假设这是后端请求函数
+  // 后端请求函数
   const fetchLedgerData = async (params, sort, filter) => {
-    console.log('请求参数:', params, sort, filter);
-    // 这里你应该改成真实接口，例如 request('/api/ledger', { params })
-    // params: { current, pageSize, category, ... }
-    // sort: { date: 'ascend' } or { date: 'descend' }
-    // filter: { category: ['餐饮'] }
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // mock 数据
-        const total = 25;
-        const data = new Array(params.pageSize || 10).fill(0).map((_, i) => ({
-          id: (params.current - 1) * (params.pageSize || 10) + i + 1,
-          date: new Date(Date.now() - i * 3600 * 1000),
-          type: i % 2 === 0 ? 'expense' : 'income',
-          category: ['餐饮', '交通', '购物', '工资'][i % 4],
-          amount: Math.round(Math.random() * 100) + 20,
-          note: '测试数据' + i,
-        }));
-        resolve({
-          data,
+    try {
+      // 处理分类过滤：优先使用表格过滤器的分类（支持多选），其次使用顶部筛选的分类
+      let filterCategories = undefined;
+      if (filter?.category && Array.isArray(filter.category) && filter.category.length > 0) {
+        // 表格过滤器中的分类（多选）
+        filterCategories = filter.category;
+      } else if (category) {
+        // 顶部筛选的分类（单选，转换为数组）
+        filterCategories = [category];
+      }
+      
+      const requestParams = {
+        current: params.current || 1,
+        pageSize: params.pageSize || 8,
+        type: type === 'expense' ? 0 : 1,
+      };
+      
+      // 如果有分类过滤，传递分类数组
+      if (filterCategories && filterCategories.length > 0) {
+        requestParams.categoryList = filterCategories;
+      }
+      
+      // 处理时间范围
+      if (dateRange && dateRange.length === 2) {
+        requestParams.startTime = dateRange[0].format('YYYY-MM-DD HH:mm:ss');
+        requestParams.endTime = dateRange[1].format('YYYY-MM-DD HH:mm:ss');
+      }
+      
+      // 处理备注模糊搜索
+      if (remark && remark.trim()) {
+        requestParams.remark = remark.trim();
+      }
+      
+      // 处理金额搜索
+      if (amount && amount.trim()) {
+        const amountValue = Number(amount.trim());
+        if (!isNaN(amountValue)) {
+          requestParams.amount = amountValue;
+        }
+      }
+      
+      // 处理排序
+      if (sort && Object.keys(sort).length > 0) {
+        const sortKey = Object.keys(sort)[0];
+        const sortOrder = sort[sortKey];
+        requestParams.sortField = sortKey;
+        requestParams.sortOrder = sortOrder === 'ascend' ? 'asc' : 'desc';
+      }
+      
+      const res = await LedgerApi.getPersonalLedger(requestParams);
+      
+      if (res.success && res.data && res.data.data) {
+        // 更新表格数据用于计算分类占比
+        setTableData(res.data.data);
+        return {
+          data: res.data.data,
           success: true,
-          total,
-        });
-      }, 800);
-    });
+          total: res.data.total || res.data.data.length,
+        };
+      } else {
+        setTableData([]);
+        return {
+          data: [],
+          success: true,
+          total: 0,
+        };
+      }
+    } catch (error) {
+      console.error('获取记账数据失败:', error);
+      message.error('获取记账数据失败').then(() => {});
+      setTableData([]);
+      return {
+        data: [],
+        success: false,
+        total: 0,
+      };
+    }
   };
 
 
@@ -280,63 +450,59 @@ const PersonAge = () => {
             value={type}
             onChange={setType}
           />
-          <Select
-            value={quick}
-            onChange={(v)=>{ setQuick(v); setRange(getQuickRange(v)); }}
-            options={quickRanges}
-            style={{ width: 120 }}
+          <RangePicker
+            showTime
+            format="YYYY-MM-DD HH:mm:ss"
+            value={dateRangeInput}
+            onChange={(dates) => setDateRangeInput(dates)}
+            placeholder={['开始时间', '结束时间']}
+            style={{ width: 360 }}
           />
-          <Select
+          <Input
+            placeholder="备注搜索"
+            value={remarkInput}
+            onChange={(e) => setRemarkInput(e.target.value)}
             allowClear
-            placeholder="分类"
-            value={category || undefined}
-            onChange={(v)=>setCategory(v||'')}
-            options={categoryOptions}
-            style={{ width: 140 }}
+            onPressEnter={() => {
+              // 按回车键触发查询
+              handleSearch();
+            }}
+            style={{ width: 200 }}
           />
+          <Input
+            placeholder="金额搜索"
+            value={amountInput}
+            onChange={(e) => setAmountInput(e.target.value)}
+            allowClear
+            onPressEnter={() => {
+              // 按回车键触发查询
+              handleSearch();
+            }}
+            style={{ width: 200 }}
+          />
+          <Button onClick={handleSearch}>查询</Button>
           <Button type="primary" onClick={handleOpenNew}>新增记账</Button>
         </Space>
       </div>
 
-      <Row gutter={[16,16]}>
+      <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>
-          <StatisticCard
-            className="ledger-stat"
-            statistic={{ title: '本期收入', value: formatCurrency(stats.income) }}
-            chart={<div className="ledger-stat-bg income" />}
-          />
-        </Col>
-        <Col xs={24} md={8}>
-          <StatisticCard
-            className="ledger-stat"
-            statistic={{ title: '本期支出', value: formatCurrency(stats.expense) }}
-            chart={<div className="ledger-stat-bg expense" />}
-          />
-        </Col>
-        <Col xs={24} md={8}>
-          <StatisticCard
-            className="ledger-stat"
-            statistic={{ title: '结余', value: formatCurrency(stats.balance) }}
-            chart={<div className={stats.balance>=0? 'ledger-stat-bg positive':'ledger-stat-bg negative'} />}
-          />
-        </Col>
-      </Row>
-
-      <Row gutter={[16,16]} style={{ marginTop: 8 }}>
-        <Col xs={24} md={10}>
-          <ProCard title={type==='expense'?'支出分类占比':'收入分类占比'} bordered>
-            <ReactECharts option={donutOption} style={{ height: 360 }} notMerge lazyUpdate />
+          <ProCard 
+            title={type === 'expense' ? '支出分类占比' : '收入分类占比'} 
+            bordered
+          >
+            <ReactECharts 
+              option={donutOption} 
+              style={{ height: 400 }} 
+              notMerge 
+              lazyUpdate 
+            />
           </ProCard>
         </Col>
-        <Col xs={24} md={14}>
-          <ProCard title="收支趋势" bordered>
-            <ReactECharts option={lineOption} style={{ height: 360 }} notMerge lazyUpdate />
-          </ProCard>
-        </Col>
-      </Row>
-
-      <ProCard title="记账记录" bordered style={{ marginTop: 8 }}>
+        <Col xs={24} md={16}>
+          <ProCard title="记账记录" bordered>
         <ProTable
+          actionRef={actionRef}
           rowKey="id"
           search={false}
           options={false}
@@ -345,11 +511,25 @@ const PersonAge = () => {
           }}
           request={fetchLedgerData}
           columns={columns}
+          params={{
+            type: type === 'expense' ? 0 : 1,
+            dateRange,
+            remark,
+            amount,
+          }}
+          manualRequest={false}
         />
-      </ProCard>
+          </ProCard>
+        </Col>
+      </Row>
 
       <Modal title={editing?'编辑记账':'新增记账'} open={modalOpen} onCancel={()=>{ setModalOpen(false); setEditing(null); }} footer={null} destroyOnClose>
-        <ProForm formRef={formRef} onFinish={handleSubmit} initialValues={editing || { type, date: new Date() }} submitter={{ searchConfig: { submitText: editing?'保存':'新增' } }}>
+        <ProForm 
+          formRef={formRef} 
+          onFinish={handleSubmit} 
+          initialValues={{ type, date: new Date() }} 
+          submitter={{ searchConfig: { submitText: editing?'保存':'新增' } }}
+        >
           <ProFormRadio.Group name="type" label="类型" options={typeOptions} rules={[{ required:true, message:'请选择类型' }]} fieldProps={{ onChange: ()=> formRef.current?.setFieldValue('category', undefined) }} />
           <ProFormSelect name="category" label="分类" placeholder="请选择分类" options={categoryOptions} rules={[{ required:true, message:'请选择分类' }]} />
           <ProFormDigit name="amount" label="金额" min={0} fieldProps={{ precision:2, style:{ width:'100%' } }} rules={[{ required:true, message:'请输入金额' }]} />
