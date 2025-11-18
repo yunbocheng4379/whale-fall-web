@@ -41,6 +41,46 @@ const formalRoutes = [
     ],
   },
   {
+    path: 'couple',
+    name: '情侣日常',
+    icon: 'icon-couple',
+    access: 'allowAdminAccessRoute',
+    routes: [
+      {
+        index: true,
+        component: '@/pages/Couple/Welcome',
+        access: 'allowAnyoneAccessRoute',
+      },
+      {
+        path: 'day',
+        name: '纪念日',
+        icon: 'icon-day',
+        component: '@/pages/Couple/Day',
+        access: 'allowAdminAccessRoute',
+      },
+    ],
+  },
+  {
+    path: 'pet',
+    name: '萌宠',
+    icon: 'icon-kitty',
+    access: 'allowAdminAccessRoute',
+    routes: [
+      {
+        index: true,
+        component: '@/pages/Pet/Welcome',
+        access: 'allowAnyoneAccessRoute',
+      },
+      {
+        path: 'food',
+        name: '宠物口粮',
+        icon: 'icon-food',
+        component: '@/pages/Pet/Food',
+        access: 'allowAdminAccessRoute',
+      },
+    ],
+  },
+  {
     path: 'agent',
     name: 'AI智能',
     icon: 'icon-agent',
