@@ -27,7 +27,7 @@ const LockScreenModalWrapper = ({ open, onCancel }) => {
   return <LockPasswordModal open={open} onCancel={onCancel} />;
 };
 
-const HeaderWrapper = ({ childrenMenuList }) => {
+const HeaderWrapper = ({ childrenMenuList = [] }) => {
   // 锁屏模态框状态管理
   const [lockModalOpen, setLockModalOpen] = useState(false);
 

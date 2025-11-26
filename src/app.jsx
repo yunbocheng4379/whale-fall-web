@@ -1,37 +1,33 @@
 import LoginApi from '@/api/LoginApi';
 import FlowerEffect from '@/components/FlowerEffect';
 import HeaderWrapper from '@/components/HeaderWrapper';
-import { preloadLockScreenResources } from '@/utils/lockScreenPreloader';
 import {
   CALLBACK_PATH,
-  HOME_PATH,
-  LOGIN_PATH,
   LOCK_SCREEN_PATH,
+  LOGIN_PATH,
   LOGO,
-  SETTING_PATH,
   TITLE,
 } from '@/config';
 import '@/styles/headerButtons.less';
 import buildMenu from '@/utils/buildMenu';
-import { MyIcon } from '@/utils/iconUtil';
-import { isLocked, handleKeyDown } from '@/utils/lockScreenUtil';
+import { preloadLockScreenResources } from '@/utils/lockScreenPreloader';
+import { handleKeyDown, isLocked } from '@/utils/lockScreenUtil';
+import { flattenMenuData } from '@/utils/menuHelper';
 import {
   getAvatarUrl,
   getCounter,
   removeAvatarUrl,
-  setCounter,
+  removeEmail,
 } from '@/utils/storage';
 import {
   getToken,
   getUsername,
-  getUserRole,
-  removeToken,
   removeUsername,
   removeUserRole,
 } from '@/utils/tokenUtil';
 import { DefaultFooter } from '@ant-design/pro-components';
+import React, { useState } from 'react';
 import { history } from 'umi';
-import React, { useState, useEffect } from 'react';
 
 // 导入警告抑制器（抑制已知的第三方库警告）
 import '@/utils/suppressWarnings';
@@ -53,10 +49,8 @@ const defaultInitialState = {
   },
   menuData: [],
   routeList: [],
+  searchMenuData: [],
 };
-
-let rootMenuList = [];
-let childrenMenuList = [];
 
 // 全局放花效果状态管理
 let flowerEffectActive = false;
@@ -88,35 +82,12 @@ const FlowerEffectWrapper = () => {
     setActive(false);
   };
 
-  return (
-    <FlowerEffect
-      active={active}
-      onComplete={handleComplete}
-    />
-  );
-};
-
-const getRootMenuAndChildrenMenu = (menuList) => {
-  menuList.forEach((menu) => {
-    if (menu.children)
-      childrenMenuList.push({
-        name: menu?.text,
-        path: menu?.route,
-        icon: menu?.icon,
-      });
-    if (!menu.children)
-      return childrenMenuList.push({
-        name: menu?.text,
-        path: menu?.route,
-        icon: menu?.icon,
-      });
-    return getRootMenuAndChildrenMenu(menu.children);
-  });
+  return <FlowerEffect active={active} onComplete={handleComplete} />;
 };
 
 export async function getInitialState() {
   // 预加载锁屏资源（不阻塞应用启动）
-  preloadLockScreenResources().catch(error => {
+  preloadLockScreenResources().catch((error) => {
     console.warn('锁屏资源预加载失败:', error);
   });
 
@@ -140,7 +111,7 @@ export async function getInitialState() {
         removeUsername();
         removeUserRole();
         removeAvatarUrl();
-        removeEmail()
+        removeEmail();
         message.warning('账号身份已过期，请重新登录');
       }
     }
@@ -151,7 +122,6 @@ export async function getInitialState() {
     menuType: getCounter(),
   });
   const menuList = data.data;
-  getRootMenuAndChildrenMenu(menuList);
   if (success && menuList.length > 0) {
     let { menuData, routeList } = buildMenu(menuList);
     return {
@@ -159,6 +129,7 @@ export async function getInitialState() {
       currentUser: { name: getUsername() || '非法昵称' },
       menuData,
       routeList,
+      searchMenuData: flattenMenuData(menuList),
     };
   }
   return defaultInitialState;
@@ -172,8 +143,12 @@ export const layout = ({ initialState }) => {
       src: getAvatarUrl(),
       shape: 'square',
       title: initialState?.currentUser.name,
-      render: (props, dom) => {
-        return <HeaderWrapper childrenMenuList={childrenMenuList} />;
+      render: () => {
+        return (
+          <HeaderWrapper
+            childrenMenuList={initialState?.searchMenuData || []}
+          />
+        );
       },
     },
     menuFooterRender: (props) => {

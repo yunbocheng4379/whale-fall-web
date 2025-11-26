@@ -1,7 +1,10 @@
+import LoginApi from '@/api/LoginApi';
 import FlowerEffect from '@/components/FlowerEffect';
 import { HOME_PATH, LOGIN_PATH, SETTING_PATH } from '@/config';
+import buildMenu from '@/utils/buildMenu';
 import { MyIcon } from '@/utils/iconUtil';
 import { navigateToLockScreenWithPreload } from '@/utils/lockScreenPreloader';
+import { flattenMenuData } from '@/utils/menuHelper';
 import {
   getAvatarUrl,
   getCounter,
@@ -20,12 +23,14 @@ import {
 import { Avatar, Button, Dropdown, Spin } from 'antd';
 import message from 'antd/es/message';
 import { useState } from 'react';
-import { history } from 'umi';
+import { history, useModel } from 'umi';
 import './index.less';
 
 const UserCenter = ({ setLockPasswordModalOpenCallback }) => {
+  const { setInitialState } = useModel('@@initialState');
   const [isPreloading, setIsPreloading] = useState(false);
   const [flowerEffectActive, setFlowerEffectActive] = useState(false);
+  const [isSwitchingSystem, setIsSwitchingSystem] = useState(false);
 
   const handleLogout = () => {
     removeToken();
@@ -66,6 +71,38 @@ const UserCenter = ({ setLockPasswordModalOpenCallback }) => {
     setFlowerEffectActive(false);
   };
 
+  const handleSystemSwitch = async () => {
+    if (isSwitchingSystem) return;
+    setIsSwitchingSystem(true);
+    const nextMenuType = getCounter() === 0 ? 1 : 0;
+    try {
+      const { success, data } = await LoginApi.getMenu({
+        userName: getUsername(),
+        menuType: nextMenuType,
+      });
+      if (!success || !data?.data?.length) {
+        throw new Error('获取菜单失败，请稍后重试');
+      }
+      const { menuData, routeList } = buildMenu(data.data);
+      const searchMenuData = flattenMenuData(data.data);
+      setCounter(nextMenuType);
+      await setInitialState((prev) => ({
+        ...(prev || {}),
+        menuData,
+        routeList,
+        searchMenuData,
+      }));
+      history.push(HOME_PATH);
+      message.success(
+        nextMenuType === 0 ? '已切换至业务系统' : '已切换至后台管理',
+      );
+    } catch (error) {
+      message.error(error?.message || '切换系统失败');
+    } finally {
+      setIsSwitchingSystem(false);
+    }
+  };
+
   const menuItems = [
     {
       key: 'flowering',
@@ -86,18 +123,21 @@ const UserCenter = ({ setLockPasswordModalOpenCallback }) => {
       ? [
           {
             key: getCounter() === 0 ? 'management' : 'business',
-            icon: (
+            icon: isSwitchingSystem ? (
+              <Spin size="small" />
+            ) : (
               <MyIcon
                 type={getCounter() === 0 ? 'icon-system' : 'icon-business'}
                 style={{ fontSize: 16 }}
               />
             ),
-            label: getCounter() === 0 ? '后台管理' : '业务系统',
-            onClick: () => {
-              setCounter(getCounter() === 0 ? 1 : 0);
-              history.push(HOME_PATH);
-              location.reload();
-            },
+            label: isSwitchingSystem
+              ? '切换中...'
+              : getCounter() === 0
+                ? '后台管理'
+                : '业务系统',
+            onClick: handleSystemSwitch,
+            disabled: isSwitchingSystem,
           },
         ]
       : []),

@@ -1,4 +1,5 @@
-import {withAuth} from '@/components/Auth';
+import LedgerApi from '@/api/LedgerApi';
+import { withAuth } from '@/components/Auth';
 import {
   PageContainer,
   ProCard,
@@ -10,12 +11,23 @@ import {
   ProFormTextArea,
   ProTable,
 } from '@ant-design/pro-components';
-import {Button, Col, DatePicker, Input, message, Modal, Row, Segmented, Space, Tag, Typography} from 'antd';
-import React, {useEffect, useMemo, useRef, useState} from 'react';
-import moment from 'moment';
+import {
+  Button,
+  Col,
+  DatePicker,
+  Input,
+  message,
+  Modal,
+  Row,
+  Segmented,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
 import ReactECharts from 'echarts-for-react';
+import moment from 'moment';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import './index.less';
-import LedgerApi from "@/api/LedgerApi";
 
 const { Text, Title } = Typography;
 
@@ -29,11 +41,24 @@ const typeOptions = [
 const { RangePicker } = DatePicker;
 
 function loadRecords() {
-  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; } catch { return []; }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
-function saveRecords(records) { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
+function saveRecords(records) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
 
-function formatCurrency(amount) { return new Intl.NumberFormat('zh-CN',{ style:'currency', currency:'CNY', minimumFractionDigits:2 }).format(amount || 0); }
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('zh-CN', {
+    style: 'currency',
+    currency: 'CNY',
+    minimumFractionDigits: 2,
+  }).format(amount || 0);
+}
 
 const PersonAge = () => {
   const [records, setRecords] = useState(() => loadRecords());
@@ -54,67 +79,54 @@ const PersonAge = () => {
   const [tableData, setTableData] = useState([]);
 
   useEffect(() => {
-    getCategories()
-  }, [])
-  
+    getCategories();
+  }, []);
+
   // 当 type 变化时，触发表格刷新，确保默认查询支出数据
   useEffect(() => {
     // 组件加载时或 type 变化时，刷新表格数据
     if (actionRef.current) {
       actionRef.current.reload();
     }
-  }, [type])
+  }, [type]);
 
   useEffect(() => {
     if (categories && (categories.expense || categories.income)) {
-      handleCategories(categories)
+      handleCategories(categories);
     }
-  }, [type, categories])
-
-
-  const getPersonalLedger = async (data) => {
-    try {
-      LedgerApi.getPersonalLedger(data).then(res => {
-        if (res.success) {
-          setRecords(res?.data?.data)
-        }
-      });
-    }catch (e) {
-      message.error(`获取个人记账数据异常！`).then(r => {});
-    }
-  }
+  }, [type, categories]);
 
   const getCategories = async () => {
     try {
-      LedgerApi.getCategories().then(res => {
+      LedgerApi.getCategories().then((res) => {
         if (res.success) {
-          setCategories(res?.data?.data)
-          handleCategories(res?.data?.data)
+          setCategories(res?.data?.data);
+          handleCategories(res?.data?.data);
         }
       });
-    }catch (e) {
-      message.error(`获取支出/收入类型数据异常！`).then(r => {});
+    } catch (e) {
+      message.error(`获取支出/收入类型数据异常！`).then((r) => {});
     }
-  }
+  };
 
   const handleCategories = (categories) => {
     if (!categories) {
       setCategoryOptions([]);
       return;
     }
-    const list = type==='expense' ? categories.expense : categories.income;
+    const list = type === 'expense' ? categories.expense : categories.income;
     if (!list || !Array.isArray(list)) {
       setCategoryOptions([]);
       return;
     }
-    let map = list.map(c=>({ label:c, value:c }));
+    let map = list.map((c) => ({ label: c, value: c }));
     setCategoryOptions(map);
-  }
+  };
 
   // 构建分类的 valueEnum（用于表格过滤）
   const categoryValueEnum = useMemo(() => {
     const enumObj = {};
-    categoryOptions.forEach(option => {
+    categoryOptions.forEach((option) => {
       enumObj[option.value] = { text: option.label };
     });
     return enumObj;
@@ -176,12 +188,7 @@ const PersonAge = () => {
         <Button type="link" key="edit" onClick={() => handleEdit(r)}>
           编辑
         </Button>,
-        <Button
-          type="link"
-          key="del"
-          danger
-          onClick={() => handleDelete(r.id)}
-        >
+        <Button type="link" key="del" danger onClick={() => handleDelete(r.id)}>
           删除
         </Button>,
       ],
@@ -194,8 +201,8 @@ const PersonAge = () => {
     const map = new Map();
     const currentTypeNum = type === 'expense' ? 0 : 1;
     tableData
-      .filter(r => r.type === currentTypeNum)
-      .forEach(r => {
+      .filter((r) => r.type === currentTypeNum)
+      .forEach((r) => {
         const cat = r.category || '未分类';
         map.set(cat, (map.get(cat) || 0) + Number(r.amount || 0));
       });
@@ -209,49 +216,54 @@ const PersonAge = () => {
     if (!tableData || tableData.length === 0) return 0;
     const currentTypeNum = type === 'expense' ? 0 : 1;
     return tableData
-      .filter(r => r.type === currentTypeNum)
+      .filter((r) => r.type === currentTypeNum)
       .reduce((sum, r) => sum + Number(r.amount || 0), 0);
   }, [tableData, type]);
 
   // 扇形图配置
-  const donutOption = useMemo(() => ({
-    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
-    legend: { bottom: 0, left: 'center' },
-    graphic: [
-      {
-        type: 'text',
-        left: 'center',
-        top: '45%',
-        style: {
-          text: `${(totalAmount || 0).toFixed(2)}元`,
-          fontSize: 20,
-          fontWeight: 'bold',
-          fill: '#333',
+  const donutOption = useMemo(
+    () => ({
+      tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
+      legend: { bottom: 0, left: 'center' },
+      graphic: [
+        {
+          type: 'text',
+          left: 'center',
+          top: '45%',
+          style: {
+            text: `${(totalAmount || 0).toFixed(2)}元`,
+            fontSize: 20,
+            fontWeight: 'bold',
+            fill: '#333',
+          },
         },
-      },
-      {
-        type: 'text',
-        left: 'center',
-        top: '55%',
-        style: {
-          text: type === 'expense' ? '总支出' : '总收入',
-          fontSize: 14,
-          fill: '#666',
+        {
+          type: 'text',
+          left: 'center',
+          top: '55%',
+          style: {
+            text: type === 'expense' ? '总支出' : '总收入',
+            fontSize: 14,
+            fill: '#666',
+          },
         },
-      },
-    ],
-    series: [{
-      name: type === 'expense' ? '支出' : '收入',
-      type: 'pie',
-      radius: ['40%', '70%'],
-      itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
-      label: { show: true, formatter: '{b}\n{d}%' },
-      data: categoryAgg,
-    }],
-  }), [categoryAgg, type, totalAmount]);
+      ],
+      series: [
+        {
+          name: type === 'expense' ? '支出' : '收入',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+          label: { show: true, formatter: '{b}\n{d}%' },
+          data: categoryAgg,
+        },
+      ],
+    }),
+    [categoryAgg, type, totalAmount],
+  );
 
-  const handleOpenNew = () => { 
-    setEditing(null); 
+  const handleOpenNew = () => {
+    setEditing(null);
     setModalOpen(true);
     // 重置表单
     setTimeout(() => {
@@ -264,9 +276,9 @@ const PersonAge = () => {
       });
     }, 100);
   };
-  
-  const handleEdit = (record) => { 
-    setEditing(record); 
+
+  const handleEdit = (record) => {
+    setEditing(record);
     setModalOpen(true);
     // 转换后端数据格式为表单格式
     setTimeout(() => {
@@ -280,9 +292,9 @@ const PersonAge = () => {
     }, 100);
   };
   const handleDelete = async (id) => {
-    Modal.confirm({ 
-      title:'删除记录', 
-      content:'确认删除该条记录吗？', 
+    Modal.confirm({
+      title: '删除记录',
+      content: '确认删除该条记录吗？',
       onOk: async () => {
         try {
           const res = await LedgerApi.deleteLedger(id);
@@ -299,7 +311,7 @@ const PersonAge = () => {
           console.error('删除记账记录失败:', error);
           message.error('删除失败，请稍后重试');
         }
-      }
+      },
     });
   };
 
@@ -313,18 +325,23 @@ const PersonAge = () => {
 
   const handleSubmit = async (values) => {
     const rawDate = values.date;
-    const m = rawDate && typeof rawDate?.toDate === 'function' ? moment(rawDate.toDate()) : moment(rawDate || undefined);
-    
+    const m =
+      rawDate && typeof rawDate?.toDate === 'function'
+        ? moment(rawDate.toDate())
+        : moment(rawDate || undefined);
+
     // 转换为后端需要的格式
     const payload = {
       id: editing?.id,
       type: values.type === 'expense' ? 0 : 1, // 转换为数字：0=支出, 1=收入
       category: values.category,
       amount: Number(values.amount || 0),
-      createTime: m?.isValid() ? m.format('YYYY-MM-DD HH:mm:ss') : moment().format('YYYY-MM-DD HH:mm:ss'),
+      createTime: m?.isValid()
+        ? m.format('YYYY-MM-DD HH:mm:ss')
+        : moment().format('YYYY-MM-DD HH:mm:ss'),
       remark: values.note || '',
     };
-    
+
     try {
       let res;
       if (editing) {
@@ -334,10 +351,10 @@ const PersonAge = () => {
         // 新增记录
         res = await LedgerApi.addLedger(payload);
       }
-      
+
       if (res.success && res?.data?.data) {
         message.success(editing ? '已更新' : '已新增');
-        setModalOpen(false); 
+        setModalOpen(false);
         setEditing(null);
         // 刷新表格数据
         if (actionRef.current) {
@@ -360,36 +377,40 @@ const PersonAge = () => {
     try {
       // 处理分类过滤：优先使用表格过滤器的分类（支持多选），其次使用顶部筛选的分类
       let filterCategories = undefined;
-      if (filter?.category && Array.isArray(filter.category) && filter.category.length > 0) {
+      if (
+        filter?.category &&
+        Array.isArray(filter.category) &&
+        filter.category.length > 0
+      ) {
         // 表格过滤器中的分类（多选）
         filterCategories = filter.category;
       } else if (category) {
         // 顶部筛选的分类（单选，转换为数组）
         filterCategories = [category];
       }
-      
+
       const requestParams = {
         current: params.current || 1,
         pageSize: params.pageSize || 8,
         type: type === 'expense' ? 0 : 1,
       };
-      
+
       // 如果有分类过滤，传递分类数组
       if (filterCategories && filterCategories.length > 0) {
         requestParams.categoryList = filterCategories;
       }
-      
+
       // 处理时间范围
       if (dateRange && dateRange.length === 2) {
         requestParams.startTime = dateRange[0].format('YYYY-MM-DD HH:mm:ss');
         requestParams.endTime = dateRange[1].format('YYYY-MM-DD HH:mm:ss');
       }
-      
+
       // 处理备注模糊搜索
       if (remark && remark.trim()) {
         requestParams.remark = remark.trim();
       }
-      
+
       // 处理金额搜索
       if (amount && amount.trim()) {
         const amountValue = Number(amount.trim());
@@ -397,7 +418,7 @@ const PersonAge = () => {
           requestParams.amount = amountValue;
         }
       }
-      
+
       // 处理排序
       if (sort && Object.keys(sort).length > 0) {
         const sortKey = Object.keys(sort)[0];
@@ -405,14 +426,14 @@ const PersonAge = () => {
         requestParams.sortField = sortKey;
         requestParams.sortOrder = sortOrder === 'ascend' ? 'asc' : 'desc';
       }
-      
+
       const res = await LedgerApi.getPersonalLedger(requestParams);
-      
-      if (res.success && res.data && res.data.data) {
+
+      if (res.success) {
         // 更新表格数据用于计算分类占比
-        setTableData(res.data.data);
+        setTableData(res.data.data?.records);
         return {
-          data: res.data.data,
+          data: res.data.data?.records,
           success: true,
           total: res.data.total || res.data.data.length,
         };
@@ -436,17 +457,21 @@ const PersonAge = () => {
     }
   };
 
-
   return (
     <PageContainer title={false} className="ledger-page">
       <div className="ledger-header">
         <div>
-          <Title level={3} style={{ margin: 0 }}>我的账本</Title>
+          <Title level={3} style={{ margin: 0 }}>
+            我的账本
+          </Title>
           <Text type="secondary">轻松管理每日收支</Text>
         </div>
         <Space>
           <Segmented
-            options={[{label:'支出', value:'expense'},{label:'收入', value:'income'}]}
+            options={[
+              { label: '支出', value: 'expense' },
+              { label: '收入', value: 'income' },
+            ]}
             value={type}
             onChange={setType}
           />
@@ -481,60 +506,104 @@ const PersonAge = () => {
             style={{ width: 200 }}
           />
           <Button onClick={handleSearch}>查询</Button>
-          <Button type="primary" onClick={handleOpenNew}>新增记账</Button>
+          <Button type="primary" onClick={handleOpenNew}>
+            新增记账
+          </Button>
         </Space>
       </div>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>
-          <ProCard 
-            title={type === 'expense' ? '支出分类占比' : '收入分类占比'} 
+          <ProCard
+            title={type === 'expense' ? '支出分类占比' : '收入分类占比'}
             bordered
           >
-            <ReactECharts 
-              option={donutOption} 
-              style={{ height: 400 }} 
-              notMerge 
-              lazyUpdate 
+            <ReactECharts
+              option={donutOption}
+              style={{ height: 400 }}
+              notMerge
+              lazyUpdate
             />
           </ProCard>
         </Col>
         <Col xs={24} md={16}>
           <ProCard title="记账记录" bordered>
-        <ProTable
-          actionRef={actionRef}
-          rowKey="id"
-          search={false}
-          options={false}
-          pagination={{
-            pageSize: 8
-          }}
-          request={fetchLedgerData}
-          columns={columns}
-          params={{
-            type: type === 'expense' ? 0 : 1,
-            dateRange,
-            remark,
-            amount,
-          }}
-          manualRequest={false}
-        />
+            <ProTable
+              actionRef={actionRef}
+              rowKey="id"
+              search={false}
+              options={false}
+              pagination={{
+                pageSize: 8,
+              }}
+              request={fetchLedgerData}
+              columns={columns}
+              params={{
+                type: type === 'expense' ? 0 : 1,
+                dateRange,
+                remark,
+                amount,
+              }}
+              manualRequest={false}
+            />
           </ProCard>
         </Col>
       </Row>
 
-      <Modal title={editing?'编辑记账':'新增记账'} open={modalOpen} onCancel={()=>{ setModalOpen(false); setEditing(null); }} footer={null} destroyOnClose>
-        <ProForm 
-          formRef={formRef} 
-          onFinish={handleSubmit} 
-          initialValues={{ type, date: new Date() }} 
-          submitter={{ searchConfig: { submitText: editing?'保存':'新增' } }}
+      <Modal
+        title={editing ? '编辑记账' : '新增记账'}
+        open={modalOpen}
+        onCancel={() => {
+          setModalOpen(false);
+          setEditing(null);
+        }}
+        footer={null}
+        destroyOnClose
+      >
+        <ProForm
+          formRef={formRef}
+          onFinish={handleSubmit}
+          initialValues={{ type, date: new Date() }}
+          submitter={{
+            searchConfig: { submitText: editing ? '保存' : '新增' },
+          }}
         >
-          <ProFormRadio.Group name="type" label="类型" options={typeOptions} rules={[{ required:true, message:'请选择类型' }]} fieldProps={{ onChange: ()=> formRef.current?.setFieldValue('category', undefined) }} />
-          <ProFormSelect name="category" label="分类" placeholder="请选择分类" options={categoryOptions} rules={[{ required:true, message:'请选择分类' }]} />
-          <ProFormDigit name="amount" label="金额" min={0} fieldProps={{ precision:2, style:{ width:'100%' } }} rules={[{ required:true, message:'请输入金额' }]} />
-          <ProFormDateTimePicker name="date" label="日期" fieldProps={{ style:{ width:'100%' } }} rules={[{ required:true, message:'请选择日期' }]} />
-          <ProFormTextArea name="note" label="备注" placeholder="可填写商家、项目等" fieldProps={{ autoSize:{ minRows:2, maxRows:4 } }} />
+          <ProFormRadio.Group
+            name="type"
+            label="类型"
+            options={typeOptions}
+            rules={[{ required: true, message: '请选择类型' }]}
+            fieldProps={{
+              onChange: () =>
+                formRef.current?.setFieldValue('category', undefined),
+            }}
+          />
+          <ProFormSelect
+            name="category"
+            label="分类"
+            placeholder="请选择分类"
+            options={categoryOptions}
+            rules={[{ required: true, message: '请选择分类' }]}
+          />
+          <ProFormDigit
+            name="amount"
+            label="金额"
+            min={0}
+            fieldProps={{ precision: 2, style: { width: '100%' } }}
+            rules={[{ required: true, message: '请输入金额' }]}
+          />
+          <ProFormDateTimePicker
+            name="date"
+            label="日期"
+            fieldProps={{ style: { width: '100%' } }}
+            rules={[{ required: true, message: '请选择日期' }]}
+          />
+          <ProFormTextArea
+            name="note"
+            label="备注"
+            placeholder="可填写商家、项目等"
+            fieldProps={{ autoSize: { minRows: 2, maxRows: 4 } }}
+          />
         </ProForm>
       </Modal>
     </PageContainer>

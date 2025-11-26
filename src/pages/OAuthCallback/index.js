@@ -1,5 +1,6 @@
 import LoginApi from '@/api/LoginApi';
 import buildMenu from '@/utils/buildMenu';
+import { flattenMenuData } from '@/utils/menuHelper';
 import {
   getCounter,
   removeAvatarUrl,
@@ -40,12 +41,18 @@ const OAuthCallback = () => {
         userName: username,
         menuType: getCounter(),
       });
-      if (!success) message.warning('获取菜单失败');
+      if (!success || !data?.data?.length) {
+        message.warning('获取菜单失败');
+        return;
+      }
+      const { menuData, routeList } = buildMenu(data.data);
+      const searchMenuData = flattenMenuData(data.data);
       await setInitialState((initialState) => ({
         ...initialState,
         currentUser: { name: username },
-        menuData: buildMenu(data.data).menuData,
-        routeList: buildMenu(data.data).routeList,
+        menuData,
+        routeList,
+        searchMenuData,
       }));
       history.replace('/home', { fromLogin: true });
     }
