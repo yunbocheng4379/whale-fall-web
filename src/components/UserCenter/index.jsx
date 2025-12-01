@@ -71,6 +71,7 @@ const UserCenter = ({ setLockPasswordModalOpenCallback }) => {
     setFlowerEffectActive(false);
   };
 
+  // 切换业务系统 / 后台管理，避免整页 reload，使用 setInitialState 更新菜单
   const handleSystemSwitch = async () => {
     if (isSwitchingSystem) return;
     setIsSwitchingSystem(true);
@@ -83,21 +84,28 @@ const UserCenter = ({ setLockPasswordModalOpenCallback }) => {
       if (!success || !data?.data?.length) {
         throw new Error('获取菜单失败，请稍后重试');
       }
-      const { menuData, routeList } = buildMenu(data.data);
-      const searchMenuData = flattenMenuData(data.data);
+      const menuList = data.data;
+      const { menuData, routeList } = buildMenu(menuList);
+      const searchMenuData = flattenMenuData(menuList);
+
+      // 先更新本地标记的 menuType
       setCounter(nextMenuType);
+
+      // 更新全局 initialState，驱动路由和菜单刷新
       await setInitialState((prev) => ({
         ...(prev || {}),
         menuData,
         routeList,
         searchMenuData,
       }));
+
       history.push(HOME_PATH);
       message.success(
         nextMenuType === 0 ? '已切换至业务系统' : '已切换至后台管理',
       );
     } catch (error) {
-      message.error(error?.message || '切换系统失败');
+      console.error('切换系统失败：', error);
+      message.error(error?.message || '切换系统失败，请稍后重试');
     } finally {
       setIsSwitchingSystem(false);
     }

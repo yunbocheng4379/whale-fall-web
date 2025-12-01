@@ -5,7 +5,6 @@ import { HOME_PATH, LOGO, TITLE } from '@/config';
 import useCountdown from '@/hooks/useCountdown';
 import buildMenu from '@/utils/buildMenu';
 import { MyIcon } from '@/utils/iconUtil';
-import { flattenMenuData } from '@/utils/menuHelper';
 import { baseURL } from '@/utils/request';
 import {
   getCounter,
@@ -166,13 +165,11 @@ const Login = () => {
       });
     if (menuSuccess && menuDataResponse?.data?.length > 0) {
       const { menuData, routeList } = buildMenu(menuDataResponse.data);
-      const searchMenuData = flattenMenuData(menuDataResponse.data);
       await setInitialState({
         ...initialState,
         currentUser: { name: data?.username },
         menuData,
         routeList,
-        searchMenuData,
       });
       history.push(HOME_PATH, { fromLogin: true });
     } else {
