@@ -1,19 +1,13 @@
-import { BACK_PORT, LOGIN_PATH, TOKEN_KEY } from '@/config';
+import { LOGIN_PATH, TOKEN_KEY } from '@/config';
 import { JWT_FAIL_CODE, JWT_LOSE_CODE, SUCCESS_CODE } from '@/config/code';
 import { getToken, removeToken } from '@/utils/tokenUtil';
+import { getBaseURL } from '@/utils/urlUtil';
 import { message } from 'antd';
 import axios from 'axios';
 import { history } from 'umi';
 
-// 后端端口
-const PORT = BACK_PORT;
-
-let baseURL = '';
-if (!/:/i.test(window.location.host)) {
-  baseURL = 'http://' + window.location.host; // 正式环境
-} else {
-  baseURL = 'http://' + window.location.hostname + ':' + PORT; // 开发环境
-}
+// 获取基础URL
+const baseURL = getBaseURL();
 
 const instance = axios.create({
   baseURL,

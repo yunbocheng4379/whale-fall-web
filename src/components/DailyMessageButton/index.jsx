@@ -1,13 +1,17 @@
 import AccountApi from '@/api/AccountApi';
 import { getUsername } from '@/utils/tokenUtil';
+import { BellOutlined, ReloadOutlined } from '@ant-design/icons';
 import {
-  BellOutlined,
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  ExclamationCircleOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons';
-import { Badge, Button, Card, List, Tag, Tooltip, message, Empty, Spin } from 'antd';
+  Badge,
+  Button,
+  Card,
+  Empty,
+  List,
+  Spin,
+  Tag,
+  Tooltip,
+  message,
+} from 'antd';
 import { useEffect, useState } from 'react';
 import './index.less';
 
@@ -20,13 +24,13 @@ const DailyMessageButton = () => {
   });
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // 缓存相关状态
   const [cacheData, setCacheData] = useState({
     messages: [],
     numberOfType: { untreated: 0, processed: 0 },
     timestamp: null,
-    isExpired: true
+    isExpired: true,
   });
 
   // 检查缓存是否过期（30分钟）
@@ -40,9 +44,13 @@ const DailyMessageButton = () => {
   // 获取消息列表（带重试机制）
   const getMessages = async (retryCount = 0) => {
     const maxRetries = 2;
+    const username = getUsername();
+    if (!username) {
+      return [];
+    }
     try {
       const response = await AccountApi.queryDailyMessages({
-        recipientUser: getUsername(),
+        recipientUser: username,
         current: 1,
         size: 10, // 只获取最新的10条消息
       });
@@ -53,10 +61,15 @@ const DailyMessageButton = () => {
         throw new Error('API返回失败');
       }
     } catch (error) {
-      console.error(`获取消息列表失败 (尝试 ${retryCount + 1}/${maxRetries + 1}):`, error);
+      console.error(
+        `获取消息列表失败 (尝试 ${retryCount + 1}/${maxRetries + 1}):`,
+        error,
+      );
       if (retryCount < maxRetries) {
         // 等待1秒后重试
-        await new Promise(resolve => { setTimeout(resolve, 1000); });
+        await new Promise((resolve) => {
+          setTimeout(resolve, 1000);
+        });
         return getMessages(retryCount + 1);
       }
       throw error;
@@ -80,18 +93,18 @@ const DailyMessageButton = () => {
       // 并行获取消息列表和状态信息
       const [messagesData, statusData] = await Promise.all([
         getMessages(),
-        getMessageStatusInfo()
+        getMessageStatusInfo(),
       ]);
-      
+
       // 更新缓存
       const newCacheData = {
         messages: messagesData,
         numberOfType: statusData,
         timestamp: Date.now(),
-        isExpired: false
+        isExpired: false,
       };
       setCacheData(newCacheData);
-      
+
       // 更新状态
       setMessages(messagesData);
       setNumberOfType(statusData);
@@ -113,21 +126,31 @@ const DailyMessageButton = () => {
   // 获取消息状态信息（带重试机制）
   const getMessageStatusInfo = async (retryCount = 0) => {
     const maxRetries = 2;
+    const username = getUsername();
+    if (!username) {
+      return { untreated: 0, processed: 0 };
+    }
     try {
-      const { success, data } = await AccountApi.getMessageStatusInfo(getUsername());
+      const { success, data } = await AccountApi.getMessageStatusInfo(username);
       if (success) {
         return data?.data || { untreated: 0, processed: 0 };
       } else {
         throw new Error('API返回失败');
       }
     } catch (error) {
-      console.error(`获取消息状态失败 (尝试 ${retryCount + 1}/${maxRetries + 1}):`, error);
+      console.error(
+        `获取消息状态失败 (尝试 ${retryCount + 1}/${maxRetries + 1}):`,
+        error,
+      );
       if (retryCount < maxRetries) {
         // 等待1秒后重试
-        await new Promise(resolve => { setTimeout(resolve, 1000); });
+        await new Promise((resolve) => {
+          setTimeout(resolve, 1000);
+        });
         return getMessageStatusInfo(retryCount + 1);
       }
-      throw error;
+      // 最终失败返回默认值，避免抛错影响页面
+      return { untreated: 0, processed: 0 };
     }
   };
 
@@ -138,18 +161,18 @@ const DailyMessageButton = () => {
       // 并行获取消息列表和状态信息
       const [messagesData, statusData] = await Promise.all([
         getMessages(),
-        getMessageStatusInfo()
+        getMessageStatusInfo(),
       ]);
-      
+
       // 更新缓存
       const newCacheData = {
         messages: messagesData,
         numberOfType: statusData,
         timestamp: Date.now(),
-        isExpired: false
+        isExpired: false,
       };
       setCacheData(newCacheData);
-      
+
       // 更新状态
       setMessages(messagesData);
       setNumberOfType(statusData);
@@ -180,17 +203,17 @@ const DailyMessageButton = () => {
     // 设置定时器定期检查消息状态和缓存过期
     const interval = setInterval(() => {
       initializeMessageStatus();
-      
+
       // 检查缓存是否过期，如果过期则清除
       if (cacheData.timestamp && isCacheExpired(cacheData.timestamp)) {
         setCacheData({
           messages: [],
           numberOfType: { untreated: 0, processed: 0 },
           timestamp: null,
-          isExpired: true
+          isExpired: true,
         });
       }
-    }, 1800000); // 每30分钟检查一次
+    }, 7200000); // 每2小时检查一次
 
     return () => clearInterval(interval);
   }, [cacheData.timestamp]);
@@ -201,14 +224,18 @@ const DailyMessageButton = () => {
     const date = new Date(timeString);
     const now = new Date();
     const diff = now - date;
-    
-    if (diff < 60000) { // 1分钟内
+
+    if (diff < 60000) {
+      // 1分钟内
       return '刚刚';
-    } else if (diff < 3600000) { // 1小时内
+    } else if (diff < 3600000) {
+      // 1小时内
       return `${Math.floor(diff / 60000)}分钟前`;
-    } else if (diff < 86400000) { // 24小时内
+    } else if (diff < 86400000) {
+      // 24小时内
       return `${Math.floor(diff / 3600000)}小时前`;
-    } else if (diff < 604800000) { // 7天内
+    } else if (diff < 604800000) {
+      // 7天内
       return `${Math.floor(diff / 86400000)}天前`;
     } else {
       return date.toLocaleDateString();
@@ -216,7 +243,7 @@ const DailyMessageButton = () => {
   };
 
   return (
-    <div 
+    <div
       className="daily-message-button"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -252,7 +279,7 @@ const DailyMessageButton = () => {
                 style={{
                   fontSize: 18,
                   color: hasUnreadMessages ? '#ff4d4f' : 'inherit',
-                  transition: 'color 0.3s ease'
+                  transition: 'color 0.3s ease',
                 }}
               />
             }
@@ -263,7 +290,7 @@ const DailyMessageButton = () => {
       {/* 下拉消息卡片 */}
       {isDropdownVisible && (
         <div className="message-dropdown">
-          <Card 
+          <Card
             title={
               <div className="dropdown-header">
                 <span>消息通知</span>
@@ -300,8 +327,10 @@ const DailyMessageButton = () => {
                   <List.Item className="message-item" key={item.id}>
                     <div className="message-card-wrapper">
                       {/* 状态指示条 */}
-                      <div className={`status-indicator ${item.status ? 'processed' : 'pending'}`}></div>
-                      
+                      <div
+                        className={`status-indicator ${item.status ? 'processed' : 'pending'}`}
+                      ></div>
+
                       {/* 消息内容 */}
                       <div className="message-content">
                         {/* 标题和状态 */}
@@ -310,23 +339,27 @@ const DailyMessageButton = () => {
                             {item.title}
                           </div>
                           <div className="message-badges">
-                            <span className={`status-badge ${item.status ? 'completed' : 'pending'}`}>
+                            <span
+                              className={`status-badge ${item.status ? 'completed' : 'pending'}`}
+                            >
                               {item.status ? '已处理' : '待处理'}
                             </span>
                           </div>
                         </div>
-                        
+
                         {/* 内容 */}
                         <div className="message-body">
                           <p className="message-text" title={item.content}>
                             {item.content}
                           </p>
                         </div>
-                        
+
                         {/* 底部信息 */}
                         <div className="message-footer">
                           <span className="sender-name">{item.notifyUser}</span>
-                          <span className="message-time">{formatTime(item.createTime)}</span>
+                          <span className="message-time">
+                            {formatTime(item.createTime)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -335,8 +368,8 @@ const DailyMessageButton = () => {
                 className="message-list"
               />
             ) : (
-              <Empty 
-                description="暂无消息" 
+              <Empty
+                description="暂无消息"
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 style={{ padding: '20px 0' }}
               />

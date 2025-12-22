@@ -1,100 +1,179 @@
-import {withAuth} from '@/components/Auth';
-import {PageContainer, ProTable} from '@ant-design/pro-components';
-import {Button} from 'antd';
-import {useRef, useState} from 'react';
+import LogCenterApi from '@/api/LogCenterApi';
+import { withAuth } from '@/components/Auth';
+import { PageContainer, ProTable } from '@ant-design/pro-components';
+import { Button, message, Tag } from 'antd';
 import moment from 'moment';
+import { useRef } from 'react';
 import styles from './index.less';
 
-// 日志类型示例
-const logTypeOptions = [
-  { label: '登录成功', value: 'success' },
-  { label: '登录失败', value: 'fail' },
+// 登录方式枚举（与后端 LoginType 保持一致）
+const loginTypeOptions = [
+  { label: '未知', value: 'UNKNOWN' },
+  { label: '账号密码', value: 'ACCOUNT_PASSWORD' },
+  { label: '手机号', value: 'PHONE' },
+  { label: '邮箱', value: 'EMAIL' },
+  { label: 'GitHub', value: 'GITHUB' },
+  { label: 'Gitee', value: 'GITEE' },
+  { label: 'GitLab', value: 'GITLIB' },
+  { label: '飞书', value: 'FEISHU' },
+];
+
+const statusOptions = [
+  { label: '成功', value: true },
+  { label: '失败', value: false },
 ];
 
 const Register = () => {
   const tableRef = useRef();
-  const [filters, setFilters] = useState({
-    dateRange: [],
-    logType: undefined,
-  });
+
+  const loginTypeEnum = loginTypeOptions.reduce(
+    (acc, cur) => ({ ...acc, [cur.value]: { text: cur.label } }),
+    {},
+  );
+  const statusEnum = {
+    true: { text: '成功', status: 'Success' },
+    false: { text: '失败', status: 'Error' },
+  };
 
   const columns = [
     {
-      title: '时间',
-      dataIndex: 'timestamp',
-      width: 250,
+      title: '操作时间',
+      dataIndex: 'operationTime',
+      width: 220,
       align: 'center',
       sorter: true,
       valueType: 'dateTimeRange',
       search: {
-        transform: (value) => {
-          // 将前端选择的数组 [start, end] 转为接口参数
-          return {
-            startTime: value ? moment(value[0]).format('YYYY-MM-DD HH:mm:ss') : undefined,
-            endTime: value ? moment(value[1]).format('YYYY-MM-DD HH:mm:ss') : undefined,
-          };
-        },
+        transform: (value) => ({
+          startTime: value?.[0]
+            ? moment(value[0]).format('YYYY-MM-DD HH:mm:ss')
+            : undefined,
+          endTime: value?.[1]
+            ? moment(value[1]).format('YYYY-MM-DD HH:mm:ss')
+            : undefined,
+        }),
       },
       render: (_, record) =>
-        moment(record.timestamp).format('YYYY-MM-DD HH:mm:ss'),
+        record.operationTime
+          ? moment(record.operationTime).format('YYYY-MM-DD HH:mm:ss')
+          : '-',
     },
     {
-      title: '用户名',
-      dataIndex: 'username',
+      title: '操作人',
+      dataIndex: 'operator',
       width: 150,
       align: 'center',
     },
     {
-      title: '日志类型',
-      dataIndex: 'logType',
-      width: 120,
-      filters: true,
-      valueEnum: {
-        success: { text: '登录成功', status: 'Success' },
-        fail: { text: '登录失败', status: 'Error' },
+      title: '登录方式',
+      dataIndex: 'loginType',
+      width: 150,
+      valueEnum: loginTypeEnum,
+      align: 'center',
+      valueType: 'select',
+      fieldProps: {
+        options: loginTypeOptions,
+        allowClear: true,
       },
-      align: 'center',
+      render: (_, record) =>
+        record.loginTypeDesc || loginTypeEnum[record.loginType]?.text || '-',
     },
     {
-      title: 'IP地址',
-      dataIndex: 'ip',
-      width: 150,
+      title: '状态',
+      dataIndex: 'status',
+      width: 100,
+      valueEnum: statusEnum,
       align: 'center',
+      valueType: 'select',
+      fieldProps: {
+        options: statusOptions,
+        allowClear: true,
+      },
+      render: (_, record) => (
+        <Tag color={record.status ? 'green' : 'red'}>
+          {record.status ? '成功' : '失败'}
+        </Tag>
+      ),
     },
     {
-      title: '操作详情',
-      dataIndex: 'description',
+      title: '请求参数',
+      dataIndex: 'requestParams',
       ellipsis: true,
       align: 'center',
+      valueType: 'text',
+    },
+    {
+      title: '响应结果',
+      dataIndex: 'responseResult',
+      ellipsis: true,
+      align: 'center',
+      search: false,
+    },
+    {
+      title: '错误信息',
+      dataIndex: 'errorMsg',
+      ellipsis: true,
+      align: 'center',
+      search: false,
+    },
+    {
+      title: '耗时(毫秒)',
+      dataIndex: 'executionTime',
+      width: 120,
+      align: 'center',
+      sorter: true,
+      search: false,
     },
   ];
 
-  // 模拟后端请求函数
-  const fetchLogs = async (params, sort, filter) => {
-    console.log('请求参数:', params, sort, filter);
+  // 将驼峰命名转换为下划线命名（用于排序字段）
+  const camelToSnake = (str) => {
+    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+  };
 
-    // 真实场景应调用接口，例如：
-    // return request('/api/login-logs', { params, sort, filter });
+  // 调用后端查询登录日志
+  const fetchLogs = async (params, sort) => {
+    try {
+      const requestPayload = {
+        operator: params.operator?.trim(),
+        loginType: params.loginType,
+        status: params.status,
+        requestParams: params.requestParams?.trim(),
+        startTime: params.startTime,
+        endTime: params.endTime,
+        // 使用后端新的分页字段：current / pageSize
+        current: params.current || 1,
+        pageSize: params.pageSize || 10,
+      };
 
-    // 模拟返回数据
-    const pageSize = params.pageSize || 10;
-    const current = params.current || 1;
-    const total = 50;
+      if (sort && Object.keys(sort).length > 0) {
+        const key = Object.keys(sort)[0];
+        // 将驼峰命名转换为下划线命名（如 operationTime -> operation_time）
+        requestPayload.sortField = camelToSnake(key);
+        requestPayload.sortOrder = sort[key] === 'ascend' ? 'asc' : 'desc';
+      }
 
-    const data = new Array(pageSize).fill(0).map((_, i) => ({
-      id: (current - 1) * pageSize + i + 1,
-      timestamp: new Date(Date.now() - i * 3600 * 1000),
-      username: `user${i + 1}`,
-      logType: i % 2 === 0 ? 'success' : 'fail',
-      ip: `192.168.0.${i + 1}`,
-      description: `用户${i + 1}登录系统`,
-    }));
-
-    return {
-      data,
-      success: true,
-      total,
-    };
+      const res = await LogCenterApi.getLoginLogs(requestPayload);
+      if (res?.success && res?.data?.data) {
+        const pageData = res.data.data; // IPage<LoginLogVO>
+        const records =
+          pageData.records ||
+          pageData.rows ||
+          pageData.list ||
+          pageData.data ||
+          [];
+        return {
+          data: records,
+          success: true,
+          total: pageData.total || records.length,
+        };
+      }
+      return { data: [], success: false, total: 0 };
+    } catch (error) {
+      console.error('获取登录日志失败:', error);
+      message.error('获取登录日志失败，请稍后重试');
+      return { data: [], success: false, total: 0 };
+    }
   };
 
   return (
@@ -105,6 +184,7 @@ const Register = () => {
       }}
     >
       <ProTable
+        actionRef={tableRef}
         rowKey="id"
         columns={columns}
         search={{
@@ -115,8 +195,8 @@ const Register = () => {
             <Button
               key="reset"
               onClick={() => {
-                formProps.form.resetFields();
-                setFilters({ dateRange: [], logType: undefined });
+                formProps?.form?.resetFields();
+                tableRef.current?.reload();
               }}
             >
               重置
@@ -129,6 +209,7 @@ const Register = () => {
           pageSize: 10,
           showSizeChanger: true,
         }}
+        scroll={{ x: 1200 }}
       />
     </PageContainer>
   );

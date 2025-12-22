@@ -51,6 +51,13 @@ const managementRoutes = [
         component: '@/pages/Authority/Menu',
         access: 'allowAdminAccessRoute',
       },
+      {
+        path: 'model',
+        name: '模型配置',
+        icon: 'icon-model',
+        component: '@/pages/Authority/Model',
+        access: 'allowAdminAccessRoute',
+      },
     ],
   },
   {
