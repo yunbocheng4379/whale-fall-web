@@ -1,0 +1,207 @@
+.pageContainer {
+  background: #fff;
+}
+
+.imagePageRoot {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 0;
+  text-align: center;
+  background: #fff;
+}
+
+.imagePageTitle {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.imagePageSubTitle {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.inputWrapper {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #fff;
+  margin-bottom: 25px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.referenceImagesRow {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.referenceImageItem {
+  position: relative;
+  display: inline-block;
+}
+
+.referenceImageRemove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 75%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.inputMainRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// 标签行：显示在输入框下方
+.tagsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-left: 0;
+}
+
+.styleTag,
+.ratioTag {
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  height: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.editableInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  padding: 0;
+  resize: none;
+  font-size: 16px;
+  line-height: 24px;
+  min-height: 24px;
+  max-height: 144px; // 最多6行 (24px * 6)
+  overflow-y: auto;
+  word-wrap: break-word;
+  white-space: pre-wrap; // 保留换行和空格
+  text-align: left; // 确保文本左对齐
+  direction: ltr; // 确保从左到右的文本方向
+
+  // placeholder 样式
+  &:empty::before {
+    content: attr(data-placeholder);
+    color: #bfbfbf;
+    pointer-events: none;
+  }
+
+  // 去除获取焦点时的浅蓝色高亮边框/阴影
+  &:focus,
+  &:focus-visible {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+
+.actionButton {
+  border-radius: 10px;
+  border-color: #e5e7eb;
+  padding: 8px 12px;
+}
+
+.quickActionsRow {
+  margin-bottom: 25px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.quickActionCard {
+  flex: 1;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 6%);
+  cursor: pointer;
+}
+
+.quickActionLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.quickActionImage {
+  width: 64px;
+  height: 48px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-left: 10px;
+  flex-shrink: 0;
+  background: #000;
+}
+
+.galleryWrapper {
+  width: 100%;
+  padding: 0 18px 32px;
+}
+
+.masonryGrid {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  align-items: flex-start;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+  }
+}
+
+.masonryColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @media (max-width: 900px) {
+    width: 100%;
+  }
+}
+
+.masonryItem {
+  width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 8%);
+  background: #000;
+
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+}
