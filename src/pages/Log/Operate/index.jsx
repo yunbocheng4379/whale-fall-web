@@ -1,100 +1,203 @@
 import {withAuth} from '@/components/Auth';
 import {PageContainer, ProTable} from '@ant-design/pro-components';
-import {Button} from 'antd';
-import {useRef, useState} from 'react';
+import {Button, Tag, message} from 'antd';
+import {useRef} from 'react';
 import moment from 'moment';
 import styles from './index.less';
+import OperateApi from '@/api/OperateApi';
 
-// 日志类型示例
-const logTypeOptions = [
-  { label: '登录成功', value: 'success' },
-  { label: '登录失败', value: 'fail' },
+// 操作类型枚举（与后端 operation_type 对应）
+const operationTypeOptions = [
+  { label: '创建', value: 'CREATE' },
+  { label: '更新', value: 'UPDATE' },
+  { label: '删除', value: 'DELETE' },
+  { label: '批量操作', value: 'BATCH_OPERATE' },
+];
+
+const successOptions = [
+  { label: '成功', value: true },
+  { label: '失败', value: false },
 ];
 
 const Operate = () => {
   const tableRef = useRef();
-  const [filters, setFilters] = useState({
-    dateRange: [],
-    logType: undefined,
-  });
+
+  const operationTypeEnum = operationTypeOptions.reduce(
+    (acc, cur) => ({ ...acc, [cur.value]: { text: cur.label } }),
+    {},
+  );
+  const successEnum = {
+    true: { text: '成功', status: 'Success' },
+    false: { text: '失败', status: 'Error' },
+  };
 
   const columns = [
     {
-      title: '时间',
-      dataIndex: 'timestamp',
-      width: 250,
+      title: '操作时间',
+      dataIndex: 'operateTime',
+      width: 220,
       align: 'center',
       sorter: true,
       valueType: 'dateTimeRange',
       search: {
-        transform: (value) => {
-          // 将前端选择的数组 [start, end] 转为接口参数
-          return {
-            startTime: value ? moment(value[0]).format('YYYY-MM-DD HH:mm:ss') : undefined,
-            endTime: value ? moment(value[1]).format('YYYY-MM-DD HH:mm:ss') : undefined,
-          };
-        },
+        transform: (value) => ({
+          startTime: value?.[0] ? moment(value[0]).format('YYYY-MM-DD HH:mm:ss') : undefined,
+          endTime: value?.[1] ? moment(value[1]).format('YYYY-MM-DD HH:mm:ss') : undefined,
+        }),
       },
       render: (_, record) =>
-        moment(record.timestamp).format('YYYY-MM-DD HH:mm:ss'),
+        record.operateTime ? moment(record.operateTime).format('YYYY-MM-DD HH:mm:ss') : '-',
     },
     {
-      title: '用户名',
-      dataIndex: 'username',
+      title: '操作人',
+      dataIndex: 'operator',
       width: 150,
       align: 'center',
     },
     {
-      title: '日志类型',
-      dataIndex: 'logType',
-      width: 120,
-      filters: true,
-      valueEnum: {
-        success: { text: '登录成功', status: 'Success' },
-        fail: { text: '登录失败', status: 'Error' },
+      title: '资源',
+      dataIndex: 'resource',
+      width: 250,
+      align: 'center',
+    },
+    {
+      title: '操作类型',
+      dataIndex: 'operationType',
+      width: 140,
+      valueEnum: operationTypeEnum,
+      align: 'center',
+      valueType: 'select',
+      fieldProps: {
+        options: operationTypeOptions,
+        allowClear: true,
       },
-      align: 'center',
+      render: (_, record) => operationTypeEnum[record.operationType]?.text || record.operationType || '-',
     },
     {
-      title: 'IP地址',
-      dataIndex: 'ip',
-      width: 150,
+      title: '状态',
+      dataIndex: 'success',
+      width: 100,
+      valueEnum: successEnum,
       align: 'center',
+      valueType: 'select',
+      fieldProps: {
+        options: successOptions,
+        allowClear: true,
+      },
+      render: (_, record) => (
+        <Tag color={record.success ? 'green' : 'red'}>
+          {record.success ? '成功' : '失败'}
+        </Tag>
+      ),
     },
     {
-      title: '操作详情',
-      dataIndex: 'description',
+      title: '请求方法',
+      dataIndex: 'requestMethod',
+      width: 120,
+      align: 'center',
+      valueType: 'text',
+    },
+    {
+      title: '请求URI',
+      dataIndex: 'requestUri',
+      width: 260,
       ellipsis: true,
       align: 'center',
+      valueType: 'text',
+    },
+    {
+      title: '客户端IP',
+      dataIndex: 'clientIp',
+      width: 150,
+      align: 'center',
+      valueType: 'text',
+    },
+    {
+      title: '请求参数',
+      dataIndex: 'requestParams',
+      ellipsis: true,
+      align: 'center',
+      valueType: 'text',
+    },
+    {
+      title: '返回结果',
+      dataIndex: 'resultParams',
+      ellipsis: true,
+      align: 'center',
+      search: false,
+    },
+    {
+      title: '耗时(毫秒)',
+      dataIndex: 'executionTime',
+      width: 120,
+      align: 'center',
+      sorter: true,
+      search: false,
+    },
+    {
+      title: '批次ID',
+      dataIndex: 'batchId',
+      width: 180,
+      align: 'center',
+      valueType: 'text',
+    },
+    {
+      title: '错误信息',
+      dataIndex: 'errorMsg',
+      ellipsis: true,
+      align: 'center',
+      search: false,
     },
   ];
 
-  // 模拟后端请求函数
-  const fetchLogs = async (params, sort, filter) => {
-    console.log('请求参数:', params, sort, filter);
+  // 将驼峰命名转换为下划线命名（用于排序字段）
+  const camelToSnake = (str) => {
+    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+  };
 
-    // 真实场景应调用接口，例如：
-    // return request('/api/login-logs', { params, sort, filter });
+  // 调用后端查询操作日志
+  const fetchLogs = async (params, sort) => {
+    try {
+      const requestPayload = {
+        operator: params.operator?.trim(),
+        resource: params.resource?.trim(),
+        operationType: params.operationType,
+        success: params.success,
+        requestMethod: params.requestMethod?.trim(),
+        requestUri: params.requestUri?.trim(),
+        clientIp: params.clientIp?.trim(),
+        requestParams: params.requestParams?.trim(),
+        batchId: params.batchId?.trim(),
+        startTime: params.startTime,
+        endTime: params.endTime,
+        current: params.current || 1,
+        pageSize: params.pageSize || 10,
+      };
 
-    // 模拟返回数据
-    const pageSize = params.pageSize || 10;
-    const current = params.current || 1;
-    const total = 50;
+      if (sort && Object.keys(sort).length > 0) {
+        const key = Object.keys(sort)[0];
+        // 将驼峰命名转换为下划线命名（如 operateTime -> operate_time）
+        requestPayload.sortField = camelToSnake(key);
+        requestPayload.sortOrder = sort[key] === 'ascend' ? 'asc' : 'desc';
+      }
 
-    const data = new Array(pageSize).fill(0).map((_, i) => ({
-      id: (current - 1) * pageSize + i + 1,
-      timestamp: new Date(Date.now() - i * 3600 * 1000),
-      username: `user${i + 1}`,
-      logType: i % 2 === 0 ? 'success' : 'fail',
-      ip: `192.168.0.${i + 1}`,
-      description: `用户${i + 1}登录系统`,
-    }));
-
-    return {
-      data,
-      success: true,
-      total,
-    };
+      const res = await OperateApi.getOperateLogs(requestPayload);
+      if (res?.success && res?.data?.data) {
+        const pageData = res.data.data; // IPage<OperateLogVO>
+        const records =
+          pageData.records || pageData.rows || pageData.list || pageData.data || [];
+        return {
+          data: records,
+          success: true,
+          total: pageData.total || records.length,
+        };
+      }
+      return { data: [], success: false, total: 0 };
+    } catch (error) {
+      console.error('获取操作日志失败:', error);
+      message.error('获取操作日志失败，请稍后重试');
+      return { data: [], success: false, total: 0 };
+    }
   };
 
   return (
@@ -105,6 +208,7 @@ const Operate = () => {
       }}
     >
       <ProTable
+        actionRef={tableRef}
         rowKey="id"
         columns={columns}
         search={{
@@ -115,8 +219,8 @@ const Operate = () => {
             <Button
               key="reset"
               onClick={() => {
-                formProps.form.resetFields();
-                setFilters({ dateRange: [], logType: undefined });
+                formProps?.form?.resetFields();
+                tableRef.current?.reload();
               }}
             >
               重置
@@ -129,6 +233,7 @@ const Operate = () => {
           pageSize: 10,
           showSizeChanger: true,
         }}
+        scroll={{ x: 2500 }}
       />
     </PageContainer>
   );
