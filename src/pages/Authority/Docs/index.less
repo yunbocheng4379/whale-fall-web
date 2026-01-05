@@ -1,0 +1,253 @@
+.docs-wrapper {
+  padding: 24px;
+}
+
+.docs-header-card {
+  border-radius: 8px;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 30px rgba(16,39,112,0.06);
+}
+.docs-header-card:hover {
+  box-shadow: 0 14px 40px rgba(16,39,112,0.08);
+}
+
+.back-btn-wrap {
+  margin-right: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+.back-btn {
+  border-radius: 22px;
+  padding: 8px 14px;
+  border: 1px solid #e6eaf2;
+  background: #fff;
+  color: #5b8cff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(91, 140, 255, 0.08);
+  height: 40px;
+}
+.back-btn-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.docs-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.docs-meta {
+  color: #8c8c8c;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.docs-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e6eaf2;
+  box-shadow: inset 0 1px 0 rgba(0,0,0,0.02);
+  padding: 1px 4px;
+}
+.search-box:focus-within {
+  border-color: #5b8cff;
+  box-shadow: 0 6px 18px rgba(91,140,255,0.08);
+}
+.search-icon {
+  color: #bfc9d9;
+  font-size: 16px;
+  margin-right: 8px;
+}
+.search-input {
+  border: none;
+  outline: none;
+  box-shadow: none;
+  width: 240px;
+}
+
+.upload-dragger {
+  padding: 18px;
+  min-height: 120px;
+  border-radius: 8px;
+  border: 1px dashed #d9d9d9;
+  background: #fff;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  transform-origin: center center;
+  overflow: visible;
+}
+.upload-dragger.hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 18px 40px rgba(91,140,255,0.12);
+  z-index: 50;
+}
+.doc-icon {
+  width: 56px;
+  height: 72px;
+  transition: transform 180ms ease;
+}
+.upload-dragger.hover .doc-icon {
+  transform: scale(1.45);
+  filter: drop-shadow(0 10px 24px rgba(91,140,255,0.14));
+}
+
+.docs-table .ant-table {
+  background: #fff;
+}
+
+.docs-upload-table .ant-table-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.docs-upload-table .col-title {
+  width: 46%;
+}
+.docs-upload-table .col-publish {
+  width: 300px;
+}
+
+/* Remove blue background for selected dates inside upload datepickers */
+.docs-upload-table :global(.ant-picker) .ant-picker-cell .ant-picker-cell-inner {
+  background: transparent !important;
+}
+.docs-upload-table :global(.ant-picker) .ant-picker-cell-selected .ant-picker-cell-inner,
+.docs-upload-table :global(.ant-picker) .ant-picker-cell-in-view .ant-picker-cell-inner {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+/* More comprehensive reset for picker selected/range styles to remove blue boxes */
+.docs-upload-table :global(.ant-picker) .ant-picker-cell-inner,
+.docs-upload-table :global(.ant-picker) .ant-picker-cell-selected .ant-picker-cell-inner,
+.docs-upload-table :global(.ant-picker) .ant-picker-cell-in-range .ant-picker-cell-inner,
+.docs-upload-table :global(.ant-picker) .ant-picker-cell-range-start .ant-picker-cell-inner,
+.docs-upload-table :global(.ant-picker) .ant-picker-cell-range-end .ant-picker-cell-inner,
+.docs-upload-table :global(.ant-picker) .ant-picker-cell-range-hover-start .ant-picker-cell-inner,
+.docs-upload-table :global(.ant-picker) .ant-picker-cell-range-hover-end .ant-picker-cell-inner {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+.docs-upload-table .col-status {
+  width: 140px;
+}
+.docs-upload-table .col-op {
+  width: 160px;
+  text-align: right;
+}
+.docs-upload-footer {
+  min-height: 54px;
+}
+
+.docs-list-wrapper {
+  margin-top: 24px;
+}
+.docs-list-scroll {
+  max-height: calc(100vh - 420px);
+  overflow-y: auto;
+  padding-right: 12px;
+}
+.docs-list-scroll .ant-card {
+  transition: box-shadow 160ms ease, transform 160ms ease;
+  transform: none;
+  /* subtle base shadow so each card reads as an independent surface */
+  box-shadow: 0 4px 10px rgba(16,39,112,0.04);
+  border: 1px solid rgba(16,39,112,0.04);
+}
+.docs-list-scroll .ant-card:hover {
+  /* gentle lift on hover while keeping blue border */
+  transform: translateY(-0.5px);
+  box-shadow: 0 10px 24px rgba(91,140,255,0.06);
+  border: 1px solid #5b8cff;
+}
+.docs-list-footer {
+  text-align: center;
+  padding: 18px 0 36px;
+  color: #8c8c8c;
+}
+.docs-list-footer .divider {
+  height: 1px;
+  background: #f0f0f0;
+  margin: 8px auto;
+  width: 90%;
+}
+.docs-list-footer .footer-label {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.docs-list-scroll .ant-card .ant-card-body {
+  padding: 14px 18px;
+}
+.docs-list-scroll .doc-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  background: #5b8cff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.docs-list-scroll .doc-icon-wrap .anticon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #fff;
+  width: 24px;
+  height: 24px;
+}
+.docs-list-scroll .doc-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #17233b;
+}
+.docs-list-scroll .doc-meta {
+  color: #8c8c8c;
+  margin-top: 6px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.docs-list-scroll .doc-clock {
+  color: #8c8c8c;
+  font-size: 14px;
+}
+.docs-list-scroll .doc-time {
+  color: #8c8c8c;
+}
+
+/* header card shadow */
+.docs-header-card {
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(16,39,112,0.06);
+}
+.docs-header-card:hover {
+  box-shadow: 0 14px 40px rgba(16,39,112,0.08);
+}
+
+/* knowledge page card hover (kb-card) - same visual treatment as doc cards */
+.kb-card {
+  transition: transform 160ms ease, box-shadow 160ms ease, border 160ms ease;
+  box-shadow: 0 4px 10px rgba(16,39,112,0.04);
+  border: 1px solid rgba(16,39,112,0.04);
+}
+.kb-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(91,140,255,0.06);
+  border: 1px solid #5b8cff;
+}
+
+

@@ -1,0 +1,169 @@
+.child-table-wrap {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 6%);
+  border-radius: 10px;
+  padding: 8px 8px 2px;
+  margin: 8px 8px 2px 36px;
+}
+
+.child-table-header {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px 10px 6px;
+  border-bottom: 1px dashed rgba(0, 0, 0, 8%);
+}
+
+.ml8 {
+  margin-left: 8px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.child-pro-table {
+  margin-top: 8px;
+}
+
+.ant-pro-table .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.ant-pro-table .ant-table-tbody > tr > td {
+  vertical-align: middle;
+}
+
+.ant-tag {
+  border-radius: 999px;
+  padding: 0 10px;
+  height: 24px;
+  line-height: 22px;
+  font-size: 12px;
+}
+
+// 合并全局样式，避免重复的 :global 块导致 lint 报错
+:global {
+  .ant-pro-table {
+    .ant-table {
+      table-layout: fixed;
+    }
+
+    .ant-table-thead > tr > th,
+    .ant-table-tbody > tr > td {
+      word-wrap: break-word;
+      word-break: break-all;
+    }
+
+    .ant-table-tbody > tr:hover > td {
+      background: transparent !important;
+    }
+
+    .ant-table-tbody > tr:hover {
+      background: transparent !important;
+    }
+  }
+
+  .ant-modal {
+    .ant-modal-body {
+      padding: 24px !important;
+    }
+
+    .ant-pro-form {
+      .ant-form-item-label {
+        width: 100px !important;
+        min-width: 100px !important;
+        text-align: left !important;
+        padding-right: 8px !important;
+      }
+
+      .ant-form-item-control {
+        flex: 1;
+      }
+
+      .ant-row {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+      }
+
+      .ant-col {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+      }
+
+      .ant-col:first-child {
+        padding-left: 0 !important;
+      }
+
+      .ant-col:last-child {
+        padding-right: 0 !important;
+      }
+
+      .ant-pro-form-group {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+      }
+
+      .ant-col-24 {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+    }
+
+    .ant-form {
+      .ant-input,
+      .ant-input-affix-wrapper,
+      .ant-input-number,
+      .ant-select-selector,
+      .ant-picker,
+      .ant-input-textarea {
+        border: 1px solid #d9d9d9 !important;
+        border-color: #d9d9d9 !important;
+        box-shadow: none !important;
+      }
+
+      .ant-input:focus,
+      .ant-input-affix-wrapper-focused,
+      .ant-input-number-focused,
+      .ant-select-focused .ant-select-selector,
+      .ant-picker-focused,
+      .ant-input-textarea:focus {
+        border: 1px solid #1677ff !important;
+        border-color: #1677ff !important;
+        box-shadow: 0 0 0 2px rgba(22, 119, 255, 20%) !important;
+      }
+    }
+  }
+
+  .ant-form {
+    .ant-input,
+    .ant-input-affix-wrapper,
+    .ant-input-number,
+    .ant-select-selector,
+    .ant-picker {
+      border-color: #d9d9d9 !important;
+      box-shadow: none !important;
+    }
+
+    .ant-input:focus,
+    .ant-input-affix-wrapper-focused,
+    .ant-input-number-focused,
+    .ant-select-focused .ant-select-selector,
+    .ant-picker-focused {
+      border-color: #1677ff !important;
+      box-shadow: 0 0 0 2px rgba(22, 119, 255, 20%) !important;
+    }
+  }
+}
+
+/* Card hover indicator */
+.kb-card {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: box-shadow 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+.kb-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(91, 140, 255, 0.12);
+  border-color: #5b8cff;
+}
