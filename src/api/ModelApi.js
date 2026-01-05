@@ -45,4 +45,12 @@ export default {
       params: { id },
     });
   },
+
+  // 获取全部模型（非分页），用于客户端下拉选择
+  getAllModels() {
+    return request({
+      url: 'model/listAll',
+      method: 'POST',
+    });
+  },
 };

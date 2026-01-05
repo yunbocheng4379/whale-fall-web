@@ -29,6 +29,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createChatStream } from '@/api/AiAskApi';
+import ModelApi from '@/api/ModelApi';
 import styles from './index.less';
 import SendButton from '@/components/SendButton';
 
@@ -76,6 +77,8 @@ const AskPage = () => {
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [modelDropdownVisible, setModelDropdownVisible] = useState(false);
+  const [models, setModels] = useState([]);
+  const [selectedModelId, setSelectedModelId] = useState(null);
   const [newChatTitle, setNewChatTitle] = useState(getRandomTitle);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatHistory, setChatHistory] = useState([
@@ -100,6 +103,27 @@ const AskPage = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // 获取模型列表
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        // 使用非分页接口获取全部模型
+        const res = await ModelApi.getAllModels();
+        if (res && res.data) {
+          const data = res.data.data || res.data;
+          const m = data.models || data || [];
+          setModels(m);
+          if (m.length > 0) {
+            setSelectedModelId(m[0].id);
+          }
+        }
+      } catch (e) {
+        console.error('获取模型列表失败', e);
+      }
+    };
+    fetchModels();
+  }, []);
 
   // 组件卸载时关闭流式连接
   useEffect(() => {
@@ -159,6 +183,7 @@ const AskPage = () => {
     streamControllerRef.current = createChatStream(
       userMessage,
       sessionId,
+      selectedModelId,
       // onMessage - 每次收到数据块立即调用，实时更新UI
       (chunk) => {
         const piece = extractStreamText(chunk);
@@ -271,24 +296,26 @@ const AskPage = () => {
     { key: 'delete', icon: <DeleteOutlined style={{ color: '#e74c3c' }} />, label: <span style={{ color: '#e74c3c' }}>删除</span>, className: 'delete-item' },
   ];
 
-  const modelMenuItems = [
-    {
-      key: 'plus',
-      label: (
-        <div className={styles['model-item']}>
-          <div className={styles['model-name']}>ChatGPT Plus</div>
+  const modelMenuItems = (models || []).map((m, idx) => ({
+    key: String(m.id),
+    label: (
+      <div
+        style={{
+          padding: '10px 16px',
+          borderBottom: idx !== (models.length - 1) ? '1px solid #f0f0f0' : 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          whiteSpace: 'normal',
+          wordBreak: 'break-word',
+        }}
+      >
+        <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {m.modelName || m.name || `Model ${m.id}`}
         </div>
-      ),
-    },
-    {
-      key: 'default',
-      label: (
-        <div className={styles['model-item']}>
-          <div className={styles['model-name']}>ChatGPT</div>
-        </div>
-      ),
-    },
-  ];
+      </div>
+    ),
+  }));
 
   return (
     <PageContainer 
@@ -373,9 +400,14 @@ const AskPage = () => {
           <div className={styles['top-bar']}>
             <Dropdown
               overlay={
-                <Menu
+            <Menu
                   items={modelMenuItems}
+                  onClick={(e) => {
+                    setSelectedModelId(Number(e.key));
+                    setModelDropdownVisible(false);
+                  }}
                   className={styles['model-dropdown']}
+                  style={{ minWidth: 380, maxWidth: 720, overflowX: 'hidden', whiteSpace: 'normal' }}
                 />
               }
               trigger={['click']}
@@ -384,7 +416,7 @@ const AskPage = () => {
               placement="bottomLeft"
             >
               <div className={styles['top-bar-left']}>
-                <span className={styles['model-name']}>ChatGPT</span>
+                <span className={styles['model-name']}>{(models.find(m => m.id === selectedModelId) || {}).modelName || '未选择模型'}</span>
                 <DownOutlined className={styles['dropdown-icon']} />
               </div>
             </Dropdown>

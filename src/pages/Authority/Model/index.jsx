@@ -695,9 +695,9 @@ const Model = () => {
             name="completionsPath"
             label="模型请求路径"
             placeholder="/chat/completions"
-            rules={[{ required: true, message: '请输入模型请求路径' }]}
             colProps={{ span: 8 }}
             fieldProps={{ style: { width: '100%' } }}
+            required={false}
           />
         </ProForm.Group>
 

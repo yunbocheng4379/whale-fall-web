@@ -58,6 +58,28 @@ const managementRoutes = [
         component: '@/pages/Authority/Model',
         access: 'allowAdminAccessRoute',
       },
+      {
+        path: 'knowledge',
+        name: '知识库管理',
+        icon: 'icon-knowledge',
+        component: '@/pages/Authority/Knowledge',
+        access: 'allowAdminAccessRoute',
+      },
+      {
+        path: 'docs',
+        name: '知识库文档',
+        icon: 'icon-model',
+        component: '@/pages/Authority/Docs',
+        access: 'allowAdminAccessRoute',
+        hideInMenu: true,
+      },
+      {
+        path: 'prompt',
+        name: '提示词管理',
+        icon: 'icon-prompt',
+        component: '@/pages/Authority/Prompt',
+        access: 'allowAdminAccessRoute',
+      },
     ],
   },
   {

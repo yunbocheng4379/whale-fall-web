@@ -11,7 +11,7 @@ import { getBaseURL } from '@/utils/urlUtil';
  * @param {Function} onComplete - 完成回调函数
  * @returns {Object} 包含close方法的控制器对象
  */
-export function createChatStream(message, sessionId, onMessage, onError, onComplete) {
+export function createChatStream(message, sessionId, modelId, onMessage, onError, onComplete) {
   const baseURL = getBaseURL();
   const token = getToken();
   
@@ -22,6 +22,10 @@ export function createChatStream(message, sessionId, onMessage, onError, onCompl
   
   if (sessionId) {
     params.append('sessionId', sessionId);
+  }
+  
+  if (modelId) {
+    params.append('modelId', modelId);
   }
   
   const url = `${baseURL}/ai/chat?${params.toString()}`;
