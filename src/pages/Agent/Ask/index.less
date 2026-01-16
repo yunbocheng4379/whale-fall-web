@@ -379,21 +379,12 @@
 
       // 新聊天状态样式
       .new-chat-container {
-        flex: 0.8;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 40px 20px;
+        padding: 10px 10px 25px;
         overflow-y: auto;
-
-        .new-chat-title {
-          font-size: 24px;
-          font-weight: 500;
-          color: #333;
-          margin-bottom: 40px;
-          text-align: center;
-        }
 
         .new-chat-input-wrapper {
           width: 100%;
@@ -403,7 +394,7 @@
             position: relative;
             background: #f5f5f5;
             border-radius: 999px;
-            padding: 16px 60px 16px 50px;
+            padding: 28px 60px 16px 50px; /* reserve top space for selected doc cards */
             display: flex;
             align-items: center;
             border: none;
@@ -495,6 +486,277 @@
                 background: #ccc;
                 cursor: not-allowed;
               }
+            }
+          }
+
+          // AI图像界面风格的输入容器
+          .image-input-container {
+            position: relative;
+            background: #fff;
+            border-radius: 24px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(15, 23, 42, 6%);
+            box-shadow:
+              0 8px 32px rgba(0, 0, 0, 8%),
+              0 5px 8px rgba(0, 0, 0, 4%);
+            gap: 4px;
+            transition:
+              border-color 0.18s ease,
+              box-shadow 0.18s ease,
+              background 0.18s ease;
+
+            &:focus-within {
+              border-color: #1890ff;
+              box-shadow: 0 6px 18px rgba(24, 144, 255, 12%);
+              background: #fff;
+            }
+
+            // 选中的文档展示区域
+            .selected-docs-area {
+              width: 100%;
+
+              .selected-docs-row {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex-wrap: wrap;
+
+                .selected-doc-item {
+                  position: relative;
+                  display: flex;
+                  align-items: center;
+                  padding: 6px 12px;
+                  background: #fff;
+                  border: 1px solid rgba(0, 0, 0, 6%);
+                  border-radius: 20px;
+                  font-size: 13px;
+                  color: #333;
+                  max-width: 180px;
+                  box-shadow: 0 2px 4px rgba(0, 0, 0, 4%);
+
+                  span {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                  }
+
+                  &.selected-doc-knowledge {
+                    border-color: #1890ff;
+                    box-shadow: 0 2px 4px rgba(24, 144, 255, 8%);
+
+                    :global(.anticon) {
+                      color: #1890ff;
+                    }
+                  }
+
+                  &.selected-doc-local {
+                    border-color: #52c41a;
+                    box-shadow: 0 2px 4px rgba(82, 196, 26, 6%);
+
+                    :global(.anticon) {
+                      color: #52c41a;
+                    }
+                  }
+
+                  /* close button: hidden by default, show on hover */
+                  .selected-doc-close-btn {
+                    position: absolute;
+                    top: -8px;
+                    right: -8px;
+                    width: 18px;
+                    height: 18px;
+                    border-radius: 50%;
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 0;
+                    border: none;
+                    background: transparent;
+                    color: transparent;
+                    line-height: 0;
+                    box-sizing: border-box;
+                  }
+
+                  &:hover {
+                    .selected-doc-close-btn {
+                      display: flex;
+                      background: #000;
+                      color: #fff;
+                    }
+
+                    .selected-doc-close-btn :global(.anticon) {
+                      color: #fff;
+                      font-size: 12px;
+                      line-height: 1;
+                      display: inline-block;
+                      transform: translateY(0);
+                    }
+                  }
+                }
+              }
+            }
+
+            // 输入框和操作按钮区域
+            .input-and-actions-row {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              width: 100%;
+
+              .left-actions {
+                flex-shrink: 0;
+              }
+
+              .image-input,
+              .chat-input-field {
+                flex: 1;
+                border: none !important;
+                outline: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                resize: none;
+                font-size: 15px;
+                line-height: 20px;
+                background: transparent !important;
+                color: #333;
+                min-height: 20px;
+                max-height: 120px;
+                overflow-y: auto;
+                word-wrap: break-word;
+                white-space: pre-wrap;
+                text-align: left;
+                direction: ltr;
+
+                // placeholder 样式
+                &:empty::before {
+                  content: attr(data-placeholder);
+                  color: #bfbfbf;
+                  pointer-events: none;
+                }
+
+                // 去除获取焦点时的浅蓝色高亮边框/阴影
+                &:focus,
+                &:focus-visible {
+                  border: none !important;
+                  outline: none !important;
+                  box-shadow: none !important;
+                }
+
+                // 覆盖 Ant Design 默认样式
+                :global {
+                  .ant-input {
+                    border: none !important;
+                    outline: none !important;
+                    box-shadow: none !important;
+                    background: transparent !important;
+                    padding: 0 !important;
+                    font-size: 15px;
+                    line-height: 20px;
+                    color: #333;
+                  }
+
+                  .ant-input-focused {
+                    border: none !important;
+                    box-shadow: none !important;
+                  }
+                }
+              }
+
+              .right-actions {
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+
+                :global {
+                  .ant-select-selector {
+                    border: none !important;
+                    box-shadow: none !important;
+                    background: transparent !important;
+                  }
+
+                  .ant-select-selection-item {
+                    color: #666 !important;
+                  }
+                }
+              }
+
+              .inline-action-button {
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: none;
+                background: transparent;
+                color: #666;
+                font-size: 16px;
+                cursor: pointer;
+                border-radius: 6px;
+              }
+
+              .add-file-icon {
+                width: 36px;
+                height: 36px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: transparent;
+                color: #666;
+                font-size: 16px;
+                cursor: pointer;
+                padding: 0;
+                transition:
+                  box-shadow 0.18s ease,
+                  background 0.12s ease,
+                  transform 0.12s ease;
+              }
+
+              .add-file-icon:hover {
+                box-shadow: 0 8px 22px rgba(0, 0, 0, 12%);
+                background: #fff;
+                transform: translateY(-1px);
+              }
+
+              .vertical-divider {
+                width: 1px;
+                height: 18px;
+                background: rgba(0, 0, 0, 8%);
+                display: inline-block;
+                margin: 0 4px;
+                align-self: center;
+              }
+            }
+          }
+
+          // 按钮单独一行（多行输入时使用）
+          .buttons-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+
+            .left-actions {
+              display: flex;
+              align-items: center;
+
+              .vertical-divider {
+                width: 1px;
+                height: 18px;
+                background: rgba(0, 0, 0, 8%);
+                display: inline-block;
+                margin: 0 8px;
+                align-self: center;
+              }
+            }
+
+            .right-actions {
+              display: flex;
+              align-items: center;
             }
           }
         }
@@ -942,4 +1204,341 @@
       line-height: 20px;
     }
   }
+}
+
+// 选择文档弹框样式
+.select-doc-modal {
+  .ant-modal-header {
+    padding: 16px 24px 8px;
+  }
+
+  .ant-modal-body {
+    /* fixed modal body height so the modal size does not change across tabs */
+    height: 600px;
+
+    /* keep outer modal body from showing a scrollbar — inner lists handle scrolling */
+    overflow: hidden !important;
+  }
+
+  .kb-list,
+  .doc-list {
+    /* fill the available vertical space inside the tab pane (parent is flex column) */
+    flex: 1;
+    height: auto;
+    overflow-y: auto;
+
+    /* leave a small bottom padding so last item is not flush against edge */
+    padding-bottom: 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Restore bordered search input inside modal and blue focus state */
+
+  /* strongly override global resets for inputs so modal search shows border */
+  .ant-input-affix-wrapper {
+    border: 1px solid #d9d9d9 !important;
+    border-radius: 4px;
+    background: #fff !important;
+    transition:
+      box-shadow 0.18s ease,
+      border-color 0.18s ease;
+  }
+
+  .ant-input-affix-wrapper:focus-within,
+  .ant-input-affix-wrapper.ant-input-affix-wrapper-focused {
+    border-color: #1890ff !important;
+    box-shadow: 0 0 0 4px rgba(24, 144, 255, 8%) !important;
+  }
+
+  /* Ensure local upload list area scrolls when many files */
+  .local-upload-list {
+    margin-top: 18px;
+
+    /* within fixed modal body (600px) allocate space: keep reasonable max for the list */
+    max-height: 300px;
+    overflow-y: auto;
+
+    /* leave bottom padding so the modal footer buttons are not overlapped */
+    padding-bottom: 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .kb-row-card,
+  .doc-row-card {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    height: 44px;
+    margin-bottom: 8px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fff;
+
+    &:hover {
+      border-color: #1890ff;
+      box-shadow: 0 2px 8px rgba(24, 144, 255, 15%);
+    }
+
+    &.selected {
+      border-color: #52c41a;
+      background: #f6ffed;
+    }
+
+    // ensure inner content doesn't push the card taller when selected
+    & > div {
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
+
+  /* inner elements to keep layout stable when selection toggles */
+  .doc-row-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .doc-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .doc-check {
+    flex: 0 0 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .select-back-btn {
+    border: 1px solid #d9d9d9;
+    border-radius: 16px;
+    padding: 4px 12px;
+    height: auto;
+
+    &:hover {
+      border-color: #1890ff;
+      color: #1890ff;
+    }
+  }
+
+  .local-uploader {
+    .ant-upload-drag {
+      border: 2px dashed #d9d9d9;
+      border-radius: 8px;
+      background: #fafafa;
+
+      &:hover {
+        border-color: #1890ff;
+        background: #f0f8ff;
+      }
+    }
+  }
+
+  /* upload list row card for local uploads */
+  .upload-row-card {
+    display: grid;
+    grid-template-columns: 1fr 160px 200px 120px;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
+  }
+  .upload-col-title {
+    min-width: 0;
+  }
+  .upload-col-publish {
+    min-width: 0;
+  }
+  .upload-col-status {
+    min-width: 0;
+  }
+  .upload-col-actions {
+    text-align: right;
+  }
+
+  /* selected docs in chat input */
+  .selected-docs-wrapper {
+    display: flex;
+    gap: 12px;
+    padding: 8px 12px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    position: absolute;
+    left: 50px;
+    right: 60px;
+    top: 8px;
+  }
+
+  .selected-doc-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 4%);
+    border: 1px solid rgba(0, 0, 0, 6%);
+    min-width: 220px;
+    position: relative;
+  }
+
+  .selected-doc-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    background: #f66;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+
+  .selected-doc-body {
+    overflow: hidden;
+  }
+
+  .selected-doc-title {
+    font-size: 13px;
+    color: #111;
+    max-width: 260px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .selected-doc-sub {
+    font-size: 12px;
+    color: #888;
+  }
+
+  .selected-doc-close {
+    position: absolute;
+    right: 6px;
+    top: -8px;
+    width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  /* input-wrapper style similar to image page */
+  .inputWrapper {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding-top: 8px;
+  }
+
+  .referenceImagesRow {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+    align-items: center;
+  }
+
+  .referenceImageItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 6px 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 4%);
+    border: 1px solid rgba(0, 0, 0, 6%);
+  }
+
+  .referenceImageThumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    background: #f66;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+
+  .referenceImageTitle {
+    font-size: 13px;
+    color: #111;
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .inputMainRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: transparent;
+  }
+
+  .editableInput {
+    flex: 1;
+    min-height: 56px;
+    border-radius: 999px;
+    padding: 12px 18px;
+    background: #f5f5f5;
+    font-size: 21px;
+    line-height: 24px;
+    color: #333;
+    outline: none;
+    border: none !important;
+    box-shadow: none !important;
+
+    /* remove potential top/bottom outer borders from Ant inputs */
+    border-top: none !important;
+    border-bottom: none !important;
+    max-height: 120px;
+    overflow-y: auto;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    -webkit-overflow-scrolling: touch;
+    // 确保 focus 时没有边框或阴影
+    &:focus,
+    &:focus-visible {
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+      background: #f5f5f5;
+      border-top: none !important;
+      border-bottom: none !important;
+    }
+
+    :global {
+      .ant-input {
+        font-size: 21px !important;
+        line-height: 24px !important;
+      }
+    }
+  }
+
+  .inputActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.new-chat-title {
+  font-size: 24px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 40px;
+  text-align: center;
 }

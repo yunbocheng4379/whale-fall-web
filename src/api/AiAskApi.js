@@ -6,44 +6,56 @@ import { getBaseURL } from '@/utils/urlUtil';
  * 创建SSE连接进行流式聊天
  * @param {string} message - 用户消息
  * @param {string} sessionId - 会话ID（可选）
+ * @param {string} modelId - 模型ID（可选）
+ * @param {Object} docParams - 文档参数（可选）
  * @param {Function} onMessage - 消息回调函数
  * @param {Function} onError - 错误回调函数
  * @param {Function} onComplete - 完成回调函数
  * @returns {Object} 包含close方法的控制器对象
  */
-export function createChatStream(message, sessionId, modelId, onMessage, onError, onComplete) {
+export function createChatStream(message, sessionId, modelId, docParams, onMessage, onError, onComplete) {
   const baseURL = getBaseURL();
   const token = getToken();
   
-  // 构建URL参数
-  const params = new URLSearchParams({
+  // 构建 POST 请求体：将 message、sessionId、modelId、本地文件 id 列表 与 知识库文档 id 列表
+  const chatRequestParams = {
     message: message,
-  });
-  
-  if (sessionId) {
-    params.append('sessionId', sessionId);
+  };
+
+  if (sessionId) chatRequestParams.sessionId = sessionId;
+  if (modelId) chatRequestParams.modelId = modelId;
+
+  // 映射 docParams 到后端约定字段名
+  if (docParams && Array.isArray(docParams.selectedLocalTempFileIds) && docParams.selectedLocalTempFileIds.length > 0) {
+    chatRequestParams.localFileIds = docParams.selectedLocalTempFileIds;
+  } else {
+    chatRequestParams.localFileIds = [];
   }
-  
-  if (modelId) {
-    params.append('modelId', modelId);
+
+  if (docParams && Array.isArray(docParams.selectedKnowledgeDocIds) && docParams.selectedKnowledgeDocIds.length > 0) {
+    chatRequestParams.knowledgeIdFiles = docParams.selectedKnowledgeDocIds;
+  } else {
+    chatRequestParams.knowledgeIdFiles = [];
   }
+
+  const url = `${baseURL}/ai/chat`;
   
-  const url = `${baseURL}/ai/chat?${params.toString()}`;
-  
-  // 创建AbortController用于取消请求
+
   const abortController = new AbortController();
   let isAborted = false;
   
-  // 使用fetch API来支持自定义headers（EventSource不支持自定义headers）
+  
   let buffer = '';
   let reader = null;
   
   fetch(url, {
-      method: 'GET',
+      method: 'POST',
     headers: {
       [TOKEN_KEY]: token || '',
       'Accept': 'text/event-stream',
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify(chatRequestParams),
     signal: abortController.signal,
   })
     .then((response) => {

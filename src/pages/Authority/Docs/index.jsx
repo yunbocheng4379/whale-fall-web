@@ -1,32 +1,37 @@
-import React, { useEffect, useState } from 'react';
+import DocumentApi from '@/api/DocumentApi';
 import { withAuth } from '@/components/Auth';
-import { history, useLocation } from 'umi';
+import { MyIcon } from '@/utils/iconUtil';
 import {
-  PageContainer,
-} from '@ant-design/pro-components';
+  CheckOutlined,
+  ClockCircleOutlined,
+  CloseOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  FileTextOutlined,
+  LeftOutlined,
+  UploadOutlined,
+} from '@ant-design/icons';
+import { PageContainer } from '@ant-design/pro-components';
 import {
   Button,
   Card,
   Col,
   Empty,
-  Row,
-  Space,
-  Tag,
+  Input,
   message,
   Modal,
-  Upload,
-  Table,
-  Input,
-  DatePicker,
-  Progress,
   Spin,
+  Table,
+  Upload,
 } from 'antd';
-import { EyeOutlined, DeleteOutlined, UploadOutlined, SearchOutlined, LeftOutlined, CheckOutlined, CloseOutlined, ClockCircleOutlined, CopyOutlined, DownloadOutlined, FileTextOutlined } from '@ant-design/icons';
-import { MyIcon } from '@/utils/iconUtil';
-import DocumentApi from '@/api/DocumentApi';
-import { baseURL } from '@/utils/request';
 import moment from 'moment';
+import { useEffect, useState } from 'react';
+import { history, useLocation } from 'umi';
 import './index.less';
+
+const { Dragger } = Upload;
+const { Search } = Input;
 
 const useQuery = () => {
   const loc = useLocation();
@@ -41,7 +46,8 @@ const Docs = () => {
   const knowledgeName = query.name || '知识库';
   const knowledgeDescription = query.description || '';
   const knowledgeUpdateTime = query.updateTime || '';
-  const knowledgeDocumentCount = query.documentCount !== undefined ? Number(query.documentCount) : null;
+  const knowledgeDocumentCount =
+    query.documentCount !== undefined ? Number(query.documentCount) : null;
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploadVisible, setUploadVisible] = useState(false);
@@ -133,8 +139,11 @@ const Docs = () => {
       hide();
       if (resp) {
         // axios returns response.data as blob when responseType='blob' is set in request util;
-        const blob = resp instanceof Blob ? resp : (resp.data || resp);
-        const filename = (doc.fileName || doc.title || 'file').replace(/\s+/g, '_');
+        const blob = resp instanceof Blob ? resp : resp.data || resp;
+        const filename = (doc.fileName || doc.title || 'file').replace(
+          /\s+/g,
+          '_',
+        );
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -156,9 +165,14 @@ const Docs = () => {
   // validate file before upload; return true to allow antd to upload
   const beforeUpload = (file) => {
     const isAllowed =
-      ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(
-        file.type,
-      ) || file.name.endsWith('.pdf') || file.name.endsWith('.doc') || file.name.endsWith('.docx');
+      [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ].includes(file.type) ||
+      file.name.endsWith('.pdf') ||
+      file.name.endsWith('.doc') ||
+      file.name.endsWith('.docx');
     if (!isAllowed) {
       message.error('仅支持 PDF/Word 文件');
       return Upload.LIST_IGNORE;
@@ -170,7 +184,9 @@ const Docs = () => {
     }
     // Prevent uploading a file that already exists in this knowledge (frontend check)
     const existsInDocs = docs.some(
-      (d) => (d.fileName && d.fileName === file.name) || (d.title && d.title === file.name),
+      (d) =>
+        (d.fileName && d.fileName === file.name) ||
+        (d.title && d.title === file.name),
     );
     if (existsInDocs) {
       message.warning(`${file.name} 已存在于该知识库，不能重复上传`);
@@ -243,7 +259,10 @@ const Docs = () => {
           stopped = true;
           clearTimeout(timer);
           animateProgress(uid, progress, 100, 300, () =>
-            updateItem(uid, { progress: 100, status: backendSuccess ? 'success' : 'error' }),
+            updateItem(uid, {
+              progress: 100,
+              status: backendSuccess ? 'success' : 'error',
+            }),
           );
         }
         return;
@@ -262,7 +281,9 @@ const Docs = () => {
 
       await DocumentApi.uploadDocument(form, knowledgeId, (progressEvent) => {
         if (progressEvent && progressEvent.total) {
-          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const percent = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total,
+          );
           // adopt backend progress if it's ahead of simulation
           if (percent > progress && percent < 99) {
             progress = percent;
@@ -278,7 +299,9 @@ const Docs = () => {
           if (progress >= 99) {
             stopped = true;
             clearTimeout(timer);
-            animateProgress(uid, progress, 100, 300, () => updateItem(uid, { progress: 100, status: 'success' }));
+            animateProgress(uid, progress, 100, 300, () =>
+              updateItem(uid, { progress: 100, status: 'success' }),
+            );
           }
         })
         .catch((err) => {
@@ -287,7 +310,9 @@ const Docs = () => {
           if (progress >= 99) {
             stopped = true;
             clearTimeout(timer);
-            animateProgress(uid, progress, 100, 300, () => updateItem(uid, { progress: 100, status: 'error' }));
+            animateProgress(uid, progress, 100, 300, () =>
+              updateItem(uid, { progress: 100, status: 'error' }),
+            );
           }
         });
       // If backend finished but we didn't finalize in then/catch because progress < 99,
@@ -296,7 +321,9 @@ const Docs = () => {
       console.error('上传失败', e);
       stopped = true;
       clearTimeout(timer);
-      animateProgress(uid, progress, 100, 300, () => updateItem(uid, { progress: 100, status: 'error' }));
+      animateProgress(uid, progress, 100, 300, () =>
+        updateItem(uid, { progress: 100, status: 'error' }),
+      );
     }
   };
 
@@ -320,11 +347,17 @@ const Docs = () => {
   };
 
   const handleRemoveUploadItem = async (uid) => {
-    const itemToRemove = uploadList.find(item => item.uid === uid);
+    const itemToRemove = uploadList.find((item) => item.uid === uid);
     // 如果文件已上传成功且有tempFileId，则调用后端删除接口
-    if (itemToRemove && itemToRemove.status === 'success' && itemToRemove.tempFileId) {
+    if (
+      itemToRemove &&
+      itemToRemove.status === 'success' &&
+      itemToRemove.tempFileId
+    ) {
       try {
-        const response = await DocumentApi.deleteDocument(itemToRemove.tempFileId);
+        const response = await DocumentApi.deleteDocument(
+          itemToRemove.tempFileId,
+        );
         if (response && response.data && response.data.success !== false) {
           message.success('文件删除成功');
         } else {
@@ -371,7 +404,10 @@ const Docs = () => {
     }
     setLoading(true);
     try {
-      const res = await DocumentApi.getDocumentsByKnowledgeId({ knowledgeBaseId: knowledgeId, title: title });
+      const res = await DocumentApi.getDocumentsByKnowledgeId({
+        knowledgeBaseId: knowledgeId,
+        title: title,
+      });
       if (res && res.data) {
         const data = res.data.data || res.data;
         setDocs(data.documents || data.docs || data || []);
@@ -401,7 +437,7 @@ const Docs = () => {
     });
     setDocs(filtered);
   };
- 
+
   useEffect(() => {
     fetchDocs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -418,33 +454,73 @@ const Docs = () => {
               size="large"
               onClick={() => history.push('/authority/knowledge')}
             >
-              <span className="back-btn-label"><LeftOutlined /> 返回</span>
+              <span className="back-btn-label">
+                <LeftOutlined /> 返回
+              </span>
             </Button>
           </div>
           <div className="docs-header-content">
-            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flex: 1 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 8, background: '#5b8cff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <MyIcon type="icon-folder" style={{ fontSize: 28, color: '#fff' }} />
+            <div
+              style={{
+                display: 'flex',
+                gap: 16,
+                alignItems: 'flex-start',
+                flex: 1,
+              }}
+            >
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 8,
+                  background: '#5b8cff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <MyIcon
+                  type="icon-folder"
+                  style={{ fontSize: 28, color: '#fff' }}
+                />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 20, fontWeight: 700 }}>{knowledgeName}</div>
+                <div style={{ fontSize: 20, fontWeight: 700 }}>
+                  {knowledgeName}
+                </div>
                 <div style={{ color: '#8c8c8c', marginTop: 8 }}>
-                  {knowledgeDescription || `本知识库包含 ${knowledgeDocumentCount !== null ? knowledgeDocumentCount : docs.length} 个文档，您可以在此上传、查看或删除文档。`}
+                  {knowledgeDescription ||
+                    `本知识库包含 ${knowledgeDocumentCount !== null ? knowledgeDocumentCount : docs.length} 个文档，您可以在此上传、查看或删除文档。`}
                 </div>
                 <div className="docs-meta">
-                  {knowledgeDocumentCount !== null ? `${knowledgeDocumentCount} 个文档 · ` : `${docs.length} 个文档 · `}
-                  最后更新：{knowledgeUpdateTime || (docs.length > 0 ? (docs[0].publishTime ? docs[0].publishTime.split('T')[0] : '-') : '-')}
+                  {knowledgeDocumentCount !== null
+                    ? `${knowledgeDocumentCount} 个文档 · `
+                    : `${docs.length} 个文档 · `}
+                  最后更新：
+                  {knowledgeUpdateTime ||
+                    (docs.length > 0
+                      ? docs[0].publishTime
+                        ? docs[0].publishTime.split('T')[0]
+                        : '-'
+                      : '-')}
                 </div>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               <Search
-                  placeholder="搜索文档..."
-                  onSearch={(value) => performDocSearch(value)}
-                  allowClear
-                  style={{ width: 300 }}
+                placeholder="搜索文档..."
+                onSearch={(value) => performDocSearch(value)}
+                allowClear
+                style={{ width: 300 }}
               />
-              <Button type="primary" icon={<UploadOutlined />} onClick={handleOpenUpload}>上传文档</Button>
+              <Button
+                type="primary"
+                icon={<UploadOutlined />}
+                onClick={handleOpenUpload}
+              >
+                上传文档
+              </Button>
             </div>
           </div>
         </Card>
@@ -461,51 +537,109 @@ const Docs = () => {
                 : docs;
               return filtered && filtered.length > 0 ? (
                 filtered.map((d) => (
-            <Card key={d.id} style={{ borderRadius: 8, marginBottom: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 16, alignItems: 'center', flex: 1 }}>
+                  <Card
+                    key={d.id}
+                    style={{ borderRadius: 8, marginBottom: 16 }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 16,
+                          alignItems: 'center',
+                          flex: 1,
+                        }}
+                      >
                         <div className="doc-icon-wrap">
-                          <MyIcon type="icon-document" style={{ fontSize: 24, color: '#fff' }} />
-                  </div>
-                  <div style={{ flex: 1 }}>
+                          <MyIcon
+                            type="icon-document"
+                            style={{ fontSize: 24, color: '#fff' }}
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
                           <div className="doc-title">{d.title}</div>
                           <div className="doc-meta">
                             <ClockCircleOutlined className="doc-clock" />
-                            <span className="doc-time">发布时间：{(d.publishTime || d.createTime || d.updateTime) ? ((d.publishTime || d.createTime || d.updateTime).split('T')[0]) : '-'}</span>
+                            <span className="doc-time">
+                              发布时间：
+                              {d.publishTime || d.createTime || d.updateTime
+                                ? (
+                                    d.publishTime ||
+                                    d.createTime ||
+                                    d.updateTime
+                                  ).split('T')[0]
+                                : '-'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 8,
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Button
+                          type="text"
+                          icon={<FileTextOutlined />}
+                          onClick={() => handlePreview(d)}
+                        >
+                          预览
+                        </Button>
+                        <Button
+                          type="text"
+                          icon={<DownloadOutlined />}
+                          onClick={() => handleDownload(d)}
+                        >
+                          下载
+                        </Button>
+                        <Button
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => confirmDeleteDoc(d.id)}
+                        />
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <Col span={24}>
+                  <div style={{ padding: 80, textAlign: 'center' }}>
+                    <Empty description={false} />
+                    <div
+                      style={{
+                        marginTop: 12,
+                        fontSize: 18,
+                        color: '#17233b',
+                        fontWeight: 600,
+                      }}
+                    >
+                      暂无文档
+                    </div>
+                    <div style={{ marginTop: 8, color: '#8c8c8c' }}>
+                      上传文档以开始管理文档与内容
+                    </div>
+                    <div style={{ marginTop: 18 }}>
+                      <Button
+                        type="primary"
+                        size="middle"
+                        onClick={handleOpenUpload}
+                        icon={<UploadOutlined />}
+                      >
+                        上传文档
+                      </Button>
                     </div>
                   </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <Button type="text" icon={<FileTextOutlined />} onClick={() => handlePreview(d)}>预览</Button>
-                  <Button type="text" icon={<DownloadOutlined />} onClick={() => handleDownload(d)}>下载</Button>
-                  <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => confirmDeleteDoc(d.id)}
-                  />
-                </div>
-              </div>
-            </Card>
-          ))
-          ) : (
-            <Col span={24}>
-              <div style={{ padding: 80, textAlign: 'center' }}>
-                <Empty description={false} />
-                <div style={{ marginTop: 12, fontSize: 18, color: '#17233b', fontWeight: 600 }}>
-                  暂无文档
-                </div>
-                <div style={{ marginTop: 8, color: '#8c8c8c' }}>
-                  上传文档以开始管理文档与内容
-                </div>
-                <div style={{ marginTop: 18 }}>
-                  <Button type="primary" size="middle" onClick={handleOpenUpload} icon={<UploadOutlined />}>
-                    上传文档
-                  </Button>
-                </div>
-              </div>
-            </Col>
+                </Col>
               );
             })()}
 
@@ -517,347 +651,508 @@ const Docs = () => {
             )}
           </div>
         </div>
-      {/* Upload Modal */}
-      <Modal
-        title="上传文件"
-        open={uploadVisible}
-        onCancel={() => setUploadVisible(false)}
-        width={1000}
-        footer={null}
-        maskClosable={false}
-        destroyOnClose
-      >
-        <div style={{ padding: '12px 24px' }}>
-          <Dragger
-            multiple
-            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            beforeUpload={beforeUpload}
-            showUploadList={false}
-            // control Upload's internal fileList from our uploadList state to avoid deleted items reappearing
-            fileList={uploadList.map((u) => ({
-              uid: u.uid,
-              name: u.title,
-              status: u.status === 'success' ? 'done' : u.status,
-              percent: u.progress || 0,
-              originFileObj: u.file || undefined,
-            }))}
-            customRequest={(options) => {
-              const { file, onProgress, onSuccess, onError } = options;
-              const form = new FormData();
-              form.append('file', file);
-              form.append('title', file.name);
-              form.append('knowledgeId', knowledgeId);
+        {/* Upload Modal */}
+        <Modal
+          title="上传文件"
+          open={uploadVisible}
+          onCancel={() => setUploadVisible(false)}
+          width={1000}
+          footer={null}
+          maskClosable={false}
+          destroyOnClose
+        >
+          <div style={{ padding: '12px 24px' }}>
+            <Dragger
+              multiple
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              beforeUpload={beforeUpload}
+              showUploadList={false}
+              // control Upload's internal fileList from our uploadList state to avoid deleted items reappearing
+              fileList={uploadList.map((u) => ({
+                uid: u.uid,
+                name: u.title,
+                status: u.status === 'success' ? 'done' : u.status,
+                percent: u.progress || 0,
+                originFileObj: u.file || undefined,
+              }))}
+              customRequest={(options) => {
+                const { file, onProgress, onSuccess, onError } = options;
+                const form = new FormData();
+                form.append('file', file);
+                form.append('title', file.name);
+                form.append('knowledgeId', knowledgeId);
 
-              // Ensure uploadList contains this file entry immediately so progress updates render
-              setUploadList((prev) => {
-                const exists = prev.find((p) => p.uid === file.uid);
-                if (exists) return prev;
-                return [
-                  ...prev,
-                  {
-                    uid: file.uid,
-                    title: file.name,
-                    publishTime: new Date().toISOString(),
-                    status: 'uploading',
-                    progress: 1,
-                    file: file,
-                  },
-                ];
-              });
+                // Ensure uploadList contains this file entry immediately so progress updates render
+                setUploadList((prev) => {
+                  const exists = prev.find((p) => p.uid === file.uid);
+                  if (exists) return prev;
+                  return [
+                    ...prev,
+                    {
+                      uid: file.uid,
+                      title: file.name,
+                      publishTime: new Date().toISOString(),
+                      status: 'uploading',
+                      progress: 1,
+                      file: file,
+                    },
+                  ];
+                });
 
-              // 前端进度控制：从1%缓慢加载到99%，如果后端先完成则直接跳转到100%
-              let currentProgress = 1;
-              let backendDone = false;
-              let backendSuccess = null;
-              let simStopped = false;
-              const simDuration = 30000; // 30秒内达到99%
-              const simStart = Date.now();
+                // 前端进度控制：从1%缓慢加载到99%，如果后端先完成则直接跳转到100%
+                let currentProgress = 1;
+                let backendDone = false;
+                let backendSuccess = null;
+                let simStopped = false;
+                const simDuration = 30000; // 30秒内达到99%
+                const simStart = Date.now();
 
-              const updateProgress = (progress) => {
-                currentProgress = progress;
-                onProgress && onProgress({ percent: progress });
-                // 更新uploadList中的进度
-                setUploadList(prev =>
-                  prev.map(item =>
-                    item.uid === file.uid ? { ...item, progress } : item
-                  )
-                );
-              };
+                const updateProgress = (progress) => {
+                  currentProgress = progress;
+                  onProgress && onProgress({ percent: progress });
+                  // 更新uploadList中的进度
+                  setUploadList((prev) =>
+                    prev.map((item) =>
+                      item.uid === file.uid ? { ...item, progress } : item,
+                    ),
+                  );
+                };
 
-              const simTick = () => {
-                if (simStopped) return;
+                const simTick = () => {
+                  if (simStopped) return;
 
-                const elapsed = Date.now() - simStart;
-                const ratio = Math.min(1, elapsed / simDuration);
-                const targetProgress = 1 + Math.floor(ratio * 98); // 从1%到99%
+                  const elapsed = Date.now() - simStart;
+                  const ratio = Math.min(1, elapsed / simDuration);
+                  const targetProgress = 1 + Math.floor(ratio * 98); // 从1%到99%
 
-                if (targetProgress > currentProgress) {
-                  updateProgress(targetProgress);
-                }
+                  if (targetProgress > currentProgress) {
+                    updateProgress(targetProgress);
+                  }
 
-                // 如果达到99%且后端还没完成，就停止模拟，在99%等待
-                if (targetProgress >= 99) {
-                  if (!backendDone) {
-                    updateProgress(99);
-                    return; // 停止模拟，等待后端
-                  } else {
-                    // 后端已完成，从当前进度缓慢加载到100%
+                  // 如果达到99%且后端还没完成，就停止模拟，在99%等待
+                  if (targetProgress >= 99) {
+                    if (!backendDone) {
+                      updateProgress(99);
+                      return; // 停止模拟，等待后端
+                    } else {
+                      // 后端已完成，从当前进度缓慢加载到100%
+                      animateProgress(
+                        file.uid,
+                        currentProgress,
+                        100,
+                        500,
+                        () => {
+                          updateProgress(100);
+                        },
+                      );
+                      return;
+                    }
+                  }
+
+                  // 如果后端已完成，从当前进度缓慢加载到100%
+                  if (backendDone) {
+                    simStopped = true;
                     animateProgress(file.uid, currentProgress, 100, 500, () => {
                       updateProgress(100);
+                      setTimeout(() => {
+                        if (backendSuccess) {
+                          onSuccess && onSuccess();
+                        } else {
+                          onError && onError();
+                        }
+                      }, 120);
                     });
                     return;
                   }
-                }
 
-                // 如果后端已完成，从当前进度缓慢加载到100%
-                if (backendDone) {
-                  simStopped = true;
-                  animateProgress(file.uid, currentProgress, 100, 500, () => {
-                    updateProgress(100);
-                    setTimeout(() => {
-                      if (backendSuccess) {
-                        onSuccess && onSuccess();
-                      } else {
-                        onError && onError();
-                      }
-                    }, 120);
-                  });
-                  return;
-                }
+                  setTimeout(simTick, 200);
+                };
 
+                // 启动前端进度模拟
                 setTimeout(simTick, 200);
-              };
 
-              // 启动前端进度模拟
-              setTimeout(simTick, 200);
+                // 调用后端上传API
+                DocumentApi.uploadDocument(
+                  form,
+                  knowledgeId,
+                  (progressEvent) => {
+                    if (progressEvent && progressEvent.total) {
+                      const percent = Math.round(
+                        (progressEvent.loaded * 100) / progressEvent.total,
+                      );
+                      // 如果后端进度超过当前进度，更新进度
+                      if (percent > currentProgress && percent < 100) {
+                        updateProgress(percent);
+                      }
+                    }
+                  },
+                )
+                  .then((resp) => {
+                    backendDone = true;
+                    backendSuccess = true;
+                    simStopped = true;
 
-              // 调用后端上传API
-              DocumentApi.uploadDocument(form, knowledgeId, (progressEvent) => {
-                if (progressEvent && progressEvent.total) {
-                  const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                  // 如果后端进度超过当前进度，更新进度
-                  if (percent > currentProgress && percent < 100) {
-                    updateProgress(percent);
-                  }
+                    // 如果前端进度还没到99%，从当前进度缓慢加载到100%
+                    // 如果已经到99%，保持在99%然后缓慢到100%
+                    const targetProgress =
+                      currentProgress >= 99 ? 99 : currentProgress;
+                    animateProgress(file.uid, targetProgress, 100, 500, () => {
+                      updateProgress(100);
+                      setTimeout(() => onSuccess && onSuccess(resp), 120);
+                    });
+                  })
+                  .catch((err) => {
+                    backendDone = true;
+                    backendSuccess = false;
+                    simStopped = true;
+
+                    // 失败时也从当前进度缓慢加载到100%，然后显示错误
+                    const targetProgress =
+                      currentProgress >= 99 ? 99 : currentProgress;
+                    animateProgress(file.uid, targetProgress, 100, 500, () => {
+                      updateProgress(100);
+                      setTimeout(() => onError && onError(err), 120);
+                    });
+                  });
+              }}
+              onChange={(info) => {
+                const { file, fileList } = info;
+                // merge antd fileList into uploadList, preserving higher progress/state from existing entries
+                setUploadList((prev) => {
+                  const byUid = {};
+                  prev.forEach((p) => {
+                    byUid[p.uid] = { ...p };
+                  });
+                  fileList.forEach((f) => {
+                    const isClientUpload = !!f.originFileObj;
+                    const publishTime = isClientUpload
+                      ? new Date().toISOString()
+                      : f.lastModifiedDate
+                        ? f.lastModifiedDate.toISOString()
+                        : (f.response &&
+                            f.response.data &&
+                            f.response.data.publishTime) ||
+                          new Date().toISOString();
+                    const incoming = {
+                      uid: f.uid,
+                      title: f.name,
+                      publishTime,
+                      status:
+                        f.status === 'uploading'
+                          ? 'uploading'
+                          : f.status === 'done'
+                            ? f.response &&
+                              f.response.data &&
+                              f.response.data.success === false
+                              ? 'error'
+                              : 'success'
+                            : 'error',
+                      progress: Math.round(f.percent || 0),
+                      file: f.originFileObj || null,
+                      tempFileId:
+                        f.response && f.response.data && f.response.data.data
+                          ? f.response.data.data.tempFileId
+                          : null,
+                    };
+                    const existing = byUid[f.uid];
+                    if (existing) {
+                      // keep the higher progress value and prefer existing status unless incoming is done/error
+                      const mergedProgress = Math.max(
+                        existing.progress || 0,
+                        incoming.progress || 0,
+                        1,
+                      );
+                      const mergedStatus =
+                        incoming.status === 'success' ||
+                        incoming.status === 'error'
+                          ? incoming.status
+                          : existing.status || incoming.status;
+                      byUid[f.uid] = {
+                        ...existing,
+                        ...incoming,
+                        progress: mergedProgress,
+                        status: mergedStatus,
+                      };
+                    } else {
+                      byUid[f.uid] = incoming;
+                    }
+                  });
+                  const mergedList = Object.values(byUid);
+                  refreshUploadingCount(mergedList);
+                  return mergedList;
+                });
+
+                if (file.status === 'done') {
+                  message.success(`${file.name} 上传成功`);
+                } else if (file.status === 'error') {
+                  message.error(`${file.name} 上传失败`);
                 }
-              })
-                .then((resp) => {
-                  backendDone = true;
-                  backendSuccess = true;
-                  simStopped = true;
+              }}
+              onMouseEnter={() => setUploadHover(true)}
+              onMouseLeave={() => setUploadHover(false)}
+              style={{
+                padding: 18,
+                minHeight: 120,
+                borderRadius: 8,
+                border: '1px dashed #d9d9d9',
+                background: '#fff',
+                transition: 'transform 180ms ease, box-shadow 180ms ease',
+                transform: uploadHover
+                  ? 'translateY(-3px) scale(1.01)'
+                  : 'none',
+                boxShadow: uploadHover
+                  ? '0 12px 40px rgba(91,140,255,0.15)'
+                  : 'none',
+              }}
+            >
+              <div style={{ textAlign: 'center', padding: 32 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 20,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginBottom: 12,
+                  }}
+                >
+                  <img
+                    src="/img/system/word.svg"
+                    alt="word"
+                    className={`doc-icon ${uploadHover ? 'hover' : ''}`}
+                  />
+                  <img
+                    src="/img/system/pdf.svg"
+                    alt="pdf"
+                    className={`doc-icon ${uploadHover ? 'hover' : ''}`}
+                  />
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>
+                  点击或将文件拖拽到此处上传
+                </div>
+                <div style={{ marginTop: 8, color: '#8c8c8c' }}>
+                  文档格式：仅支持 PDF、Word 文件上传 ·
+                  文档大小：文件最大支持100M
+                </div>
+              </div>
+            </Dragger>
 
-                  // 如果前端进度还没到99%，从当前进度缓慢加载到100%
-                  // 如果已经到99%，保持在99%然后缓慢到100%
-                  const targetProgress = currentProgress >= 99 ? 99 : currentProgress;
-                  animateProgress(file.uid, targetProgress, 100, 500, () => {
-                    updateProgress(100);
-                    setTimeout(() => onSuccess && onSuccess(resp), 120);
-                  });
-                })
-                .catch((err) => {
-                  backendDone = true;
-                  backendSuccess = false;
-                  simStopped = true;
+            <div style={{ marginTop: 18 }}>
+              <Table
+                className="docs-upload-table"
+                dataSource={uploadList}
+                pagination={false}
+                rowKey="uid"
+                columns={[
+                  {
+                    title: '标题',
+                    dataIndex: 'title',
+                    key: 'title',
+                    className: 'col-title',
+                    render: (t, record) => (
+                      <Input
+                        value={t}
+                        style={{ width: '100%' }}
+                        onChange={(e) =>
+                          updateItem(record.uid, { title: e.target.value })
+                        }
+                      />
+                    ),
+                  },
+                  {
+                    title: '发布日期',
+                    dataIndex: 'publishTime',
+                    key: 'publishTime',
+                    className: 'col-publish',
+                    render: (t, record) => {
+                      const display = t ? moment(t).format('YYYY-MM-DD') : '';
+                      return (
+                        <Input
+                          value={display}
+                          readOnly
+                          style={{
+                            width: '100%',
+                            background: '#fafafa',
+                            cursor: 'default',
+                          }}
+                        />
+                      );
+                    },
+                  },
+                  {
+                    title: '状态',
+                    dataIndex: 'status',
+                    key: 'status',
+                    className: 'col-status',
+                    render: (_t, record) => {
+                      if (record.status === 'uploading') {
+                        return (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              minWidth: 140,
+                            }}
+                          >
+                            <Spin size="small" />
+                            <span style={{ minWidth: 90 }}>
+                              {record.progress
+                                ? `解析中 ${record.progress}%`
+                                : '解析中'}
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (record.status === 'success') {
+                        return (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: 11,
+                                background: '#52c41a',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#fff',
+                              }}
+                            >
+                              <CheckOutlined style={{ fontSize: 12 }} />
+                            </span>
+                            <span style={{ color: '#52c41a' }}>解析成功</span>
+                          </div>
+                        );
+                      }
+                      if (record.status === 'error') {
+                        return (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: 11,
+                                background: '#ff4d4f',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#fff',
+                              }}
+                            >
+                              <CloseOutlined style={{ fontSize: 12 }} />
+                            </span>
+                            <span style={{ color: '#ff4d4f' }}>解析失败</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <span style={{ minWidth: 100 }}>{record.status}</span>
+                      );
+                    },
+                  },
+                  {
+                    title: '操作',
+                    key: 'op',
+                    className: 'col-op',
+                    render: (_text, record) => {
+                      if (record.status === 'uploading') {
+                        return (
+                          <Button type="text" disabled style={{ minWidth: 72 }}>
+                            上传中
+                          </Button>
+                        );
+                      }
+                      return (
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <Button
+                            type="link"
+                            onClick={() => handleRemoveUploadItem(record.uid)}
+                          >
+                            删除
+                          </Button>
+                          {record.status === 'error' && (
+                            <Button
+                              type="link"
+                              onClick={() => startUploadSimulation(record)}
+                            >
+                              重新解析
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    },
+                  },
+                ]}
+              />
+            </div>
 
-                  // 失败时也从当前进度缓慢加载到100%，然后显示错误
-                  const targetProgress = currentProgress >= 99 ? 99 : currentProgress;
-                  animateProgress(file.uid, targetProgress, 100, 500, () => {
-                    updateProgress(100);
-                    setTimeout(() => onError && onError(err), 120);
-                  });
-                });
-            }}
-            onChange={(info) => {
-              const { file, fileList } = info;
-              // merge antd fileList into uploadList, preserving higher progress/state from existing entries
-              setUploadList((prev) => {
-                const byUid = {};
-                prev.forEach((p) => {
-                  byUid[p.uid] = { ...p };
-                });
-                fileList.forEach((f) => {
-                  const isClientUpload = !!f.originFileObj;
-                  const publishTime = isClientUpload
-                    ? new Date().toISOString()
-                    : f.lastModifiedDate
-                    ? f.lastModifiedDate.toISOString()
-                    : (f.response && f.response.data && f.response.data.publishTime) || new Date().toISOString();
-                  const incoming = {
-                    uid: f.uid,
-                    title: f.name,
-                    publishTime,
-                    status:
-                      f.status === 'uploading'
-                        ? 'uploading'
-                        : f.status === 'done'
-                        ? f.response && f.response.data && f.response.data.success === false
-                          ? 'error'
-                          : 'success'
-                        : 'error',
-                    progress: Math.round(f.percent || 0),
-                    file: f.originFileObj || null,
-                    tempFileId: f.response && f.response.data && f.response.data.data ? f.response.data.data.tempFileId : null,
-                  };
-                  const existing = byUid[f.uid];
-                  if (existing) {
-                    // keep the higher progress value and prefer existing status unless incoming is done/error
-                    const mergedProgress = Math.max(existing.progress || 0, incoming.progress || 0, 1);
-                    const mergedStatus = incoming.status === 'success' || incoming.status === 'error' ? incoming.status : existing.status || incoming.status;
-                    byUid[f.uid] = { ...existing, ...incoming, progress: mergedProgress, status: mergedStatus };
-                  } else {
-                    byUid[f.uid] = incoming;
-                  }
-                });
-                const mergedList = Object.values(byUid);
-                refreshUploadingCount(mergedList);
-                return mergedList;
-              });
-
-              if (file.status === 'done') {
-                message.success(`${file.name} 上传成功`);
-              } else if (file.status === 'error') {
-                message.error(`${file.name} 上传失败`);
-              }
-            }}
-            onMouseEnter={() => setUploadHover(true)}
-            onMouseLeave={() => setUploadHover(false)}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 12,
+                marginTop: 18,
+              }}
+            >
+              <Button onClick={() => setUploadVisible(false)}>取消</Button>
+              <Button
+                type="primary"
+                onClick={handleSubmitUploads}
+                disabled={uploadingCount > 0 || uploadList.length === 0}
+                loading={uploadingCount > 0}
+              >
+                {uploadingCount > 0 ? `解析中(${uploadingCount})` : '提交'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+        {/* Preview Modal */}
+        <Modal
+          title={previewTitle}
+          open={previewVisible}
+          onCancel={() => setPreviewVisible(false)}
+          footer={
+            <div
+              style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}
+            >
+              <Button onClick={() => setPreviewVisible(false)}>关闭</Button>
+              <Button
+                type="primary"
+                icon={<CopyOutlined />}
+                onClick={handleCopyPreview}
+              >
+                复制内容
+              </Button>
+            </div>
+          }
+          width={800}
+        >
+          <div
             style={{
-              padding: 18,
-              minHeight: 120,
-              borderRadius: 8,
-              border: '1px dashed #d9d9d9',
-              background: '#fff',
-              transition: 'transform 180ms ease, box-shadow 180ms ease',
-              transform: uploadHover ? 'translateY(-3px) scale(1.01)' : 'none',
-              boxShadow: uploadHover ? '0 12px 40px rgba(91,140,255,0.15)' : 'none',
+              minHeight: 200,
+              maxHeight: '60vh',
+              overflow: 'auto',
+              whiteSpace: 'pre-wrap',
             }}
           >
-            <div style={{ textAlign: 'center', padding: 32 }}>
-              <div style={{ display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
-                <img src="/img/system/word.svg" alt="word" className={`doc-icon ${uploadHover ? 'hover' : ''}`} />
-                <img src="/img/system/pdf.svg" alt="pdf" className={`doc-icon ${uploadHover ? 'hover' : ''}`} />
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 600 }}>点击或将文件拖拽到此处上传</div>
-              <div style={{ marginTop: 8, color: '#8c8c8c' }}>文档格式：仅支持 PDF、Word 文件上传 · 文档大小：文件最大支持100M</div>
-            </div>
-          </Dragger>
-
-          <div style={{ marginTop: 18 }}>
-            <Table
-              className="docs-upload-table"
-              dataSource={uploadList}
-              pagination={false}
-              rowKey="uid"
-              columns={[
-                {
-                  title: '标题',
-                  dataIndex: 'title',
-                  key: 'title',
-                  className: 'col-title',
-                  render: (t, record) => <Input value={t} style={{ width: '100%' }} onChange={(e) => updateItem(record.uid, { title: e.target.value })} />,
-                },
-                {
-                  title: '发布日期',
-                  dataIndex: 'publishTime',
-                  key: 'publishTime',
-                  className: 'col-publish',
-                  render: (t, record) => {
-                    const display = t ? (moment(t).format('YYYY-MM-DD')) : '';
-                    return <Input value={display} readOnly style={{ width: '100%', background: '#fafafa', cursor: 'default' }} />;
-                  },
-                },
-                {
-                  title: '状态',
-                  dataIndex: 'status',
-                  key: 'status',
-                  className: 'col-status',
-                  render: (_t, record) => {
-                    if (record.status === 'uploading') {
-                      return (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 140 }}>
-                          <Spin size="small" />
-                          <span style={{ minWidth: 90 }}>{record.progress ? `解析中 ${record.progress}%` : '解析中'}</span>
-                        </div>
-                      );
-                    }
-                    if (record.status === 'success') {
-                      return (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ width: 22, height: 22, borderRadius: 11, background: '#52c41a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                            <CheckOutlined style={{ fontSize: 12 }} />
-                          </span>
-                          <span style={{ color: '#52c41a' }}>解析成功</span>
-                        </div>
-                      );
-                    }
-                    if (record.status === 'error') {
-                      return (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ width: 22, height: 22, borderRadius: 11, background: '#ff4d4f', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                            <CloseOutlined style={{ fontSize: 12 }} />
-                          </span>
-                          <span style={{ color: '#ff4d4f' }}>解析失败</span>
-                        </div>
-                      );
-                    }
-                    return <span style={{ minWidth: 100 }}>{record.status}</span>;
-                  },
-                },
-                {
-                  title: '操作',
-                  key: 'op',
-                  className: 'col-op',
-                  render: (_text, record) => {
-                    if (record.status === 'uploading') {
-                      return <Button type="text" disabled style={{ minWidth: 72 }}>上传中</Button>;
-                    }
-                    return (
-                      <div style={{ display: 'flex', gap: 8 }}>
-                    <Button type="link" onClick={() => handleRemoveUploadItem(record.uid)}>删除</Button>
-                        {record.status === 'error' && <Button type="link" onClick={() => startUploadSimulation(record)}>重新解析</Button>}
-                      </div>
-                    );
-                  },
-                },
-              ]}
-            />
+            {previewLoading ? <Spin /> : previewContent || '无内容可预览'}
           </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
-            <Button onClick={() => setUploadVisible(false)}>取消</Button>
-            <Button
-              type="primary"
-              onClick={handleSubmitUploads}
-              disabled={uploadingCount > 0 || uploadList.length === 0}
-              loading={uploadingCount > 0}
-            >
-              {uploadingCount > 0 ? `解析中(${uploadingCount})` : '提交'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-      {/* Preview Modal */}
-      <Modal
-        title={previewTitle}
-        open={previewVisible}
-        onCancel={() => setPreviewVisible(false)}
-        footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => setPreviewVisible(false)}>关闭</Button>
-            <Button type="primary" icon={<CopyOutlined />} onClick={handleCopyPreview}>复制内容</Button>
-          </div>
-        }
-        width={800}
-      >
-        <div style={{ minHeight: 200, maxHeight: '60vh', overflow: 'auto', whiteSpace: 'pre-wrap' }}>
-          {previewLoading ? <Spin /> : (previewContent || '无内容可预览')}
-        </div>
-      </Modal>
+        </Modal>
       </div>
     </PageContainer>
   );
 };
 
 export default withAuth(Docs);
-
-

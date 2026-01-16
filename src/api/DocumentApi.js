@@ -11,11 +11,26 @@ export default {
   },
 
   // 上传文档（支持文件流），onUploadProgress 为 axios 回调
-  uploadDocument(formData, knowledgeId, onUploadProgress) {
-    // 确保知识库ID被包含在表单数据中
-    if (knowledgeId && !formData.has('knowledgeId')) {
-      formData.append('knowledgeId', knowledgeId);
+  // 新增 isTemplate 参数，用于区分是否为模板/本地上传（true）或知识库文档（false）
+  uploadDocument(formData, knowledgeId, onUploadProgress, isTemplate = false) {
+    // 确保知识库ID被包含在表单数据中（如果提供）
+    try {
+      if (knowledgeId && formData && !formData.has('knowledgeId')) {
+        formData.append('knowledgeId', knowledgeId);
+      }
+    } catch (e) {
+      // ignore if formData is not FormData
     }
+
+    // 始终将 isTemplate 标记包含到表单（后端可根据该字段把文件存入不同表）
+    try {
+      if (formData && !formData.has('isTemplate')) {
+        formData.append('isTemplate', isTemplate ? 'true' : 'false');
+      }
+    } catch (e) {
+      // ignore
+    }
+
     return request({
       url: 'document/upload',
       method: 'POST',
@@ -53,5 +68,3 @@ export default {
     });
   },
 };
-
-
