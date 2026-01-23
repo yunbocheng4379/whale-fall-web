@@ -13,10 +13,19 @@ import { getBaseURL } from '@/utils/urlUtil';
  * @param {Function} onComplete - 完成回调函数
  * @returns {Object} 包含close方法的控制器对象
  */
-export function createChatStream(message, sessionId, modelId, docParams, onMessage, onError, onComplete) {
+export function createChatStream(
+  message,
+  sessionId,
+  modelId,
+  knowledgeBaseId,
+  docParams,
+  onMessage,
+  onError,
+  onComplete,
+) {
   const baseURL = getBaseURL();
   const token = getToken();
-  
+
   // 构建 POST 请求体：将 message、sessionId、modelId、本地文件 id 列表 与 知识库文档 id 列表
   const chatRequestParams = {
     message: message,
@@ -25,34 +34,44 @@ export function createChatStream(message, sessionId, modelId, docParams, onMessa
   if (sessionId) chatRequestParams.sessionId = sessionId;
   if (modelId) chatRequestParams.modelId = modelId;
 
-  // 映射 docParams 到后端约定字段名
-  if (docParams && Array.isArray(docParams.selectedLocalTempFileIds) && docParams.selectedLocalTempFileIds.length > 0) {
-    chatRequestParams.localFileIds = docParams.selectedLocalTempFileIds;
+  // 映射 docParams 到后端约定字段名，同时传递 knowledgeBaseId（如果有）
+  if (
+    docParams &&
+    Array.isArray(docParams.selectedLocalTempFileIds) &&
+    docParams.selectedLocalTempFileIds.length > 0
+  ) {
+    chatRequestParams.tempFileIds = docParams.selectedLocalTempFileIds;
   } else {
-    chatRequestParams.localFileIds = [];
+    chatRequestParams.tempFileIds = [];
   }
 
-  if (docParams && Array.isArray(docParams.selectedKnowledgeDocIds) && docParams.selectedKnowledgeDocIds.length > 0) {
+  if (
+    docParams &&
+    Array.isArray(docParams.selectedKnowledgeDocIds) &&
+    docParams.selectedKnowledgeDocIds.length > 0
+  ) {
     chatRequestParams.knowledgeIdFiles = docParams.selectedKnowledgeDocIds;
   } else {
     chatRequestParams.knowledgeIdFiles = [];
   }
 
+  if (knowledgeBaseId) {
+    chatRequestParams.knowledgeBaseId = knowledgeBaseId;
+  }
+
   const url = `${baseURL}/ai/chat`;
-  
 
   const abortController = new AbortController();
   let isAborted = false;
-  
-  
+
   let buffer = '';
   let reader = null;
-  
+
   fetch(url, {
-      method: 'POST',
+    method: 'POST',
     headers: {
       [TOKEN_KEY]: token || '',
-      'Accept': 'text/event-stream',
+      Accept: 'text/event-stream',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(chatRequestParams),
@@ -62,26 +81,26 @@ export function createChatStream(message, sessionId, modelId, docParams, onMessa
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       if (!response.body) {
         throw new Error('Response body is null');
       }
-      
+
       reader = response.body.getReader();
       const decoder = new TextDecoder();
-      
+
       function readStream() {
         if (isAborted) {
           return;
         }
-        
+
         reader
           .read()
           .then(({ done, value }) => {
             if (isAborted) {
               return;
             }
-            
+
             if (done) {
               // 处理剩余的buffer
               if (buffer.trim()) {
@@ -93,14 +112,14 @@ export function createChatStream(message, sessionId, modelId, docParams, onMessa
               }
               return;
             }
-            
+
             // 解码数据 - 立即解码，不等待
             const chunk = decoder.decode(value, { stream: true });
             buffer += chunk;
-            
+
             // 立即处理buffer中所有完整的数据块 - 关键：每次收到数据就立即处理
             processBuffer();
-            
+
             // 立即继续读取下一个数据块，不等待
             readStream();
           })
@@ -110,7 +129,7 @@ export function createChatStream(message, sessionId, modelId, docParams, onMessa
             }
           });
       }
-      
+
       // 处理buffer，直接处理原始数据，无需SSE格式处理
       // 后端直接返回 JSON 字符串，如 {"data":"..."}
       function processBuffer() {
@@ -123,11 +142,11 @@ export function createChatStream(message, sessionId, modelId, docParams, onMessa
             buffer = '';
             break;
           }
-          
+
           // 从 { 开始查找匹配的 }
           let braceCount = 0;
           let endIndex = -1;
-          
+
           for (let i = startIndex; i < buffer.length; i++) {
             if (buffer[i] === '{') {
               braceCount++;
@@ -139,28 +158,28 @@ export function createChatStream(message, sessionId, modelId, docParams, onMessa
               }
             }
           }
-          
+
           if (endIndex === -1) {
             // 没有找到完整的 JSON 对象，保留等待
             buffer = buffer.substring(startIndex);
             break;
           }
-          
+
           // 提取完整的 JSON 字符串
           const jsonStr = buffer.substring(startIndex, endIndex + 1);
-          
+
           // 立即调用回调，传递原始 JSON 字符串
           if (jsonStr && jsonStr.trim()) {
             onMessage(jsonStr);
           }
-          
+
           // 移除已处理的部分
           buffer = buffer.substring(endIndex + 1);
-          
+
           // 继续处理buffer中剩余的数据（可能一次收到了多个JSON对象）
         }
       }
-      
+
       readStream();
     })
     .catch((error) => {
@@ -171,7 +190,7 @@ export function createChatStream(message, sessionId, modelId, docParams, onMessa
         }
       }
     });
-  
+
   // 返回一个可以关闭的对象
   return {
     close: () => {

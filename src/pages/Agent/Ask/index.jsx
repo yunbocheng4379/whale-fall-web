@@ -1,46 +1,54 @@
+import { createChatStream } from '@/api/AiAskApi';
+import DocumentApi from '@/api/DocumentApi';
+import KnowledgeApi from '@/api/KnowledgeApi';
+import ModelApi from '@/api/ModelApi';
 import { withAuth } from '@/components/Auth';
-import { PageContainer} from '@ant-design/pro-components';
-import { Button, Input, message, Dropdown, Menu, Modal, Upload, Empty, Tabs, Table, Spin, Select, Space } from 'antd';
+import SendButton from '@/components/SendButton';
 import {
-  SendOutlined,
-  PlusOutlined,
-  PaperClipOutlined,
-  PictureOutlined,
   BulbOutlined,
-  ShoppingOutlined,
-  MoreOutlined,
-  RightOutlined,
-  EditOutlined,
-  SearchOutlined as SearchIcon,
-  DatabaseOutlined,
-  FolderOutlined,
-  ShareAltOutlined,
-  UserAddOutlined,
-  EllipsisOutlined,
-  FlagOutlined,
-  DeleteOutlined,
-  InboxOutlined,
-  StarFilled,
-  DownOutlined,
-  LeftOutlined,
-  RightOutlined as RightArrowOutlined,
-  FileTextOutlined,
   CheckOutlined,
   CloseOutlined,
   CloudUploadOutlined,
   CodeOutlined,
-  UploadOutlined,
+  DatabaseOutlined,
+  DeleteOutlined,
+  DownOutlined,
+  EditOutlined,
+  EllipsisOutlined,
+  FileTextOutlined,
+  FlagOutlined,
+  FolderOutlined,
+  InboxOutlined,
+  LeftOutlined,
+  MoreOutlined,
+  PaperClipOutlined,
+  PictureOutlined,
+  RightOutlined as RightArrowOutlined,
+  RightOutlined,
+  SearchOutlined as SearchIcon,
+  ShareAltOutlined,
+  ShoppingOutlined,
+  StarFilled,
+  UserAddOutlined,
 } from '@ant-design/icons';
+import { PageContainer } from '@ant-design/pro-components';
+import {
+  Button,
+  Dropdown,
+  Empty,
+  Input,
+  Menu,
+  message,
+  Modal,
+  Spin,
+  Tabs,
+  Upload,
+} from 'antd';
+import moment from 'moment';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { createChatStream } from '@/api/AiAskApi';
-import ModelApi from '@/api/ModelApi';
-import DocumentApi from '@/api/DocumentApi';
-import KnowledgeApi from '@/api/KnowledgeApi';
-import moment from 'moment';
 import styles from './index.less';
-import SendButton from '@/components/SendButton';
 
 // 生成唯一ID
 const generateId = () => {
@@ -74,7 +82,11 @@ const extractStreamText = (chunk) => {
 };
 
 const AskPage = () => {
-  const titleOptions = ['在时刻准备着。', '今天有什么计划?', '您今天什么安排？'];
+  const titleOptions = [
+    '在时刻准备着。',
+    '今天有什么计划?',
+    '您今天什么安排？',
+  ];
   const getRandomTitle = () =>
     titleOptions[Math.floor(Math.random() * titleOptions.length)];
 
@@ -87,6 +99,7 @@ const AskPage = () => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [modelDropdownVisible, setModelDropdownVisible] = useState(false);
   const [models, setModels] = useState([]);
+  const [selectedModelId, setSelectedModelId] = useState(null);
   const [newChatTitle, setNewChatTitle] = useState(getRandomTitle);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatHistory, setChatHistory] = useState([
@@ -152,11 +165,17 @@ const AskPage = () => {
     try {
       const s = new Set();
       (selectedKnowledgeDocIds || []).forEach((id) => s.add(id));
-      Object.values(modalSelectedByKb || {}).forEach((arr) => (arr || []).forEach((id) => s.add(id)));
+      // 统计所有知识库 modal 内的选择（返回到 KB 列表时也应显示这些选择）
+      Object.values(modalSelectedByKb || {}).forEach((arr) =>
+        (arr || []).forEach((id) => s.add(id)),
+      );
       return s.size;
     } catch (e) {
       // fallback: sum sizes (may double-count)
-      const modalTotal = Object.values(modalSelectedByKb || {}).reduce((acc, arr) => acc + ((arr || []).length || 0), 0);
+      const modalTotal = Object.values(modalSelectedByKb || {}).reduce(
+        (acc, arr) => acc + ((arr || []).length || 0),
+        0,
+      );
       return (selectedKnowledgeDocIds || []).length + modalTotal;
     }
   })();
@@ -233,18 +252,50 @@ const AskPage = () => {
     setMessages((prev) => [...prev, newAiMessage]);
 
     accumulatedContentRef.current = '';
-    const modalAllSelected = Object.values(modalSelectedByKb || {}).flat();
+    // 计算本次请求应使用的知识库 ID 与 文档列表
+    let effectiveKnowledgeBaseId = viewingKnowledgeId || null;
+    // 合并已确认的 selectedKnowledgeDocIds 与 modal 中当前 KB 的选择
+    let effectiveSelectedKnowledgeIds = Array.from(
+      selectedKnowledgeDocIds || [],
+    );
+    if (
+      viewingKnowledgeId &&
+      modalSelectedByKb &&
+      modalSelectedByKb[viewingKnowledgeId]
+    ) {
+      effectiveSelectedKnowledgeIds = Array.from(
+        new Set([
+          ...effectiveSelectedKnowledgeIds,
+          ...(modalSelectedByKb[viewingKnowledgeId] || []),
+        ]),
+      );
+    } else {
+      // 当未在某个 KB 内（viewingKnowledgeId 为 null）时，如果 modalSelectedByKb 只有一个 KB 有选择，则使用该 KB 的选择
+      const kbEntries = Object.entries(modalSelectedByKb || {}).filter(
+        ([k, arr]) => arr && arr.length > 0,
+      );
+      if (kbEntries.length === 1) {
+        effectiveKnowledgeBaseId = Number(kbEntries[0][0]);
+        effectiveSelectedKnowledgeIds = Array.from(
+          new Set([
+            ...effectiveSelectedKnowledgeIds,
+            ...(kbEntries[0][1] || []),
+          ]),
+        );
+      }
+    }
+
     const docParams = {
-      selectedKnowledgeDocIds: Array.from(
-        new Set([...(selectedKnowledgeDocIds || []), ...(modalAllSelected || [])])
-      ),
+      selectedKnowledgeDocIds: effectiveSelectedKnowledgeIds,
       selectedLocalTempFileIds: selectedLocalTempFileIds || [],
     };
 
+    const knowledgeBaseIdForRequest = effectiveKnowledgeBaseId || null;
     streamControllerRef.current = createChatStream(
       userMessage,
       sessionId,
-      null,
+      selectedModelId,
+      knowledgeBaseIdForRequest,
       docParams,
       (chunk) => {
         const piece = extractStreamText(chunk);
@@ -260,7 +311,7 @@ const AskPage = () => {
               };
             }
             return msg;
-          })
+          }),
         );
       },
       (error) => {
@@ -269,18 +320,24 @@ const AskPage = () => {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === aiMessageId
-              ? { ...msg, isStreaming: false, content: msg.content || '抱歉，发生了错误，请稍后重试。' }
-              : msg
-          )
+              ? {
+                  ...msg,
+                  isStreaming: false,
+                  content: msg.content || '抱歉，发生了错误，请稍后重试。',
+                }
+              : msg,
+          ),
         );
         setIsLoading(false);
       },
       () => {
         setMessages((prev) =>
-          prev.map((msg) => (msg.id === aiMessageId ? { ...msg, isStreaming: false } : msg))
+          prev.map((msg) =>
+            msg.id === aiMessageId ? { ...msg, isStreaming: false } : msg,
+          ),
         );
         setIsLoading(false);
-      }
+      },
     );
   };
 
@@ -340,7 +397,10 @@ const AskPage = () => {
     const isSingle = scrollHeight <= lineHeight + 4;
 
     // 如果是 new chat textarea
-    if (ta === inputRef.current || ta === chatInputRef.current?.resizableTextArea?.textArea) {
+    if (
+      ta === inputRef.current ||
+      ta === chatInputRef.current?.resizableTextArea?.textArea
+    ) {
       // decide which ref based on identity
     }
 
@@ -351,7 +411,9 @@ const AskPage = () => {
     // restore caret if layout changed
     if (prevNewSingleRef.current !== isSingle) {
       requestAnimationFrame(() => {
-        try { ta.focus(); } catch (err) {}
+        try {
+          ta.focus();
+        } catch (err) {}
         prevNewSingleRef.current = isSingle;
       });
     }
@@ -386,7 +448,8 @@ const AskPage = () => {
   const setCursorToStart = useCallback(() => {
     const getDom = (ref) => {
       if (!ref) return null;
-      if (ref.resizableTextArea && ref.resizableTextArea.textArea) return ref.resizableTextArea.textArea;
+      if (ref.resizableTextArea && ref.resizableTextArea.textArea)
+        return ref.resizableTextArea.textArea;
       if (ref.textArea) return ref.textArea;
       if (ref instanceof HTMLElement) return ref;
       return null;
@@ -455,7 +518,8 @@ const AskPage = () => {
     const getDom = (ref) => {
       if (!ref) return null;
       // AntD TextArea instance exposes resizableTextArea.textArea
-      if (ref.resizableTextArea && ref.resizableTextArea.textArea) return ref.resizableTextArea.textArea;
+      if (ref.resizableTextArea && ref.resizableTextArea.textArea)
+        return ref.resizableTextArea.textArea;
       if (ref.textArea) return ref.textArea;
       // raw DOM node
       if (ref instanceof HTMLElement) return ref;
@@ -464,12 +528,18 @@ const AskPage = () => {
     const el = getDom(inputRef.current);
     if (el) {
       // 设置初始固定高度，避免抖动
-      try { el.style.height = '24px'; } catch (err) {}
+      try {
+        el.style.height = '24px';
+      } catch (err) {}
       // 清空内容：textarea使用value，contentEditable使用textContent
       if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-        try { el.value = ''; } catch (err) {}
+        try {
+          el.value = '';
+        } catch (err) {}
       } else {
-        try { el.textContent = ''; } catch (err) {}
+        try {
+          el.textContent = '';
+        } catch (err) {}
       }
       // 延迟设置光标，确保 DOM 已完全渲染
       setTimeout(() => {
@@ -482,28 +552,40 @@ const AskPage = () => {
   useEffect(() => {
     const getDom = (ref) => {
       if (!ref) return null;
-      if (ref.resizableTextArea && ref.resizableTextArea.textArea) return ref.resizableTextArea.textArea;
+      if (ref.resizableTextArea && ref.resizableTextArea.textArea)
+        return ref.resizableTextArea.textArea;
       if (ref.textArea) return ref.textArea;
       if (ref instanceof HTMLElement) return ref;
       return null;
     };
     const el = getDom(inputRef.current);
     if (el) {
-      const currentText = (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') ? (el.value || '').trim() : (el.textContent || '').trim();
+      const currentText =
+        el.tagName === 'TEXTAREA' || el.tagName === 'INPUT'
+          ? (el.value || '').trim()
+          : (el.textContent || '').trim();
       // 只在内容不同时更新，避免用户输入时的冲突
       if (currentText !== inputValue) {
         const wasFocused = document.activeElement === el;
         // 如果 inputValue 为空，清空输入框内容
         if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-          try { el.value = inputValue || ''; } catch (err) {}
+          try {
+            el.value = inputValue || '';
+          } catch (err) {}
         } else {
-          try { el.textContent = inputValue || ''; } catch (err) {}
+          try {
+            el.textContent = inputValue || '';
+          } catch (err) {}
         }
         // 调整高度
-        try { el.style.height = 'auto'; } catch (err) {}
+        try {
+          el.style.height = 'auto';
+        } catch (err) {}
         const scrollHeight = el.scrollHeight || 0;
         const maxHeight = 24 * 6;
-        try { el.style.height = `${Math.min(scrollHeight, maxHeight)}px`; } catch (err) {}
+        try {
+          el.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
+        } catch (err) {}
         // 如果之前是聚焦状态，将光标设置到开头
         if (wasFocused) {
           setCursorToStart();
@@ -523,7 +605,9 @@ const AskPage = () => {
           const m = data.models || data || [];
           setModels(m);
           if (m.length > 0) {
-            setSelectedModelId(m[0].id);
+            // 优先选择 defaultModel 为 true 的模型，如果没有则选择第一个
+            const defaultModel = m.find((model) => model.defaultModel);
+            setSelectedModelId(defaultModel ? defaultModel.id : m[0].id);
           }
         }
       } catch (e) {
@@ -557,7 +641,9 @@ const AskPage = () => {
     if (!kId) return;
     setKnowledgeDocsLoading(true);
     try {
-      const res = await DocumentApi.getDocumentsByKnowledgeId({ knowledgeBaseId: kId });
+      const res = await DocumentApi.getDocumentsByKnowledgeId({
+        knowledgeBaseId: kId,
+      });
       if (res && res.data) {
         const data = res.data.data || res.data;
         const docs = data.documents || data.docs || data || [];
@@ -570,12 +656,49 @@ const AskPage = () => {
     }
   };
 
+  // 处理知识库切换逻辑
+  const handleKnowledgeSwitch = (kbId) => {
+    // 检查是否有其他知识库的选择
+    const hasOtherKbSelections = Object.keys(modalSelectedByKb).some(
+      (kb) =>
+        kb !== kbId.toString() &&
+        modalSelectedByKb[kb] &&
+        modalSelectedByKb[kb].length > 0,
+    );
+
+    if (hasOtherKbSelections) {
+      // 弹出确认对话框
+      Modal.confirm({
+        title: '切换知识库',
+        content:
+          '您已从其他知识库中选择文档，切换到新知识库将清除这些选择。是否继续？',
+        okText: '继续',
+        cancelText: '取消',
+        onOk() {
+          // 清空之前的选择并进入新知识库
+          setModalSelectedByKb({});
+          setViewingKnowledgeId(kbId);
+          fetchDocsByKnowledge(kbId);
+        },
+        onCancel() {
+          // 不做任何操作，保持在当前状态
+        },
+      });
+    } else {
+      // 没有其他知识库的选择，直接进入
+      setViewingKnowledgeId(kbId);
+      fetchDocsByKnowledge(kbId);
+    }
+  };
+
   // 获取当前弹窗显示的过滤后文档列表（复用）
   const getFilteredDocs = () => {
     const key = (modalSearchKeyword || '').trim().toLowerCase();
     return key
-      ? (knowledgeDocs || []).filter((d) => ((d.title || d.fileName || '').toLowerCase().includes(key)))
-      : (knowledgeDocs || []);
+      ? (knowledgeDocs || []).filter((d) =>
+          (d.title || d.fileName || '').toLowerCase().includes(key),
+        )
+      : knowledgeDocs || [];
   };
 
   // 切换 modal 中的文档选中状态（按知识库分组）
@@ -597,14 +720,16 @@ const AskPage = () => {
 
   // 确认在知识库 tab 中选择的文档，合并到主选择集合并更新展示列表
   const handleConfirmKnowledgeSelection = () => {
-    // Merge all modal selections across knowledge bases into the confirmed selection set.
-    const allModalSelected = Object.values(modalSelectedByKb || {}).flat();
-    if (allModalSelected && allModalSelected.length > 0) {
-      setSelectedKnowledgeDocIds((prev) => {
-        const s = new Set(prev || []);
-        allModalSelected.forEach((id) => s.add(id));
-        return Array.from(s);
-      });
+    // 只处理当前查看的知识库的选择
+    if (viewingKnowledgeId && modalSelectedByKb[viewingKnowledgeId]) {
+      const currentModalSelected = modalSelectedByKb[viewingKnowledgeId] || [];
+      if (currentModalSelected.length > 0) {
+        setSelectedKnowledgeDocIds((prev) => {
+          const s = new Set(prev || []);
+          currentModalSelected.forEach((id) => s.add(id));
+          return Array.from(s);
+        });
+      }
     }
     // Clear modal-only selections after confirming
     setModalSelectedByKb({});
@@ -614,16 +739,18 @@ const AskPage = () => {
   // 本地上传成功后回调（将返回的 tempFileId 记录到选中集合并更新展示）
   const onLocalUploadSuccess = (tempFileId, fileTitle) => {
     if (!tempFileId) return;
-    setSelectedLocalTempFileIds((prev) => (prev.includes(tempFileId) ? prev : [...prev, tempFileId]));
+    setSelectedLocalTempFileIds((prev) =>
+      prev.includes(tempFileId) ? prev : [...prev, tempFileId],
+    );
   };
 
   // 从已选列表中移除某个文档（只影响选择，不删除服务器存储）
   const removeSelectedDoc = (item) => {
     // display list removed; keep selection ids in sync
     if (item.source === 'knowledge') {
-    setSelectedKnowledgeDocIds((prev) => {
-      return prev.filter((id) => id !== item.id);
-    });
+      setSelectedKnowledgeDocIds((prev) => {
+        return prev.filter((id) => id !== item.id);
+      });
     } else {
       // when removing from the AI-selected list, also remove from uploadList (and backend) by delegating to handleRemoveLocalUpload
       // item.id might be tempFileId or uid
@@ -634,9 +761,14 @@ const AskPage = () => {
   // 本地上传验证函数
   const beforeUpload = (file) => {
     const isAllowed =
-      ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(
-        file.type,
-      ) || file.name.endsWith('.pdf') || file.name.endsWith('.doc') || file.name.endsWith('.docx');
+      [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ].includes(file.type) ||
+      file.name.endsWith('.pdf') ||
+      file.name.endsWith('.doc') ||
+      file.name.endsWith('.docx');
     if (!isAllowed) {
       message.error('仅支持 PDF/Word 文件');
       return Upload.LIST_IGNORE;
@@ -693,10 +825,10 @@ const AskPage = () => {
       currentProgress = progress;
       onProgress && onProgress({ percent: progress });
       // 更新uploadList中的进度
-      setUploadList(prev =>
-        prev.map(item =>
-          item.uid === file.uid ? { ...item, progress } : item
-        )
+      setUploadList((prev) =>
+        prev.map((item) =>
+          item.uid === file.uid ? { ...item, progress } : item,
+        ),
       );
     };
 
@@ -748,26 +880,38 @@ const AskPage = () => {
     setTimeout(simTick, 200);
 
     // 调用后端上传API
-    DocumentApi.uploadDocument(form, null, (progressEvent) => {
-      if (progressEvent && progressEvent.total) {
-        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        // 如果后端进度超过当前进度，更新进度
-        if (percent > currentProgress && percent < 100) {
-          updateProgress(percent);
+    DocumentApi.uploadDocument(
+      form,
+      null,
+      (progressEvent) => {
+        if (progressEvent && progressEvent.total) {
+          const percent = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total,
+          );
+          // 如果后端进度超过当前进度，更新进度
+          if (percent > currentProgress && percent < 100) {
+            updateProgress(percent);
+          }
         }
-      }
-    }, true)
+      },
+      true,
+    )
       .then((resp) => {
         backendDone = true;
         backendSuccess = true;
         simStopped = true;
 
         // 更新tempFileId
-        const tempFileId = resp && resp.data && resp.data.data ? resp.data.data.tempFileId : null;
-        setUploadList(prev =>
-          prev.map(item =>
-            item.uid === file.uid ? { ...item, tempFileId, status: 'success' } : item
-          )
+        const tempFileId =
+          resp && resp.data && resp.data.data
+            ? resp.data.data.tempFileId
+            : null;
+        setUploadList((prev) =>
+          prev.map((item) =>
+            item.uid === file.uid
+              ? { ...item, tempFileId, status: 'success' }
+              : item,
+          ),
         );
 
         // 如果前端进度还没到99%，从当前进度缓慢加载到100%
@@ -789,10 +933,10 @@ const AskPage = () => {
         simStopped = true;
 
         // 更新状态为error
-        setUploadList(prev =>
-          prev.map(item =>
-            item.uid === file.uid ? { ...item, status: 'error' } : item
-          )
+        setUploadList((prev) =>
+          prev.map((item) =>
+            item.uid === file.uid ? { ...item, status: 'error' } : item,
+          ),
         );
 
         // 失败时也从当前进度缓慢加载到100%，然后显示错误
@@ -810,11 +954,15 @@ const AskPage = () => {
   // 删除本地上传的文件
   const handleRemoveLocalUpload = async (uid) => {
     // uid may be an upload uid or a tempFileId; find by either
-    const itemToRemove = uploadList.find((item) => item.uid === uid || item.tempFileId === uid);
+    const itemToRemove = uploadList.find(
+      (item) => item.uid === uid || item.tempFileId === uid,
+    );
 
     // 前端直接从 uploadList 中移除（不再调用后端删除接口）
     setUploadList((prev) => {
-      const next = prev.filter((p) => p.uid !== (itemToRemove ? itemToRemove.uid : uid));
+      const next = prev.filter(
+        (p) => p.uid !== (itemToRemove ? itemToRemove.uid : uid),
+      );
       refreshUploadingCount(next);
       return next;
     });
@@ -822,7 +970,9 @@ const AskPage = () => {
     // 同步从已选集合中移除（兼容 tempFileId / uid）
     setSelectedLocalTempFileIds((prev) => {
       if (!prev || prev.length === 0) return prev || [];
-      const removeId = itemToRemove ? (itemToRemove.tempFileId || itemToRemove.uid) : uid;
+      const removeId = itemToRemove
+        ? itemToRemove.tempFileId || itemToRemove.uid
+        : uid;
       return prev.filter((id) => id !== removeId);
     });
   };
@@ -881,20 +1031,50 @@ const AskPage = () => {
     // 创建流式连接
     // 重置累积内容
     accumulatedContentRef.current = '';
-    
+
     // 准备文档参数
-    const modalAllSelected = Object.values(modalSelectedByKb || {}).flat();
+    // 计算本次请求应使用的知识库 ID 与 文档列表（同上逻辑）
+    let effectiveKnowledgeBaseId = viewingKnowledgeId || null;
+    let effectiveSelectedKnowledgeIds = Array.from(
+      selectedKnowledgeDocIds || [],
+    );
+    if (
+      viewingKnowledgeId &&
+      modalSelectedByKb &&
+      modalSelectedByKb[viewingKnowledgeId]
+    ) {
+      effectiveSelectedKnowledgeIds = Array.from(
+        new Set([
+          ...effectiveSelectedKnowledgeIds,
+          ...(modalSelectedByKb[viewingKnowledgeId] || []),
+        ]),
+      );
+    } else {
+      const kbEntries = Object.entries(modalSelectedByKb || {}).filter(
+        ([k, arr]) => arr && arr.length > 0,
+      );
+      if (kbEntries.length === 1) {
+        effectiveKnowledgeBaseId = Number(kbEntries[0][0]);
+        effectiveSelectedKnowledgeIds = Array.from(
+          new Set([
+            ...effectiveSelectedKnowledgeIds,
+            ...(kbEntries[0][1] || []),
+          ]),
+        );
+      }
+    }
+
     const docParams = {
-      selectedKnowledgeDocIds: Array.from(
-        new Set([...(selectedKnowledgeDocIds || []), ...(modalAllSelected || [])])
-      ),
+      selectedKnowledgeDocIds: effectiveSelectedKnowledgeIds,
       selectedLocalTempFileIds: selectedLocalTempFileIds || [],
     };
 
+    const knowledgeBaseIdForRequest = effectiveKnowledgeBaseId || null;
     streamControllerRef.current = createChatStream(
       userMessage,
       sessionId,
-      null, // 移除模型选择，传null
+      selectedModelId, // 传递选中的模型ID
+      knowledgeBaseIdForRequest, // 新增 knowledgeBaseId 参数
       docParams, // 传递选择的文档ID
       // onMessage - 每次收到数据块立即调用，实时更新UI
       (chunk) => {
@@ -922,9 +1102,13 @@ const AskPage = () => {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === aiMessageId
-              ? { ...msg, isStreaming: false, content: msg.content || '抱歉，发生了错误，请稍后重试。' }
-              : msg
-          )
+              ? {
+                  ...msg,
+                  isStreaming: false,
+                  content: msg.content || '抱歉，发生了错误，请稍后重试。',
+                }
+              : msg,
+          ),
         );
         setIsLoading(false);
       },
@@ -932,16 +1116,13 @@ const AskPage = () => {
       () => {
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === aiMessageId
-              ? { ...msg, isStreaming: false }
-              : msg
-          )
+            msg.id === aiMessageId ? { ...msg, isStreaming: false } : msg,
+          ),
         );
         setIsLoading(false);
-      }
+      },
     );
   };
-
 
   // 下拉菜单项
   const menuItems = [
@@ -978,7 +1159,14 @@ const AskPage = () => {
       key: 'more',
       icon: <MoreOutlined />,
       label: (
-        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+          }}
+        >
           <span>更多</span>
           <RightOutlined style={{ fontSize: '12px', color: '#999' }} />
         </span>
@@ -1060,7 +1248,12 @@ const AskPage = () => {
   const ellipsisMenuItems = [
     { key: 'archive', icon: <InboxOutlined />, label: '归档' },
     { key: 'report', icon: <FlagOutlined />, label: '报告' },
-    { key: 'delete', icon: <DeleteOutlined style={{ color: '#e74c3c' }} />, label: <span style={{ color: '#e74c3c' }}>删除</span>, className: 'delete-item' },
+    {
+      key: 'delete',
+      icon: <DeleteOutlined style={{ color: '#e74c3c' }} />,
+      label: <span style={{ color: '#e74c3c' }}>删除</span>,
+      className: 'delete-item',
+    },
   ];
 
   const modelMenuItems = (models || []).map((m, idx) => ({
@@ -1069,7 +1262,8 @@ const AskPage = () => {
       <div
         style={{
           padding: '10px 16px',
-          borderBottom: idx !== (models.length - 1) ? '1px solid #f0f0f0' : 'none',
+          borderBottom:
+            idx !== models.length - 1 ? '1px solid #f0f0f0' : 'none',
           display: 'flex',
           alignItems: 'center',
           gap: 8,
@@ -1085,8 +1279,8 @@ const AskPage = () => {
   }));
 
   return (
-    <PageContainer 
-      title={false} 
+    <PageContainer
+      title={false}
       breadcrumb={false}
       header={{
         title: false,
@@ -1095,61 +1289,66 @@ const AskPage = () => {
     >
       <div className={styles['ai-chat-layout']}>
         {/* 左侧边栏容器 */}
-        <div className={`${styles['sidebar-wrapper']} ${sidebarCollapsed ? styles['collapsed'] : ''}`}>
-          <div className={`${styles['sidebar']} ${sidebarCollapsed ? styles['collapsed'] : ''}`}>
-          <div className={styles['sidebar-header']}>
-            <Button 
-              type="text" 
-              icon={<EditOutlined />} 
-              className={styles['new-chat-btn']}
-              onClick={generateNewSession}
-            >
-              新聊天
-            </Button>
-            <Button 
-              type="text" 
-              icon={<SearchIcon />} 
-              className={styles['search-chat-btn']}
-              onClick={() => setSearchVisible(true)}
-            >
-              搜索聊天
-            </Button>
-          </div>
-          
-          <div className={styles['sidebar-actions']}>
-            <Button 
-              type="text" 
-              icon={<DatabaseOutlined />} 
-              className={styles['action-btn']}
-            >
-              库
-            </Button>
-            <Button 
-              type="text" 
-              icon={<FolderOutlined />} 
-              className={styles['action-btn']}
-            >
-              项目
-            </Button>
-          </div>
-
-          <div className={styles['chat-history']}>
-            <div className={styles['history-title']}>你的聊天</div>
-            <div className={styles['history-list']}>
-              {chatHistory.map((chat) => (
-                <div
-                  key={chat.id}
-                  className={`${styles['history-item']} ${chat.active ? styles['active'] : ''}`}
-                  onClick={() => {
-                    setChatHistory(prev => prev.map(c => ({ ...c, active: c.id === chat.id })));
-                  }}
-                >
-                  {chat.title}
-                </div>
-              ))}
+        <div
+          className={`${styles['sidebar-wrapper']} ${sidebarCollapsed ? styles['collapsed'] : ''}`}
+        >
+          <div
+            className={`${styles['sidebar']} ${sidebarCollapsed ? styles['collapsed'] : ''}`}
+          >
+            <div className={styles['sidebar-header']}>
+              <Button
+                type="text"
+                icon={<EditOutlined />}
+                className={styles['new-chat-btn']}
+                onClick={generateNewSession}
+              >
+                新聊天
+              </Button>
+              <Button
+                type="text"
+                icon={<SearchIcon />}
+                className={styles['search-chat-btn']}
+                onClick={() => setSearchVisible(true)}
+              >
+                搜索聊天
+              </Button>
             </div>
-          </div>
 
+            <div className={styles['sidebar-actions']}>
+              <Button
+                type="text"
+                icon={<DatabaseOutlined />}
+                className={styles['action-btn']}
+              >
+                库
+              </Button>
+              <Button
+                type="text"
+                icon={<FolderOutlined />}
+                className={styles['action-btn']}
+              >
+                项目
+              </Button>
+            </div>
+
+            <div className={styles['chat-history']}>
+              <div className={styles['history-title']}>你的聊天</div>
+              <div className={styles['history-list']}>
+                {chatHistory.map((chat) => (
+                  <div
+                    key={chat.id}
+                    className={`${styles['history-item']} ${chat.active ? styles['active'] : ''}`}
+                    onClick={() => {
+                      setChatHistory((prev) =>
+                        prev.map((c) => ({ ...c, active: c.id === chat.id })),
+                      );
+                    }}
+                  >
+                    {chat.title}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* 收缩按钮 */}
@@ -1162,19 +1361,26 @@ const AskPage = () => {
         </div>
 
         {/* 主内容区 */}
-        <div className={`${styles['main-content']} ${sidebarCollapsed ? styles['expanded'] : ''}`}>
+        <div
+          className={`${styles['main-content']} ${sidebarCollapsed ? styles['expanded'] : ''}`}
+        >
           {/* 顶部导航栏 */}
           <div className={styles['top-bar']}>
             <Dropdown
               overlay={
-            <Menu
+                <Menu
                   items={modelMenuItems}
                   onClick={(e) => {
                     setSelectedModelId(Number(e.key));
                     setModelDropdownVisible(false);
                   }}
                   className={styles['model-dropdown']}
-                  style={{ minWidth: 380, maxWidth: 720, overflowX: 'hidden', whiteSpace: 'normal' }}
+                  style={{
+                    minWidth: 380,
+                    maxWidth: 720,
+                    overflowX: 'hidden',
+                    whiteSpace: 'normal',
+                  }}
                 />
               }
               trigger={['click']}
@@ -1183,13 +1389,18 @@ const AskPage = () => {
               placement="bottomLeft"
             >
               <div className={styles['top-bar-left']}>
-                <span className={styles['model-name']}>AI助手</span>
+                <span className={styles['model-name']}>
+                  {selectedModelId
+                    ? models.find((m) => m.id === selectedModelId)?.modelName ||
+                      'AI助手'
+                    : 'AI助手'}
+                </span>
                 <DownOutlined className={styles['dropdown-icon']} />
               </div>
             </Dropdown>
             <div className={styles['top-bar-center']}>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 icon={<StarFilled />}
                 className={styles['plus-btn']}
               >
@@ -1197,15 +1408,15 @@ const AskPage = () => {
               </Button>
             </div>
             <div className={styles['top-bar-right']}>
-              <Button 
-                type="text" 
+              <Button
+                type="text"
                 icon={<ShareAltOutlined />}
                 className={styles['action-icon-btn']}
               >
                 分享
               </Button>
-              <Button 
-                type="text" 
+              <Button
+                type="text"
                 icon={<UserAddOutlined />}
                 className={styles['action-icon-btn']}
               >
@@ -1221,8 +1432,8 @@ const AskPage = () => {
                 trigger={['click']}
                 placement="bottomRight"
               >
-                <Button 
-                  type="text" 
+                <Button
+                  type="text"
                   icon={<EllipsisOutlined />}
                   className={`${styles['action-icon-btn']} ${styles['ellipsis-btn']}`}
                 />
@@ -1276,11 +1487,17 @@ const AskPage = () => {
                       <div className={styles['message-content']}>
                         <div className={styles.content}>
                           {msg.role === 'user' ? (
-                            <div style={{ whiteSpace: 'pre-wrap', color: '#333' }}>{msg.content}</div>
+                            <div
+                              style={{ whiteSpace: 'pre-wrap', color: '#333' }}
+                            >
+                              {msg.content}
+                            </div>
                           ) : (
                             <div className={styles['markdown-content']}>
                               {msg.content ? (
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {msg.content}
+                                </ReactMarkdown>
                               ) : (
                                 // 只在没有任何内容时显示打字指示器
                                 msg.isStreaming && (
@@ -1302,126 +1519,184 @@ const AskPage = () => {
               <div ref={messagesEndRef} />
             </div>
             <div className={styles['new-chat-container']}>
-                <div className={styles['new-chat-input-wrapper']}>
-                  <div className={styles['image-input-container']}>
-                    {/* 第一行：选中文档 */}
-                    <div className={styles['selected-docs-area']}>
-                      <div className={styles['selected-docs-row']}>
-                        {selectedKnowledgeDocIds.map((docId) => {
-                          const doc = knowledgeDocs.find(d => d.id === docId);
-                          return doc ? (
-                            <div key={`kb-${docId}`} className={`${styles['selected-doc-item']} ${styles['selected-doc-knowledge']}`}>
-                              <FileTextOutlined style={{ fontSize: 12, marginRight: 4, color: '#1890ff' }} />
-                              <span style={{ fontSize: 11 }}>{doc.title || doc.name}</span>
-                              <Button
-                                type="text"
-                                size="small"
-                                className={styles['selected-doc-close-btn']}
-                                icon={<CloseOutlined />}
-                                onClick={() => removeSelectedDoc({ id: docId, source: 'knowledge' })}
-                              />
-                            </div>
-                          ) : null;
-                        })}
-                        {selectedLocalTempFileIds.map((fileId) => {
-                          const file = uploadList.find((f) => f.tempFileId === fileId || f.uid === fileId);
-                          return file ? (
-                            <div key={`local-${fileId}`} className={`${styles['selected-doc-item']} ${styles['selected-doc-local']}`}>
-                              <FileTextOutlined style={{ fontSize: 12, marginRight: 4, color: '#52c41a' }} />
-                              <span style={{ fontSize: 11 }}>{file.title || file.name}</span>
-                              <Button
-                                type="text"
-                                size="small"
-                                className={styles['selected-doc-close-btn']}
-                                icon={<CloseOutlined />}
-                                onClick={() => removeSelectedDoc({ id: fileId, source: 'local' })}
-                              />
-                            </div>
-                          ) : null;
-                        })}
-                      </div>
+              <div className={styles['new-chat-input-wrapper']}>
+                <div className={styles['image-input-container']}>
+                  {/* 第一行：选中文档 */}
+                  <div className={styles['selected-docs-area']}>
+                    <div className={styles['selected-docs-row']}>
+                      {selectedKnowledgeDocIds.map((docId) => {
+                        const doc = knowledgeDocs.find((d) => d.id === docId);
+                        return doc ? (
+                          <div
+                            key={`kb-${docId}`}
+                            className={`${styles['selected-doc-item']} ${styles['selected-doc-knowledge']}`}
+                          >
+                            <FileTextOutlined
+                              style={{
+                                fontSize: 12,
+                                marginRight: 4,
+                                color: '#1890ff',
+                              }}
+                            />
+                            <span style={{ fontSize: 11 }}>
+                              {doc.title || doc.name}
+                            </span>
+                            <Button
+                              type="text"
+                              size="small"
+                              className={styles['selected-doc-close-btn']}
+                              icon={<CloseOutlined />}
+                              onClick={() =>
+                                removeSelectedDoc({
+                                  id: docId,
+                                  source: 'knowledge',
+                                })
+                              }
+                            />
+                          </div>
+                        ) : null;
+                      })}
+                      {selectedLocalTempFileIds.map((fileId) => {
+                        const file = uploadList.find(
+                          (f) => f.tempFileId === fileId || f.uid === fileId,
+                        );
+                        return file ? (
+                          <div
+                            key={`local-${fileId}`}
+                            className={`${styles['selected-doc-item']} ${styles['selected-doc-local']}`}
+                          >
+                            <FileTextOutlined
+                              style={{
+                                fontSize: 12,
+                                marginRight: 4,
+                                color: '#52c41a',
+                              }}
+                            />
+                            <span style={{ fontSize: 11 }}>
+                              {file.title || file.name}
+                            </span>
+                            <Button
+                              type="text"
+                              size="small"
+                              className={styles['selected-doc-close-btn']}
+                              icon={<CloseOutlined />}
+                              onClick={() =>
+                                removeSelectedDoc({
+                                  id: fileId,
+                                  source: 'local',
+                                })
+                              }
+                            />
+                          </div>
+                        ) : null;
+                      })}
                     </div>
+                  </div>
 
-                    {/* 第二行：输入框 */}
-                    <Input.TextArea
-                      ref={inputRef}
-                      value={inputValue}
-                      onChange={handleTextAreaChange}
-                      onKeyDown={handleKeyDown}
-                      onPressEnter={(e) => {
-                        if (!e.shiftKey) {
-                          e.preventDefault();
-                          handleSend();
-                        }
-                      }}
-                      placeholder="有问题，尽管问"
-                      autoSize={{ minRows: 1, maxRows: 6 }}
-                      bordered={false}
-                      disabled={isLoading}
-                      className={styles.editableInput}
-                    />
+                  {/* 第二行：输入框 */}
+                  <Input.TextArea
+                    ref={inputRef}
+                    value={inputValue}
+                    onChange={handleTextAreaChange}
+                    onKeyDown={handleKeyDown}
+                    onPressEnter={(e) => {
+                      if (!e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
+                    placeholder="有问题，尽管问"
+                    autoSize={{ minRows: 1, maxRows: 6 }}
+                    bordered={false}
+                    disabled={isLoading}
+                    className={styles.editableInput}
+                  />
 
-                    {/* 第三行：功能按钮行（将 + 菜单全部展开为按钮） */}
-                    <div className={styles['buttons-row']}>
-                      <div className={styles['left-actions']} ref={leftActionsRef}>
-                        {/* 按顺序渲染：回形针（第一个），数值分割线，后续功能按钮 */}
-                        {menuItems
-                          .filter(item => item.type !== 'divider')
-                          .map((item, idx, arr) => {
-                            if (item.key === 'add-file') {
-                              return (
+                  {/* 第三行：功能按钮行（将 + 菜单全部展开为按钮） */}
+                  <div className={styles['buttons-row']}>
+                    <div
+                      className={styles['left-actions']}
+                      ref={leftActionsRef}
+                    >
+                      {/* 按顺序渲染：回形针（第一个），数值分割线，后续功能按钮 */}
+                      {menuItems
+                        .filter((item) => item.type !== 'divider')
+                        .map((item, idx, arr) => {
+                          if (item.key === 'add-file') {
+                            return (
+                              <span
+                                key="add-file-wrapper"
+                                ref={addFileWrapperRef}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: computedGap
+                                    ? `${computedGap}px`
+                                    : undefined,
+                                }}
+                              >
+                                <Dropdown
+                                  overlay={
+                                    <Menu
+                                      items={addFileMenu}
+                                      onClick={handleAddFileMenuClick}
+                                    />
+                                  }
+                                  trigger={['click']}
+                                  placement="topCenter"
+                                >
+                                  <Button
+                                    type="text"
+                                    icon={<PaperClipOutlined />}
+                                    className={`${styles['inline-action-button']} ${styles['add-file-icon']}`}
+                                  />
+                                </Dropdown>
+                                {/* 如果下一个是 create-image，则在两者之间显示竖线分割 */}
+                                {arr[idx + 1] &&
+                                  arr[idx + 1].key === 'create-image' && (
+                                    <span
+                                      className={styles['vertical-divider']}
+                                    />
+                                  )}
+                              </span>
+                            );
+                          }
+
+                          // regular button for other items (显示图标和文字)
+                          return (
+                            <Button
+                              key={item.key}
+                              type="text"
+                              icon={item.icon}
+                              onClick={() => handleMenuClick({ key: item.key })}
+                              className={styles['inline-action-button']}
+                            >
+                              {typeof item.label === 'string' ? (
+                                item.label
+                              ) : (
                                 <span
-                                  key="add-file-wrapper"
-                                  ref={addFileWrapperRef}
                                   style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: computedGap ? `${computedGap}px` : undefined,
                                   }}
                                 >
-                                  <Dropdown
-                                    overlay={<Menu items={addFileMenu} onClick={handleAddFileMenuClick} />}
-                                    trigger={['click']}
-                                    placement="topCenter"
-                                  >
-                                    <Button
-                                      type="text"
-                                      icon={<PaperClipOutlined />}
-                                      className={`${styles['inline-action-button']} ${styles['add-file-icon']}`}
-                                    />
-                                  </Dropdown>
-                                  {/* 如果下一个是 create-image，则在两者之间显示竖线分割 */}
-                                  {arr[idx + 1] && arr[idx + 1].key === 'create-image' && (
-                                    <span className={styles['vertical-divider']} />
-                                  )}
+                                  {item.label}
                                 </span>
-                              );
-                            }
-
-                            // regular button for other items (显示图标和文字)
-                            return (
-                              <Button
-                                key={item.key}
-                                type="text"
-                                icon={item.icon}
-                                onClick={() => handleMenuClick({ key: item.key })}
-                                className={styles['inline-action-button']}
-                              >
-                                {typeof item.label === 'string' ? item.label : <span style={{ display: 'inline-flex', alignItems: 'center' }}>{item.label}</span>}
-                              </Button>
-                            );
-                          })}
-                      </div>
-                      <div className={styles['right-actions']}>
-                        <SendButton
-                          onClick={handleSend}
-                          disabled={!inputValue.trim() || isLoading}
-                        />
-                      </div>
+                              )}
+                            </Button>
+                          );
+                        })}
+                    </div>
+                    <div className={styles['right-actions']}>
+                      <SendButton
+                        onClick={handleSend}
+                        disabled={!inputValue.trim() || isLoading}
+                      />
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1452,7 +1727,9 @@ const AskPage = () => {
             )}
             {filteredHistory.map((chat) => (
               <div key={chat.id} className={styles['search-item']}>
-                <span className={styles['search-item-title']}>{chat.title}</span>
+                <span className={styles['search-item-title']}>
+                  {chat.title}
+                </span>
               </div>
             ))}
           </div>
@@ -1480,10 +1757,23 @@ const AskPage = () => {
           >
             <Tabs.TabPane tab="知识库文档" key="knowledge">
               {/* keep tab pane at fixed height; layout children with flex so lists can fill remaining space */}
-              <div style={{ height: 420, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div
+                style={{
+                  height: 420,
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
                 {!viewingKnowledgeId ? (
                   // 显示知识库列表
-                  <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: '100%',
+                    }}
+                  >
                     <div className={styles['kb-list']}>
                       {knowledgeList.length === 0 ? (
                         <Empty description="暂无知识库" />
@@ -1493,29 +1783,50 @@ const AskPage = () => {
                             key={kb.id}
                             className={styles['kb-row-card']}
                             onClick={() => {
-                              setViewingKnowledgeId(kb.id);
-                              // preserve previous modal selections across knowledge bases
-                              fetchDocsByKnowledge(kb.id);
+                              handleKnowledgeSwitch(kb.id);
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                              <FolderOutlined style={{ fontSize: 20, color: '#1890ff' }} />
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 12,
+                              }}
+                            >
+                              <FolderOutlined
+                                style={{ fontSize: 20, color: '#1890ff' }}
+                              />
                               <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 500 }}>{kb.name || kb.title}</div>
+                                <div style={{ fontWeight: 500 }}>
+                                  {kb.name || kb.title}
+                                </div>
                               </div>
                             </div>
                           </div>
                         ))
                       )}
                       {/* 已加载全部文档 footer */}
-                      <div style={{ textAlign: 'center', padding: '16px', color: '#999', fontSize: 12 }}>
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          padding: '16px',
+                          color: '#999',
+                          fontSize: 12,
+                        }}
+                      >
                         已加载全部知识库
                       </div>
                     </div>
                   </div>
                 ) : (
                   // 显示知识库内的文档列表
-                  <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: '100%',
+                    }}
+                  >
                     <div style={{ marginBottom: 16 }}>
                       <Button
                         type="text"
@@ -1535,23 +1846,56 @@ const AskPage = () => {
                         <Empty description="暂无文档" />
                       ) : (
                         getFilteredDocs().map((doc) => {
-                          const currentModalSelected = (modalSelectedByKb[viewingKnowledgeId] || []);
-                          const isSelected = currentModalSelected.includes(doc.id) || selectedKnowledgeDocIds.includes(doc.id);
+                          const currentModalSelected =
+                            modalSelectedByKb[viewingKnowledgeId] || [];
+                          const isSelected =
+                            currentModalSelected.includes(doc.id) ||
+                            selectedKnowledgeDocIds.includes(doc.id);
                           return (
                             <div
                               key={doc.id}
                               className={`${styles['doc-row-card']} ${isSelected ? styles['selected'] : ''}`}
                               onClick={() => toggleModalSelectDoc(doc.id)}
                             >
-                            <div className={styles['doc-row-inner']} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                              <FileTextOutlined style={{ fontSize: 16, color: '#666', flex: '0 0 20px' }} />
-                              <div className={styles['doc-title']} style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 500 }}>{doc.title || doc.fileName}</div>
+                              <div
+                                className={styles['doc-row-inner']}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 12,
+                                }}
+                              >
+                                <FileTextOutlined
+                                  style={{
+                                    fontSize: 16,
+                                    color: '#666',
+                                    flex: '0 0 20px',
+                                  }}
+                                />
+                                <div
+                                  className={styles['doc-title']}
+                                  style={{ flex: 1 }}
+                                >
+                                  <div style={{ fontWeight: 500 }}>
+                                    {doc.title || doc.fileName}
+                                  </div>
+                                </div>
+                                <div
+                                  className={styles['doc-check']}
+                                  style={{
+                                    flex: '0 0 22px',
+                                    textAlign: 'center',
+                                  }}
+                                >
+                                  {isSelected && (
+                                    <span
+                                      style={{ color: '#52c41a', fontSize: 16 }}
+                                    >
+                                      ✓
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <div className={styles['doc-check']} style={{ flex: '0 0 22px', textAlign: 'center' }}>
-                                {isSelected && <span style={{ color: '#52c41a', fontSize: 16 }}>✓</span>}
-                              </div>
-                            </div>
                             </div>
                           );
                         })
@@ -1559,7 +1903,14 @@ const AskPage = () => {
 
                       {/* 已加载全部文档 footer - 只有在加载完成且有文档时才显示 */}
                       {!knowledgeDocsLoading && knowledgeDocs.length > 0 && (
-                        <div style={{ textAlign: 'center', padding: '16px', color: '#999', fontSize: 12 }}>
+                        <div
+                          style={{
+                            textAlign: 'center',
+                            padding: '16px',
+                            color: '#999',
+                            fontSize: 12,
+                          }}
+                        >
                           已加载全部文档
                         </div>
                       )}
@@ -1570,153 +1921,296 @@ const AskPage = () => {
             </Tabs.TabPane>
 
             <Tabs.TabPane tab="本地上传" key="local">
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ padding: 12, height: 140, boxSizing: 'border-box', overflow: 'visible' }}>
-                  <Upload.Dragger
-                  multiple
-                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                  beforeUpload={beforeUpload}
-                  showUploadList={false}
-                  // control Upload's internal fileList from our uploadList state to avoid deleted items reappearing
-                  fileList={uploadList.map((u) => ({
-                    uid: u.uid,
-                    name: u.title,
-                    status: u.status === 'success' ? 'done' : u.status,
-                    percent: u.progress || 0,
-                    originFileObj: u.file || undefined,
-                  }))}
-                  customRequest={handleLocalCustomRequest}
-                  onChange={(info) => {
-                    const { file, fileList } = info;
-                    // merge antd fileList into uploadList, preserving higher progress/state from existing entries
-                    setUploadList((prev) => {
-                      const byUid = {};
-                      prev.forEach((p) => {
-                        byUid[p.uid] = { ...p };
-                      });
-                      fileList.forEach((f) => {
-                        const isClientUpload = !!f.originFileObj;
-                        const publishTime = isClientUpload
-                          ? new Date().toISOString()
-                          : f.lastModifiedDate
-                          ? f.lastModifiedDate.toISOString()
-                          : (f.response && f.response.data && f.response.data.publishTime) || new Date().toISOString();
-
-                        const existing = byUid[f.uid];
-
-                        // infer status conservatively: prefer existing status when unsure to avoid flipping to error prematurely
-                        let inferredStatus = 'uploading';
-                        if (f.status === 'uploading') {
-                          inferredStatus = 'uploading';
-                        } else if (f.status === 'done') {
-                          if (f.response && f.response.data) {
-                            inferredStatus = f.response.data.success === false ? 'error' : 'success';
-                          } else {
-                            // done but no response payload yet -> keep existing or remain uploading
-                            inferredStatus = (existing && existing.status) ? existing.status : 'uploading';
-                          }
-                        } else if (f.status === 'error') {
-                          inferredStatus = 'error';
-                        } else {
-                          inferredStatus = (existing && existing.status) ? existing.status : 'uploading';
-                        }
-
-                        const incoming = {
-                          uid: f.uid,
-                          title: f.name,
-                          publishTime,
-                          status: inferredStatus,
-                          progress: Math.round(f.percent || 0),
-                          file: f.originFileObj || null,
-                          tempFileId: f.response && f.response.data && f.response.data.data ? f.response.data.data.tempFileId : (existing && existing.tempFileId) || null,
-                        };
-
-                        if (existing) {
-                          // keep the higher progress value and prefer existing status unless incoming is a definitive terminal state
-                          const mergedProgress = Math.max(existing.progress || 0, incoming.progress || 0, 1);
-                          const mergedStatus = (incoming.status === 'success' || incoming.status === 'error') ? incoming.status : (existing.status || incoming.status);
-                          byUid[f.uid] = { ...existing, ...incoming, progress: mergedProgress, status: mergedStatus };
-                        } else {
-                          byUid[f.uid] = incoming;
-                        }
-                      });
-                      const mergedList = Object.values(byUid);
-                      refreshUploadingCount(mergedList);
-                      return mergedList;
-                    });
-
-                    if (file.status === 'done') {
-                      // 消息已在handleLocalCustomRequest中处理
-                    } else if (file.status === 'error') {
-                      // 消息已在handleLocalCustomRequest中处理
-                    }
-                  }}
+              <div
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
                   style={{
-                    padding: 16,
-                    height: '100%',
-                    borderRadius: 8,
-                    border: '1px dashed #d9d9d9',
-                    background: '#fff',
+                    padding: 12,
+                    height: 140,
+                    boxSizing: 'border-box',
                     overflow: 'visible',
                   }}
                 >
-                  <div style={{ textAlign: 'center', padding: 12 }}>
-                    <div style={{ fontSize: 16, fontWeight: 600 }}>点击或将文件拖拽到此处上传</div>
-                    <div style={{ marginTop: 8, color: '#8c8c8c' }}>仅支持 PDF/Word，单文件最大 100MB</div>
-                  </div>
-                </Upload.Dragger>
+                  <Upload.Dragger
+                    multiple
+                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    beforeUpload={beforeUpload}
+                    showUploadList={false}
+                    // control Upload's internal fileList from our uploadList state to avoid deleted items reappearing
+                    fileList={uploadList.map((u) => ({
+                      uid: u.uid,
+                      name: u.title,
+                      status: u.status === 'success' ? 'done' : u.status,
+                      percent: u.progress || 0,
+                      originFileObj: u.file || undefined,
+                    }))}
+                    customRequest={handleLocalCustomRequest}
+                    onChange={(info) => {
+                      const { file, fileList } = info;
+                      // merge antd fileList into uploadList, preserving higher progress/state from existing entries
+                      setUploadList((prev) => {
+                        const byUid = {};
+                        prev.forEach((p) => {
+                          byUid[p.uid] = { ...p };
+                        });
+                        fileList.forEach((f) => {
+                          const isClientUpload = !!f.originFileObj;
+                          const publishTime = isClientUpload
+                            ? new Date().toISOString()
+                            : f.lastModifiedDate
+                              ? f.lastModifiedDate.toISOString()
+                              : (f.response &&
+                                  f.response.data &&
+                                  f.response.data.publishTime) ||
+                                new Date().toISOString();
+
+                          const existing = byUid[f.uid];
+
+                          // infer status conservatively: prefer existing status when unsure to avoid flipping to error prematurely
+                          let inferredStatus = 'uploading';
+                          if (f.status === 'uploading') {
+                            inferredStatus = 'uploading';
+                          } else if (f.status === 'done') {
+                            if (f.response && f.response.data) {
+                              inferredStatus =
+                                f.response.data.success === false
+                                  ? 'error'
+                                  : 'success';
+                            } else {
+                              // done but no response payload yet -> keep existing or remain uploading
+                              inferredStatus =
+                                existing && existing.status
+                                  ? existing.status
+                                  : 'uploading';
+                            }
+                          } else if (f.status === 'error') {
+                            inferredStatus = 'error';
+                          } else {
+                            inferredStatus =
+                              existing && existing.status
+                                ? existing.status
+                                : 'uploading';
+                          }
+
+                          const incoming = {
+                            uid: f.uid,
+                            title: f.name,
+                            publishTime,
+                            status: inferredStatus,
+                            progress: Math.round(f.percent || 0),
+                            file: f.originFileObj || null,
+                            tempFileId:
+                              f.response &&
+                              f.response.data &&
+                              f.response.data.data
+                                ? f.response.data.data.tempFileId
+                                : (existing && existing.tempFileId) || null,
+                          };
+
+                          if (existing) {
+                            // keep the higher progress value and prefer existing status unless incoming is a definitive terminal state
+                            const mergedProgress = Math.max(
+                              existing.progress || 0,
+                              incoming.progress || 0,
+                              1,
+                            );
+                            const mergedStatus =
+                              incoming.status === 'success' ||
+                              incoming.status === 'error'
+                                ? incoming.status
+                                : existing.status || incoming.status;
+                            byUid[f.uid] = {
+                              ...existing,
+                              ...incoming,
+                              progress: mergedProgress,
+                              status: mergedStatus,
+                            };
+                          } else {
+                            byUid[f.uid] = incoming;
+                          }
+                        });
+                        const mergedList = Object.values(byUid);
+                        refreshUploadingCount(mergedList);
+                        return mergedList;
+                      });
+
+                      if (file.status === 'done') {
+                        // 消息已在handleLocalCustomRequest中处理
+                      } else if (file.status === 'error') {
+                        // 消息已在handleLocalCustomRequest中处理
+                      }
+                    }}
+                    style={{
+                      padding: 16,
+                      height: '100%',
+                      borderRadius: 8,
+                      border: '1px dashed #d9d9d9',
+                      background: '#fff',
+                      overflow: 'visible',
+                    }}
+                  >
+                    <div style={{ textAlign: 'center', padding: 12 }}>
+                      <div style={{ fontSize: 16, fontWeight: 600 }}>
+                        点击或将文件拖拽到此处上传
+                      </div>
+                      <div style={{ marginTop: 8, color: '#8c8c8c' }}>
+                        仅支持 PDF/Word，单文件最大 100MB
+                      </div>
+                    </div>
+                  </Upload.Dragger>
                 </div>
 
-                <div className={styles['local-upload-list']} style={{ flex: 1, padding: '8px 12px', boxSizing: 'border-box' }}>
+                <div
+                  className={styles['local-upload-list']}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    boxSizing: 'border-box',
+                  }}
+                >
                   {uploadList.length === 0 ? (
                     <Empty description="暂无数据" />
                   ) : (
                     uploadList.map((record) => {
-                      const display = record.publishTime ? moment(record.publishTime).format('YYYY-MM-DD') : '';
+                      const display = record.publishTime
+                        ? moment(record.publishTime).format('YYYY-MM-DD')
+                        : '';
                       return (
-                        <div key={record.uid} className={styles['upload-row-card']}>
+                        <div
+                          key={record.uid}
+                          className={styles['upload-row-card']}
+                        >
                           <div className={styles['upload-col-title']}>
-                            <Input value={record.title} onChange={(e) => updateItem(record.uid, { title: e.target.value })} />
+                            <Input
+                              value={record.title}
+                              onChange={(e) =>
+                                updateItem(record.uid, {
+                                  title: e.target.value,
+                                })
+                              }
+                            />
                           </div>
                           <div className={styles['upload-col-publish']}>
-                            <Input value={display} readOnly style={{ background: '#fafafa', cursor: 'default' }} />
+                            <Input
+                              value={display}
+                              readOnly
+                              style={{
+                                background: '#fafafa',
+                                cursor: 'default',
+                              }}
+                            />
                           </div>
                           <div className={styles['upload-col-status']}>
                             {record.status === 'uploading' && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 8,
+                                }}
+                              >
                                 <Spin size="small" />
-                                <span>{record.progress ? `解析中 ${record.progress}%` : '解析中'}</span>
+                                <span>
+                                  {record.progress
+                                    ? `解析中 ${record.progress}%`
+                                    : '解析中'}
+                                </span>
                               </div>
                             )}
                             {record.status === 'success' && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ width: 22, height: 22, borderRadius: 11, background: '#52c41a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 8,
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    width: 22,
+                                    height: 22,
+                                    borderRadius: 11,
+                                    background: '#52c41a',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#fff',
+                                  }}
+                                >
                                   <CheckOutlined style={{ fontSize: 12 }} />
                                 </span>
-                                <span style={{ color: '#52c41a' }}>解析成功</span>
+                                <span style={{ color: '#52c41a' }}>
+                                  解析成功
+                                </span>
                               </div>
                             )}
                             {record.status === 'error' && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ width: 22, height: 22, borderRadius: 11, background: '#ff4d4f', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 8,
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    width: 22,
+                                    height: 22,
+                                    borderRadius: 11,
+                                    background: '#ff4d4f',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#fff',
+                                  }}
+                                >
                                   <CloseOutlined style={{ fontSize: 12 }} />
                                 </span>
-                                <span style={{ color: '#ff4d4f' }}>解析失败</span>
+                                <span style={{ color: '#ff4d4f' }}>
+                                  解析失败
+                                </span>
                               </div>
                             )}
                           </div>
                           <div className={styles['upload-col-actions']}>
                             {record.status === 'uploading' ? (
-                              <Button type="text" disabled>上传中</Button>
+                              <Button type="text" disabled>
+                                上传中
+                              </Button>
                             ) : (
                               <div style={{ display: 'flex', gap: 8 }}>
-                                <Button type="link" onClick={() => handleRemoveLocalUpload(record.uid)}>删除</Button>
-                                {record.status === 'error' && <Button type="link" onClick={() => {
-                                  const file = record.file;
-                                  if (file) {
-                                    handleLocalCustomRequest({ file, onProgress: () => {}, onSuccess: () => {}, onError: () => {} });
+                                <Button
+                                  type="link"
+                                  onClick={() =>
+                                    handleRemoveLocalUpload(record.uid)
                                   }
-                                }}>重新解析</Button>}
+                                >
+                                  删除
+                                </Button>
+                                {record.status === 'error' && (
+                                  <Button
+                                    type="link"
+                                    onClick={() => {
+                                      const file = record.file;
+                                      if (file) {
+                                        handleLocalCustomRequest({
+                                          file,
+                                          onProgress: () => {},
+                                          onSuccess: () => {},
+                                          onError: () => {},
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    重新解析
+                                  </Button>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1731,15 +2225,29 @@ const AskPage = () => {
         </div>
 
         {/* modal footer: selected counts and actions */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 8px', borderTop: '1px solid #f0f0f0', marginTop: 12 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '12px 8px',
+            borderTop: '1px solid #f0f0f0',
+            marginTop: 12,
+          }}
+        >
           <div style={{ color: '#666', fontSize: 13 }}>
-            已选择： 知识库 {combinedKnowledgeCount} 项， 本地 {combinedLocalCount} 项
+            已选择： 知识库 {combinedKnowledgeCount} 项， 本地{' '}
+            {combinedLocalCount} 项
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button onClick={() => {
-              // Preserve modal selections when cancelling so users can continue selecting later
-              setSelectDocModalVisible(false);
-            }}>取消</Button>
+            <Button
+              onClick={() => {
+                // Preserve modal selections when cancelling so users can continue selecting later
+                setSelectDocModalVisible(false);
+              }}
+            >
+              取消
+            </Button>
             <Button
               type="primary"
               onClick={() => {
@@ -1747,7 +2255,9 @@ const AskPage = () => {
                 handleConfirmKnowledgeSelection();
 
                 // 再合并本地上传中已成功的文件到已选集合（兼容 tempFileId / uid）
-                const successfulUploads = (uploadList || []).filter((u) => u.status === 'success' && (u.tempFileId || u.uid));
+                const successfulUploads = (uploadList || []).filter(
+                  (u) => u.status === 'success' && (u.tempFileId || u.uid),
+                );
                 if (successfulUploads.length > 0) {
                   setSelectedLocalTempFileIds((prev) => {
                     const s = new Set(prev || []);
@@ -1772,4 +2282,3 @@ const AskPage = () => {
 };
 
 export default withAuth(AskPage);
-
