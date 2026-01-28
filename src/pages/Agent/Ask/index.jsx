@@ -1,4 +1,4 @@
-import { createChatStream } from '@/api/AiAskApi';
+import { createChatStream, getChatHistory, stopChat } from '@/api/AiAskApi';
 import DocumentApi from '@/api/DocumentApi';
 import KnowledgeApi from '@/api/KnowledgeApi';
 import ModelApi from '@/api/ModelApi';
@@ -15,6 +15,8 @@ import {
   DownOutlined,
   EditOutlined,
   EllipsisOutlined,
+  MessageOutlined,
+  ClockCircleOutlined,
   FileTextOutlined,
   FlagOutlined,
   FolderOutlined,
@@ -102,12 +104,9 @@ const AskPage = () => {
   const [selectedModelId, setSelectedModelId] = useState(null);
   const [newChatTitle, setNewChatTitle] = useState(getRandomTitle);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [chatHistory, setChatHistory] = useState([
-    { id: 1, title: 'Translate message content', active: true },
-    { id: 2, title: '建表语句风格统一', active: false },
-    { id: 3, title: 'Java学习路线图', active: false },
-    { id: 4, title: 'MyBatis-Plus 错误分析', active: false },
-  ]);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const currentAiMessageIdRef = useRef(null);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const streamControllerRef = useRef(null);
@@ -241,8 +240,14 @@ const AskPage = () => {
       content: userMessage,
     };
     setMessages((prev) => [...prev, newUserMessage]);
-
+    // 确保视图跳到用户消息（下一帧让 DOM 更新后再定位）
+    requestAnimationFrame(() => {
+      scrollToBottomImmediate();
+    });
     const aiMessageId = Date.now() + 1;
+    // 标记当前正在流式的 AI 消息并开启流式状态
+    currentAiMessageIdRef.current = aiMessageId;
+    setIsStreaming(true);
     const newAiMessage = {
       id: aiMessageId,
       role: 'assistant',
@@ -250,6 +255,10 @@ const AskPage = () => {
       isStreaming: true,
     };
     setMessages((prev) => [...prev, newAiMessage]);
+    // AI 占位符加入后也确保定位到底部以展示用户消息与占位符
+    requestAnimationFrame(() => {
+      scrollToBottomImmediate();
+    });
 
     accumulatedContentRef.current = '';
     // 计算本次请求应使用的知识库 ID 与 文档列表
@@ -329,6 +338,8 @@ const AskPage = () => {
           ),
         );
         setIsLoading(false);
+        setIsStreaming(false);
+        currentAiMessageIdRef.current = null;
       },
       () => {
         setMessages((prev) =>
@@ -337,6 +348,8 @@ const AskPage = () => {
           ),
         );
         setIsLoading(false);
+        setIsStreaming(false);
+        currentAiMessageIdRef.current = null;
       },
     );
   };
@@ -504,14 +517,18 @@ const AskPage = () => {
     });
   };
 
-  // 自动滚动到底部
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  // 直接跳到底部（无动画），用于展示历史时定位到最后一条或发送新消息后定位
+  const scrollToBottomImmediate = () => {
+    requestAnimationFrame(() => {
+      const container = chatContainerRef.current;
+      if (!container) return;
+      try {
+        container.style.scrollBehavior = 'auto';
+      } catch (e) {}
+      container.scrollTop = container.scrollHeight;
+    });
+  };
 
   // 初始化 contentEditable div 的高度和光标位置
   useEffect(() => {
@@ -620,6 +637,77 @@ const AskPage = () => {
   // 初始化时获取知识库列表
   useEffect(() => {
     fetchKnowledgeList();
+  }, []);
+
+  // 获取聊天历史记录
+  useEffect(() => {
+    const fetchChatHistory = async () => {
+      try {
+        const res = await getChatHistory();
+        if (res && res.data) {
+          const payload = res.data.data || res.data;
+          // 支持后端返回 { data: { list: [ ... ] } } 或直接返回 list
+          const sessions = (payload && payload.list) || payload || [];
+
+          // formattedHistory 用于左侧会话列表，只展示 sessionId 与 title
+          const formattedHistory = sessions.map((item, index) => ({
+            id: item.sessionId,
+            title: item.title || (item.chatHistoryList && item.chatHistoryList.length > 0
+              ? (item.chatHistoryList[item.chatHistoryList.length - 1].userMessage || '').substring(0, 8)
+              : '新对话'),
+            active: index === 0,
+            sessionId: item.sessionId,
+            // keep original payload for potential usage
+            raw: item,
+          }));
+
+          setChatHistory(formattedHistory);
+
+          // 默认选中第一个会话并将其 chatHistoryList 转为 messages 显示（按 createTime 升序）
+          if (sessions.length > 0) {
+            const first = sessions[0];
+            setSessionId(first.sessionId);
+            const history = Array.isArray(first.chatHistoryList) ? first.chatHistoryList.slice() : [];
+            // 按 createTime 升序（从早到晚）
+            history.sort((a, b) => {
+              const ta = a.createTime ? new Date(a.createTime).getTime() : 0;
+              const tb = b.createTime ? new Date(b.createTime).getTime() : 0;
+              return ta - tb;
+            });
+            // 构建 messages：按照时间顺序，每条 history 转成 user then assistant
+            const msgs = [];
+            history.forEach((h) => {
+              if (h.userMessage !== undefined && h.userMessage !== null) {
+                msgs.push({
+                  id: `u-${h.id || generateId()}`,
+                  role: 'user',
+                  content: h.userMessage,
+                  timestamp: h.createTime,
+                });
+              }
+              if (h.aiResponse !== undefined && h.aiResponse !== null) {
+                msgs.push({
+                  id: `a-${h.id || generateId()}`,
+                  role: 'assistant',
+                  content: h.aiResponse,
+                  timestamp: h.createTime,
+                });
+              }
+            });
+            // 直接设置 messages（按时间顺序，从上到下展示），并定位到最后一条
+            setMessages(msgs);
+            scrollToBottomImmediate();
+            setNewChatTitle(formattedHistory[0].title || '新对话');
+          }
+        }
+      } catch (e) {
+        console.error('获取聊天历史记录失败', e);
+        // 如果获取失败，设置为空数组
+        setChatHistory([]);
+      }
+    };
+
+    fetchChatHistory();
   }, []);
 
   // 获取知识库列表（供选择）
@@ -991,7 +1079,8 @@ const AskPage = () => {
     setSessionId(generateId());
     setMessages([]);
     setNewChatTitle(getRandomTitle());
-    message.success('已开始新会话');
+    // 重置所有历史记录为非活跃状态
+    setChatHistory((prev) => prev.map((chat) => ({ ...chat, active: false })));
   };
 
   // 发送消息
@@ -1017,9 +1106,16 @@ const AskPage = () => {
       content: userMessage,
     };
     setMessages((prev) => [...prev, newUserMessage]);
+    // 在下一帧确保 DOM 已更新后跳到底部以展示用户新消息
+    requestAnimationFrame(() => {
+      scrollToBottomImmediate();
+    });
 
     // 添加AI消息占位符
     const aiMessageId = Date.now() + 1;
+    // 标记当前正在流式的 AI 消息并开启流式状态
+    currentAiMessageIdRef.current = aiMessageId;
+    setIsStreaming(true);
     const newAiMessage = {
       id: aiMessageId,
       role: 'assistant',
@@ -1027,6 +1123,10 @@ const AskPage = () => {
       isStreaming: true,
     };
     setMessages((prev) => [...prev, newAiMessage]);
+    // 加入占位符后也确保滚到底部，显示用户消息与占位符
+    requestAnimationFrame(() => {
+      scrollToBottomImmediate();
+    });
 
     // 创建流式连接
     // 重置累积内容
@@ -1111,6 +1211,8 @@ const AskPage = () => {
           ),
         );
         setIsLoading(false);
+        setIsStreaming(false);
+        currentAiMessageIdRef.current = null;
       },
       // onComplete
       () => {
@@ -1120,8 +1222,87 @@ const AskPage = () => {
           ),
         );
         setIsLoading(false);
+        setIsStreaming(false);
+        currentAiMessageIdRef.current = null;
+
+        // 消息发送完成后刷新历史记录
+        const refreshChatHistory = async () => {
+          try {
+            const res = await getChatHistory();
+            if (res && res.data) {
+              const data = res.data.data || res.data;
+              const historyList = data || [];
+
+              // 转换后端数据为前端需要的格式
+              const formattedHistory = historyList.map((item) => ({
+                id: item.sessionId,
+                title: item.userMessage ? item.userMessage.substring(0, 8) : '新对话',
+                active: item.sessionId === sessionId, // 当前会话保持active状态
+                sessionId: item.sessionId,
+                userMessage: item.userMessage,
+                aiResponse: item.aiResponse,
+                createTime: item.createTime,
+              }));
+
+              setChatHistory(formattedHistory);
+            }
+          } catch (e) {
+            console.error('刷新聊天历史记录失败', e);
+          }
+        };
+
+        refreshChatHistory();
       },
     );
+  };
+
+  // 发送或暂停切换：如果当前处于流式响应中，点击此按钮将停止当前流；否则发送新消息
+  const handleSendOrStop = () => {
+    if (isStreaming && streamControllerRef.current) {
+      // 停止时仅发送最小信息：sessionId（stop 标志由 stopChat 自动添加）
+      const body = { sessionId };
+      (async () => {
+        try {
+          await stopChat(body);
+        } catch (e) {
+          console.warn('调用 stopChat 失败，继续本地中止', e);
+        }
+        // 临时屏蔽 AbortError 的全局未处理拒绝提示，避免浏览器抛出未捕获异常
+        const rejectionHandler = (evt) => {
+          try {
+            if (evt && evt.reason && evt.reason.name === 'AbortError') {
+              evt.preventDefault();
+            }
+          } catch (ex) {}
+        };
+        window.addEventListener('unhandledrejection', rejectionHandler);
+        try {
+          streamControllerRef.current.close();
+        } catch (e) {
+          console.warn('本地关闭流失败', e);
+        }
+        streamControllerRef.current = null;
+        // 在短时间后移除临时处理器
+        setTimeout(() => {
+          window.removeEventListener('unhandledrejection', rejectionHandler);
+        }, 1000);
+      })();
+      setIsStreaming(false);
+      setIsLoading(false);
+      const aiId = currentAiMessageIdRef.current;
+      if (aiId) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiId
+              ? { ...m, isStreaming: false, content: m.content || '（已停止）' }
+              : m,
+          ),
+        );
+      }
+      currentAiMessageIdRef.current = null;
+    } else {
+      handleSend();
+    }
   };
 
   // 下拉菜单项
@@ -1313,26 +1494,13 @@ const AskPage = () => {
                 搜索聊天
               </Button>
             </div>
-
-            <div className={styles['sidebar-actions']}>
-              <Button
-                type="text"
-                icon={<DatabaseOutlined />}
-                className={styles['action-btn']}
-              >
-                库
-              </Button>
-              <Button
-                type="text"
-                icon={<FolderOutlined />}
-                className={styles['action-btn']}
-              >
-                项目
-              </Button>
+            {/* 历史聊天标题单独作为一个块，位于 sidebar-header 之下 */}
+            <div className={styles['history-header']}>
+              <div className={styles['history-title-left']}>历史聊天</div>
+              <ClockCircleOutlined className={styles['history-title-icon']} />
             </div>
 
             <div className={styles['chat-history']}>
-              <div className={styles['history-title']}>你的聊天</div>
               <div className={styles['history-list']}>
                 {chatHistory.map((chat) => (
                   <div
@@ -1342,9 +1510,48 @@ const AskPage = () => {
                       setChatHistory((prev) =>
                         prev.map((c) => ({ ...c, active: c.id === chat.id })),
                       );
+                      // 加载选中会话的完整消息列表并展示（按 createTime 升序）
+                      setSessionId(chat.sessionId);
+                      const raw = chat.raw || {};
+                      const historyList = Array.isArray(raw.chatHistoryList) ? raw.chatHistoryList.slice() : [];
+                      historyList.sort((a, b) => {
+                        const ta = a.createTime ? new Date(a.createTime).getTime() : 0;
+                        const tb = b.createTime ? new Date(b.createTime).getTime() : 0;
+                        return ta - tb;
+                      });
+                      const newMsgs = [];
+                      historyList.forEach((h) => {
+                        if (h.userMessage !== undefined && h.userMessage !== null) {
+                          newMsgs.push({
+                            id: `u-${h.id || generateId()}`,
+                            role: 'user',
+                            content: h.userMessage,
+                            timestamp: h.createTime,
+                          });
+                        }
+                        if (h.aiResponse !== undefined && h.aiResponse !== null) {
+                          newMsgs.push({
+                            id: `a-${h.id || generateId()}`,
+                            role: 'assistant',
+                            content: h.aiResponse,
+                            timestamp: h.createTime,
+                          });
+                        }
+                      });
+                      setMessages(newMsgs);
+                      // 切换会话后定位到底部
+                      scrollToBottomImmediate();
+                      setNewChatTitle(chat.title);
                     }}
                   >
-                    {chat.title}
+                <MessageOutlined
+                  style={{
+                    marginRight: 8,
+                    fontSize: 14,
+                    color: chat.active ? '#1890ff' : '#666',
+                  }}
+                />
+                {chat.title}
                   </div>
                 ))}
               </div>
@@ -1398,47 +1605,6 @@ const AskPage = () => {
                 <DownOutlined className={styles['dropdown-icon']} />
               </div>
             </Dropdown>
-            <div className={styles['top-bar-center']}>
-              <Button
-                type="primary"
-                icon={<StarFilled />}
-                className={styles['plus-btn']}
-              >
-                鲸落
-              </Button>
-            </div>
-            <div className={styles['top-bar-right']}>
-              <Button
-                type="text"
-                icon={<ShareAltOutlined />}
-                className={styles['action-icon-btn']}
-              >
-                分享
-              </Button>
-              <Button
-                type="text"
-                icon={<UserAddOutlined />}
-                className={styles['action-icon-btn']}
-              >
-                添加人员
-              </Button>
-              <Dropdown
-                overlay={
-                  <Menu
-                    items={ellipsisMenuItems}
-                    className={styles['ellipsis-menu']}
-                  />
-                }
-                trigger={['click']}
-                placement="bottomRight"
-              >
-                <Button
-                  type="text"
-                  icon={<EllipsisOutlined />}
-                  className={`${styles['action-icon-btn']} ${styles['ellipsis-btn']}`}
-                />
-              </Dropdown>
-            </div>
           </div>
           <div className={styles['chat-content']}>
             <div className={styles['chat-messages']} ref={chatContainerRef}>
@@ -1689,8 +1855,10 @@ const AskPage = () => {
                     </div>
                     <div className={styles['right-actions']}>
                       <SendButton
-                        onClick={handleSend}
-                        disabled={!inputValue.trim() || isLoading}
+                        onClick={handleSendOrStop}
+                        disabled={!inputValue.trim() && !isStreaming}
+                        loading={isLoading && !isStreaming}
+                        isStreaming={isStreaming}
                       />
                     </div>
                   </div>
@@ -1712,15 +1880,37 @@ const AskPage = () => {
         destroyOnClose
         centered
       >
-        <div className={styles['search-modal-content']}>
-          <Input
-            className={styles['search-modal-input']}
-            placeholder="搜索聊天..."
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            allowClear
-          />
-          <div className={styles['search-modal-list']}>
+        {/* 将内容做成列布局：上部固定（搜索输入），下部可伸缩并滚动 */}
+        <div
+          className={styles['search-modal-content']}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '60vh',
+            minHeight: 300,
+            gap: 12,
+          }}
+        >
+          {/* 顶部固定区域（不随整体伸缩） */}
+          <div style={{ flex: '0 0 auto' }}>
+            <Input
+              className={styles['search-modal-input']}
+              placeholder="搜索聊天..."
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              allowClear
+            />
+          </div>
+
+          {/* 底部伸缩区：只在此区域内滚动/缩放 */}
+          <div
+            className={styles['search-modal-list']}
+            style={{
+              flex: '1 1 auto',
+              overflow: 'auto',
+              paddingRight: 8,
+            }}
+          >
             <div className={styles['search-section-title']}>历史聊天</div>
             {filteredHistory.length === 0 && (
               <div className={styles['search-empty']}>暂无匹配结果</div>

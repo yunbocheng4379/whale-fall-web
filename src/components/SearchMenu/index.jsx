@@ -199,6 +199,7 @@ const SearchMenu = ({ menuData }) => {
         <div className="searchBox">
           <Input
             ref={inputRef}
+            className="search-input"
             placeholder="搜索菜单: 支持名称/路径"
             prefix={<MyIcon type="icon-search" style={{ fontSize: 18 }} />}
             allowClear

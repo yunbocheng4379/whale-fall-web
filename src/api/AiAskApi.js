@@ -195,14 +195,77 @@ export function createChatStream(
   return {
     close: () => {
       isAborted = true;
-      abortController.abort();
-      if (reader) {
-        reader.cancel();
+      try {
+        abortController.abort();
+      } catch (e) {
+        // ignore
+      }
+      if (reader && typeof reader.cancel === 'function') {
+        // cancel may return a promise that rejects with AbortError; swallow it to avoid unhandled rejection
+        try {
+          const cancelResult = reader.cancel();
+          if (cancelResult && typeof cancelResult.then === 'function') {
+            cancelResult.catch(() => {});
+          }
+        } catch (ex) {
+          // ignore
+        }
       }
     },
   };
 }
 
+/**
+ * 获取聊天历史记录
+ * @returns {Promise} 返回历史记录列表
+ */
+export function getChatHistory() {
+  const baseURL = getBaseURL();
+  const token = getToken();
+
+  return fetch(`${baseURL}/ai/chat/history`, {
+    method: 'GET',
+    headers: {
+      [TOKEN_KEY]: token || '',
+      'Content-Type': 'application/json',
+    },
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    });
+}
+
+/**
+ * 请求后端停止当前会话的流式生成（可选：当客户端需要显式通知服务器停止）
+ * @param {string} sessionId
+ * @returns {Promise}
+ */
+export function stopChat(body = {}) {
+  // 使用相同的 /ai/chat 接口传递 stop 标志或其他请求体，后端可根据 stop=true 来判断为中止命令
+  const baseURL = getBaseURL();
+  const token = getToken();
+  const reqBody = { ...body, stop: true };
+  return fetch(`${baseURL}/ai/chat`, {
+    method: 'POST',
+    headers: {
+      [TOKEN_KEY]: token || '',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(reqBody),
+  }).then((response) => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    // 返回可能是流式响应或普通 JSON；这里尝试解析为 JSON（后端应返回确认）
+    return response.json().catch(() => ({}));
+  });
+}
+
 export default {
   createChatStream,
+  getChatHistory,
+  stopChat,
 };

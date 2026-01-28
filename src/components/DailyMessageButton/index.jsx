@@ -12,7 +12,7 @@ import {
   Tooltip,
   message,
 } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './index.less';
 
 const DailyMessageButton = () => {
@@ -75,8 +75,8 @@ const DailyMessageButton = () => {
       throw error;
     }
   };
-  // 处理鼠标悬停
-  const handleMouseEnter = async () => {
+  // 打开下拉并加载消息（复用此前鼠标悬停的加载逻辑）
+  const handleOpenDropdown = async () => {
     // 检查缓存是否有效
     if (!isCacheExpired(cacheData.timestamp)) {
       // 使用缓存数据
@@ -118,9 +118,13 @@ const DailyMessageButton = () => {
     }
   };
 
-  // 处理鼠标离开
-  const handleMouseLeave = () => {
-    setIsDropdownVisible(false);
+  // 处理切换（点击）
+  const handleToggle = async () => {
+    if (isDropdownVisible) {
+      setIsDropdownVisible(false);
+      return;
+    }
+    await handleOpenDropdown();
   };
 
   // 获取消息状态信息（带重试机制）
@@ -242,11 +246,35 @@ const DailyMessageButton = () => {
     }
   };
 
+  const rootRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  // 点击外部关闭下拉
+  useEffect(() => {
+    if (!isDropdownVisible) return;
+    const handleDocClick = (e) => {
+      const rootEl = rootRef.current;
+      const dropEl = dropdownRef.current;
+      if (rootEl && rootEl.contains(e.target)) return;
+      if (dropEl && dropEl.contains(e.target)) return;
+      setIsDropdownVisible(false);
+    };
+    document.addEventListener('mousedown', handleDocClick);
+    return () => document.removeEventListener('mousedown', handleDocClick);
+  }, [isDropdownVisible]);
+
   return (
     <div
+      ref={rootRef}
       className="daily-message-button"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onClick={handleToggle}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          handleToggle();
+        }
+      }}
     >
       <Tooltip
         title={
