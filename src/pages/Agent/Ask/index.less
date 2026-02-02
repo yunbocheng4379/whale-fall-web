@@ -569,6 +569,9 @@
               border-color 0.18s ease,
               box-shadow 0.18s ease,
               background 0.18s ease;
+            // 限制容器最大高度，防止输入内容过多时容器无限增长
+            max-height: 300px;
+            overflow: hidden;
 
             &:focus-within {
               border-color: #1890ff;
@@ -1020,6 +1023,88 @@
               }
             }
           }
+
+          /* follow-up suggestions container (rendered under assistant's answer) */
+          .follow-ups {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-start;
+          }
+
+          .follow-separator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 12px 0;
+            padding: 4px 6px;
+          }
+
+          .follow-sep-icon {
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            background: transparent;
+            color: #666;
+            font-size: 16px;
+            transition:
+              background 0.12s ease,
+              transform 0.08s ease,
+              color 0.12s ease;
+          }
+
+          .follow-sep-icon:hover {
+            background: #f5f7ff;
+            color: #1f6feb;
+            transform: translateY(-2px);
+          }
+
+          .follow-up-item {
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: #f5f5f5;
+            border-radius: 20px;
+            cursor: pointer;
+            transition:
+              background 0.15s ease,
+              transform 0.08s ease;
+
+            /* box-shadow removed per design */
+            width: auto;
+            max-width: min(760px, 86%);
+            align-self: flex-start;
+          }
+
+          .follow-up-item:hover {
+            background: #eef3ff;
+            transform: none;
+          }
+
+          .follow-up-text {
+            color: #333;
+            font-size: 14px;
+            line-height: 18px;
+            overflow: visible;
+            text-overflow: initial;
+            white-space: normal;
+            word-break: break-word;
+            margin-right: 12px;
+            flex: none;
+            max-width: calc(100% - 36px);
+          }
+
+          .follow-up-icon {
+            color: #888;
+            font-size: 14px;
+            margin-left: 12px;
+            flex-shrink: 0;
+          }
         }
       }
 
@@ -1070,6 +1155,9 @@
             font-size: 15px;
             color: #333;
             padding: 0;
+            max-height: 200px; // 最大高度限制
+            overflow-y: auto; // 超出最大高度后显示滚动条
+            resize: none; // 禁用手动调整大小
 
             :global {
               .ant-input {
@@ -1553,46 +1641,6 @@
     align-items: center;
     gap: 12px;
     background: transparent;
-  }
-
-  .editableInput {
-    flex: 1;
-    min-height: 56px;
-    border-radius: 999px;
-    padding: 12px 18px;
-    background: #f5f5f5;
-    font-size: 21px;
-    line-height: 24px;
-    color: #333;
-    outline: none;
-    border: none !important;
-    box-shadow: none !important;
-
-    /* remove potential top/bottom outer borders from Ant inputs */
-    border-top: none !important;
-    border-bottom: none !important;
-    max-height: 120px;
-    overflow-y: auto;
-    word-wrap: break-word;
-    white-space: pre-wrap;
-    -webkit-overflow-scrolling: touch;
-    // 确保 focus 时没有边框或阴影
-    &:focus,
-    &:focus-visible {
-      border: none !important;
-      outline: none !important;
-      box-shadow: none !important;
-      background: #f5f5f5;
-      border-top: none !important;
-      border-bottom: none !important;
-    }
-
-    :global {
-      .ant-input {
-        font-size: 21px !important;
-        line-height: 24px !important;
-      }
-    }
   }
 
   .inputActions {

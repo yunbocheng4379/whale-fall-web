@@ -317,7 +317,10 @@ const DailyMessageButton = () => {
 
       {/* 下拉消息卡片 */}
       {isDropdownVisible && (
-        <div className="message-dropdown">
+        <div
+          className="message-dropdown"
+          onClick={(e) => e.stopPropagation()}
+        >
           <Card
             title={
               <div className="dropdown-header">
@@ -333,7 +336,10 @@ const DailyMessageButton = () => {
                       size="small"
                       icon={<ReloadOutlined />}
                       loading={isLoading}
-                      onClick={refreshMessages}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        refreshMessages();
+                      }}
                       style={{ marginLeft: 8 }}
                     />
                   </Tooltip>
@@ -352,7 +358,11 @@ const DailyMessageButton = () => {
               <List
                 dataSource={messages}
                 renderItem={(item) => (
-                  <List.Item className="message-item" key={item.id}>
+                  <List.Item
+                    className="message-item"
+                    key={item.id}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="message-card-wrapper">
                       {/* 状态指示条 */}
                       <div

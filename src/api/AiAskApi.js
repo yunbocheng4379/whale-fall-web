@@ -196,7 +196,7 @@ export function createChatStream(
     close: () => {
       isAborted = true;
       try {
-        abortController.abort();
+      abortController.abort();
       } catch (e) {
         // ignore
       }
@@ -264,8 +264,35 @@ export function stopChat(body = {}) {
   });
 }
 
+/**
+ * 删除聊天消息
+ * @param {string} sessionId - 会话ID
+ * @param {string} messageId - 消息ID
+ * @returns {Promise}
+ */
+export function deleteChatMessage(sessionId, id) {
+  const baseURL = getBaseURL();
+  const token = getToken();
+
+  return fetch(`${baseURL}/ai/chat/message`, {
+    method: 'DELETE',
+    headers: {
+      [TOKEN_KEY]: token || '',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ sessionId, id }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    });
+}
+
 export default {
   createChatStream,
   getChatHistory,
   stopChat,
+  deleteChatMessage,
 };

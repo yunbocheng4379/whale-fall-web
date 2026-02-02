@@ -1,30 +1,27 @@
-
-import React, { useEffect, useState } from 'react';
+import PromptApi from '@/api/PromptApi';
 import { withAuth } from '@/components/Auth';
-import {
-  PageContainer,
-} from '@ant-design/pro-components';
+import { MyIcon } from '@/utils/iconUtil';
+import { DeleteOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons';
+import { PageContainer } from '@ant-design/pro-components';
 import {
   Button,
   Card,
-  Row,
   Col,
-  Tag,
   Drawer,
+  Empty,
   Form,
   Input,
   InputNumber,
-  Select,
   message,
   Modal,
+  Row,
+  Select,
   Space,
-  Empty,
   Spin,
+  Tag,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
-import { MyIcon } from '@/utils/iconUtil';
-import PromptApi from '@/api/PromptApi';
 import moment from 'moment';
+import { useEffect, useState } from 'react';
 
 const { TextArea, Search } = Input;
 const { Option } = Select;
@@ -37,7 +34,7 @@ const Prompt = () => {
   const [currentPrompt, setCurrentPrompt] = useState(null);
   const [form] = Form.useForm();
   const [searchText, setSearchText] = useState('');
-  
+
   const getTagColor = (type) => {
     const t = (type || '').toString();
     // support backend codes and Chinese labels
@@ -139,12 +136,16 @@ const Prompt = () => {
         }
         // fallback to client-side filtering on current list
         const lower = key.toLowerCase();
-        const filtered = (prompts || []).filter((p) => (p.name || '').toLowerCase().includes(lower));
+        const filtered = (prompts || []).filter((p) =>
+          (p.name || '').toLowerCase().includes(lower),
+        );
         setPrompts(filtered);
       })();
     } catch (e) {
       const lower = key.toLowerCase();
-      const filtered = (prompts || []).filter((p) => (p.name || '').toLowerCase().includes(lower));
+      const filtered = (prompts || []).filter((p) =>
+        (p.name || '').toLowerCase().includes(lower),
+      );
       setPrompts(filtered);
     }
   };
@@ -162,7 +163,7 @@ const Prompt = () => {
     setDrawerTitle('编辑提示词');
     setCurrentPrompt(prompt);
     try {
-      if(prompt.id === null || prompt.id === undefined){
+      if (prompt.id === null || prompt.id === undefined) {
         message.error('提示词ID不能为空');
         return;
       }
@@ -175,8 +176,13 @@ const Prompt = () => {
           name: promptData.name,
           description: promptData.description,
           template: promptData.template,
-          params: promptData.params ? JSON.stringify(promptData.params, null, 2) : '',
-          version: promptData.version !== undefined && promptData.version !== null ? promptData.version : 1,
+          params: promptData.params
+            ? JSON.stringify(promptData.params, null, 2)
+            : '',
+          version:
+            promptData.version !== undefined && promptData.version !== null
+              ? promptData.version
+              : 1,
         });
       }
     } catch (e) {
@@ -261,16 +267,29 @@ const Prompt = () => {
     <PageContainer title={false}>
       <div style={{ padding: '12px 24px' }}>
         <div style={{ padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: 12,
+            }}
+          >
             <div>
               <div style={{ color: '#8c8c8c', marginTop: 0 }}>
                 总计：<strong>{prompts.length}</strong> 个提示词&nbsp;&nbsp;
-                最近更新：<strong>{prompts.length > 0 ? moment(prompts[0].updateTime).format('YYYY-MM-DD') : '-'}</strong>
+                最近更新：
+                <strong>
+                  {prompts.length > 0
+                    ? moment(prompts[0].updateTime).format('YYYY-MM-DD')
+                    : '-'}
+                </strong>
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               <Search
+                className="force-border-search"
                 placeholder="搜索提示词..."
                 onSearch={(value) => handleSearch(value)}
                 allowClear
@@ -308,18 +327,26 @@ const Prompt = () => {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 6px 18px rgba(91,140,255,0.08)';
+                      e.currentTarget.style.boxShadow =
+                        '0 6px 18px rgba(91,140,255,0.08)';
                       e.currentTarget.style.border = '1px solid #5b8cff';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'none';
                       e.currentTarget.style.boxShadow = 'none';
-                      e.currentTarget.style.border = '1px solid rgba(16,39,112,0.04)';
+                      e.currentTarget.style.border =
+                        '1px solid rgba(16,39,112,0.04)';
                     }}
                     bodyStyle={{ padding: '16px' }}
                   >
                     {/* 卡片头部 */}
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        marginBottom: '12px',
+                      }}
+                    >
                       <div
                         style={{
                           width: '32px',
@@ -333,7 +360,10 @@ const Prompt = () => {
                           flexShrink: 0,
                         }}
                       >
-                        <MyIcon type="icon-prompt" style={{ fontSize: 16, color: '#fff' }} />
+                        <MyIcon
+                          type="icon-prompt"
+                          style={{ fontSize: 16, color: '#fff' }}
+                        />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div
@@ -357,7 +387,9 @@ const Prompt = () => {
 
                     {/* 类型标签 */}
                     <div style={{ marginBottom: '8px' }}>
-                      <Tag color={getTagColor(prompt.type)}>{getTypeLabel(prompt.type)}</Tag>
+                      <Tag color={getTagColor(prompt.type)}>
+                        {getTypeLabel(prompt.type)}
+                      </Tag>
                     </div>
 
                     {/* 描述 */}
@@ -379,12 +411,31 @@ const Prompt = () => {
                     </div>
 
                     {/* 更新时间 */}
-                    <div style={{ fontSize: '12px', color: '#bfbfbf', marginBottom: '12px' }}>
-                      更新时间：{moment(prompt.updateTime).format('YYYY-MM-DD HH:mm')}
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        color: '#bfbfbf',
+                        marginBottom: '12px',
+                      }}
+                    >
+                      更新时间：
+                      {moment(prompt.updateTime).format('YYYY-MM-DD HH:mm')}
                     </div>
-                    <hr style={{ border: 'none', borderTop: '1px solid #e8e8e8', margin: '12px 0' }} />
+                    <hr
+                      style={{
+                        border: 'none',
+                        borderTop: '1px solid #e8e8e8',
+                        margin: '12px 0',
+                      }}
+                    />
                     {/* 操作按钮 */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
                       <div style={{ display: 'flex', gap: '4px' }}>
                         <Button
                           type="text"
@@ -418,7 +469,14 @@ const Prompt = () => {
             <Col span={24}>
               <div style={{ padding: 80, textAlign: 'center' }}>
                 <Empty description={false} />
-                <div style={{ marginTop: 12, fontSize: 18, color: '#17233b', fontWeight: 600 }}>
+                <div
+                  style={{
+                    marginTop: 12,
+                    fontSize: 18,
+                    color: '#17233b',
+                    fontWeight: 600,
+                  }}
+                >
                   暂无提示词
                 </div>
                 <div style={{ marginTop: 8, color: '#8c8c8c' }}>
@@ -464,7 +522,7 @@ const Prompt = () => {
               label="提示词类型"
               rules={[{ required: true, message: '请选择提示词类型' }]}
             >
-            <Select placeholder="请选择类型">
+              <Select placeholder="请选择类型">
                 <Option value="GENERAL">通用</Option>
                 <Option value="ASK">问答</Option>
                 <Option value="WRITING">写作</Option>
@@ -479,7 +537,10 @@ const Prompt = () => {
               label="唯一标识"
               rules={[
                 { required: true, message: '请输入唯一标识' },
-                { pattern: /^[a-zA-Z_][a-zA-Z0-9_]*$/, message: '标识只能包含字母、数字、下划线，且不能以数字开头' }
+                {
+                  pattern: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
+                  message: '标识只能包含字母、数字、下划线，且不能以数字开头',
+                },
               ]}
             >
               <Input placeholder="请输入唯一标识，如 general_qa" />
@@ -500,7 +561,8 @@ const Prompt = () => {
                 { required: true, message: '请输入版本号（整数，例如 1）' },
                 {
                   validator: (_, value) => {
-                    if (value === undefined || value === null || value === '') return Promise.reject(new Error('请输入版本号'));
+                    if (value === undefined || value === null || value === '')
+                      return Promise.reject(new Error('请输入版本号'));
                     if (!Number.isInteger(value) || value <= 0) {
                       return Promise.reject(new Error('版本号必须为正整数'));
                     }
@@ -512,14 +574,8 @@ const Prompt = () => {
               <InputNumber min={1} step={1} style={{ width: '100%' }} />
             </Form.Item>
 
-            <Form.Item
-              name="description"
-              label="使用说明"
-            >
-              <TextArea
-                placeholder="请输入使用说明（可选）"
-                rows={3}
-              />
+            <Form.Item name="description" label="使用说明">
+              <TextArea placeholder="请输入使用说明（可选）" rows={3} />
             </Form.Item>
 
             <Form.Item
@@ -544,10 +600,12 @@ const Prompt = () => {
                       JSON.parse(value);
                       return Promise.resolve();
                     } catch {
-                      return Promise.reject(new Error('变量定义必须是有效的JSON格式'));
+                      return Promise.reject(
+                        new Error('变量定义必须是有效的JSON格式'),
+                      );
                     }
-                  }
-                }
+                  },
+                },
               ]}
             >
               <TextArea

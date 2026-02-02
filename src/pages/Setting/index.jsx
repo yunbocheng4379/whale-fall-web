@@ -153,7 +153,7 @@ const SettingPage = () => {
       await AccountApi.getCurrentUserInfo(getUsername());
     if (success) {
       let userInfo = data.data;
-      setThirdPartyData(userInfo?.userAuthList);
+      setThirdPartyData(userInfo?.userAuthEntityList);
       setOldPhone(userInfo?.phone);
       setOldEmail(userInfo?.email);
       setUserId(userInfo?.id);

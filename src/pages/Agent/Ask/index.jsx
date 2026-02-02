@@ -1,4 +1,4 @@
-import { createChatStream, getChatHistory, stopChat } from '@/api/AiAskApi';
+import { createChatStream, getChatHistory, stopChat, deleteChatMessage } from '@/api/AiAskApi';
 import DocumentApi from '@/api/DocumentApi';
 import KnowledgeApi from '@/api/KnowledgeApi';
 import ModelApi from '@/api/ModelApi';
@@ -14,7 +14,6 @@ import {
   DeleteOutlined,
   DownOutlined,
   EditOutlined,
-  EllipsisOutlined,
   MessageOutlined,
   ClockCircleOutlined,
   FileTextOutlined,
@@ -28,10 +27,16 @@ import {
   RightOutlined as RightArrowOutlined,
   RightOutlined,
   SearchOutlined as SearchIcon,
-  ShareAltOutlined,
   ShoppingOutlined,
   StarFilled,
   UserAddOutlined,
+  CopyOutlined,
+  ReloadOutlined,
+  SoundOutlined,
+  LikeOutlined,
+  DislikeOutlined,
+  LikeFilled,
+  DislikeFilled,
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import {
@@ -42,8 +47,10 @@ import {
   Menu,
   message,
   Modal,
+  Popconfirm,
   Spin,
   Tabs,
+  Tooltip,
   Upload,
 } from 'antd';
 import moment from 'moment';
@@ -52,35 +59,49 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
 
+const { TextArea } = Input;
+
 // 生成唯一ID
 const generateId = () => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-const extractStreamText = (chunk) => {
-  if (!chunk) return '';
+// 解析后端返回的流式 chunk，可能是 {data: "..."} 也可能是 {followUps: [...]}
+const parseStreamChunk = (chunk) => {
+  if (!chunk) return { content: '', followUps: null };
   try {
+    // 如果是字符串，尝试解析为 JSON
     if (typeof chunk === 'string') {
       const obj = JSON.parse(chunk);
-      if (obj && typeof obj.data === 'string') {
-        return obj.data;
-      }
-      if (obj && typeof obj.d === 'string') {
-        return obj.d;
+      if (obj) {
+        if (Array.isArray(obj.followUps)) {
+          return { content: '', followUps: obj.followUps };
+        }
+        if (typeof obj.data === 'string') {
+          return { content: obj.data, followUps: null };
+        }
+        if (typeof obj.d === 'string') {
+          return { content: obj.d, followUps: null };
+        }
       }
     }
+
+    // 已经是对象
     if (typeof chunk === 'object' && chunk !== null) {
+      if (Array.isArray(chunk.followUps)) {
+        return { content: '', followUps: chunk.followUps };
+      }
       if (typeof chunk.data === 'string') {
-        return chunk.data;
+        return { content: chunk.data, followUps: null };
       }
       if (typeof chunk.d === 'string') {
-        return chunk.d;
+        return { content: chunk.d, followUps: null };
       }
     }
   } catch (e) {
     console.warn('Failed to parse chunk:', chunk, e);
   }
-  return '';
+  return { content: '', followUps: null };
 };
 
 const AskPage = () => {
@@ -93,7 +114,8 @@ const AskPage = () => {
     titleOptions[Math.floor(Math.random() * titleOptions.length)];
 
   const [messages, setMessages] = useState([]);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(''); // 输入框内容（受控组件，确保发送后清空且不回显）
+  const [hasInputValue, setHasInputValue] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState(() => generateId());
   const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -106,6 +128,7 @@ const AskPage = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true); // 初始加载历史记录的状态
   const currentAiMessageIdRef = useRef(null);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -115,6 +138,8 @@ const AskPage = () => {
   const chatInputRef = useRef(null);
   const leftActionsRef = useRef(null);
   const addFileWrapperRef = useRef(null);
+  const isLoadingRef = useRef(isLoading); // 保存最新的 isLoading 状态
+  const isStreamingRef = useRef(isStreaming); // 保存最新的 isStreaming 状态
   const [computedGap, setComputedGap] = useState(null);
 
   // 计算 left-actions 与 add-file wrapper 两处 gap 值，优先取较小的可用值
@@ -142,6 +167,16 @@ const AskPage = () => {
     return () => window.removeEventListener('resize', calc);
   }, []);
 
+  // 同步 isLoading 状态到 ref，供回调函数使用
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
+
+  // 同步 isStreaming 状态到 ref，供回调函数使用
+  useEffect(() => {
+    isStreamingRef.current = isStreaming;
+  }, [isStreaming]);
+
   // 选择/上传文件相关状态
   const [selectDocModalVisible, setSelectDocModalVisible] = useState(false);
   const [selectedKnowledgeDocIds, setSelectedKnowledgeDocIds] = useState([]);
@@ -160,7 +195,8 @@ const AskPage = () => {
   const [uploadList, setUploadList] = useState([]);
   const [uploadingCount, setUploadingCount] = useState(0);
   // 动态统计：当前 modal 内外合并的已选择数量（用于 footer 显示）
-  const combinedKnowledgeCount = (() => {
+  // 优化：使用 useMemo 避免每次渲染都重新计算
+  const combinedKnowledgeCount = useMemo(() => {
     try {
       const s = new Set();
       (selectedKnowledgeDocIds || []).forEach((id) => s.add(id));
@@ -177,7 +213,7 @@ const AskPage = () => {
       );
       return (selectedKnowledgeDocIds || []).length + modalTotal;
     }
-  })();
+  }, [selectedKnowledgeDocIds, modalSelectedByKb]);
   const combinedLocalCount = (selectedLocalTempFileIds || []).length;
 
   // 本地上传相关函数
@@ -231,30 +267,56 @@ const AskPage = () => {
     }
 
     setIsLoading(true);
+    // 清空输入框（受控组件方式，确保发送后清空且不会回显）
     setInputValue('');
+    setHasInputValue(false);
 
     const userMessage = question;
+    // 使用临时ID（流式完成后会用真实ID替换）
+    const tempUserId = `temp-${Date.now()}`;
     const newUserMessage = {
-      id: Date.now(),
+      id: tempUserId,
       role: 'user',
       content: userMessage,
+      tempId: tempUserId, // 保存临时ID用于后续替换
     };
-    setMessages((prev) => [...prev, newUserMessage]);
+    // 使用函数式更新，并在更新前检查是否已存在相同内容的用户消息
+    setMessages((prev) => {
+      // 检查是否已存在相同内容的用户消息（防止重复添加）
+      const exists = prev.some(
+        (m) => m.role === 'user' && m.content === userMessage && !m.tempId,
+      );
+      if (exists) {
+        return prev;
+      }
+      return [...prev, newUserMessage];
+    });
     // 确保视图跳到用户消息（下一帧让 DOM 更新后再定位）
     requestAnimationFrame(() => {
       scrollToBottomImmediate();
     });
-    const aiMessageId = Date.now() + 1;
+    const tempAiId = `temp-ai-${Date.now()}`;
+    const aiMessageId = tempAiId;
     // 标记当前正在流式的 AI 消息并开启流式状态
     currentAiMessageIdRef.current = aiMessageId;
+    currentAiMessageIdRef.currentTempId = tempAiId; // 保存临时ID
     setIsStreaming(true);
     const newAiMessage = {
       id: aiMessageId,
       role: 'assistant',
       content: '',
       isStreaming: true,
+      tempId: tempAiId, // 保存临时ID用于后续替换
     };
-    setMessages((prev) => [...prev, newAiMessage]);
+    // 使用函数式更新，并在更新前检查是否已存在 AI 消息占位符
+    setMessages((prev) => {
+      // 检查是否已存在相同ID的AI消息（防止重复添加）
+      const exists = prev.some((m) => m.id === aiMessageId);
+      if (exists) {
+        return prev;
+      }
+      return [...prev, newAiMessage];
+    });
     // AI 占位符加入后也确保定位到底部以展示用户消息与占位符
     requestAnimationFrame(() => {
       scrollToBottomImmediate();
@@ -307,7 +369,17 @@ const AskPage = () => {
       knowledgeBaseIdForRequest,
       docParams,
       (chunk) => {
-        const piece = extractStreamText(chunk);
+        const parsed = parseStreamChunk(chunk);
+        if (parsed.followUps && parsed.followUps.length > 0) {
+          // attach followUps to the current AI message
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === aiMessageId ? { ...msg, followUps: parsed.followUps } : msg,
+            ),
+          );
+          return;
+        }
+        const piece = parsed.content || '';
         accumulatedContentRef.current += piece;
 
         setMessages((prev) =>
@@ -340,6 +412,7 @@ const AskPage = () => {
         setIsLoading(false);
         setIsStreaming(false);
         currentAiMessageIdRef.current = null;
+        currentAiMessageIdRef.currentTempId = null;
       },
       () => {
         setMessages((prev) =>
@@ -349,88 +422,79 @@ const AskPage = () => {
         );
         setIsLoading(false);
         setIsStreaming(false);
+        const tempIdForReplace = currentAiMessageIdRef.currentTempId || aiMessageId;
         currentAiMessageIdRef.current = null;
+        currentAiMessageIdRef.currentTempId = null;
+
+        // 刷新历史记录并用真实ID替换临时ID
+        const refreshChatHistory = async () => {
+          try {
+            const res = await getChatHistory();
+            if (res && res.data) {
+              const data = res.data.data || res.data;
+              const historyList = data || [];
+
+              // 转换后端数据为前端需要的格式
+              const formattedHistory = historyList.map((item) => ({
+                id: item.sessionId,
+                title: item.userMessage ? item.userMessage.substring(0, 8) : '新对话',
+                active: item.sessionId === sessionId,
+                sessionId: item.sessionId,
+                userMessage: item.userMessage,
+                aiResponse: item.aiResponse,
+                createTime: item.createTime,
+              }));
+
+              setChatHistory(formattedHistory);
+
+              // 用真实ID替换临时ID - 找到当前会话的最新消息记录
+              const currentSessionHistory = historyList.find(
+                (item) => item.sessionId === sessionId,
+              );
+              if (currentSessionHistory) {
+                // 直接更新消息的ID，不做复杂的去重逻辑
+                const userOriginalId = `user-${currentSessionHistory.id}`;
+                const aiOriginalId = `assistant-${currentSessionHistory.id}`;
+
+                setMessages((prev) => {
+                  let hasUpdates = false;
+                  const newMessages = prev.map((msg) => {
+                    if (msg.tempId) {
+                      hasUpdates = true;
+                      if (msg.role === 'user') {
+                        return { ...msg, id: userOriginalId, tempId: undefined };
+                      }
+                      if (msg.role === 'assistant') {
+                        return { ...msg, id: aiOriginalId, tempId: undefined };
+                      }
+                    }
+                    return msg;
+                  });
+                  // 如果没有临时消息需要更新，直接返回原数组
+                  return hasUpdates ? newMessages : prev;
+                });
+              }
+            }
+          } catch (e) {
+            console.error('刷新聊天历史记录失败', e);
+          }
+        };
+
+        refreshChatHistory();
       },
     );
   };
 
   // 判断是否为新聊天（没有消息）
-  const isNewChat = messages.length === 0;
-  const [newIsSingleLine, setNewIsSingleLine] = useState(true);
-  const [chatIsSingleLine, setChatIsSingleLine] = useState(true);
-  const prevNewSingleRef = useRef(true);
-  const prevChatSingleRef = useRef(true);
+  const isNewChat = useMemo(() => messages.length === 0, [messages]);
 
-  // 处理输入框变化（contentEditable div）
-  const handleInputChange = useCallback((e) => {
-    const el = e.target;
-    const text = el.textContent || '';
-    const trimmedText = text.trim();
-    setInputValue(trimmedText);
 
-    // 自动调整高度（针对当前元素）
-    el.style.height = 'auto';
-    const scrollHeight = el.scrollHeight;
-    const lineHeight = 20; // 与样式中 line-height 保持一致
-    const maxHeight = lineHeight * 6; // 最多6行
-    el.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
-
-    const isSingle = scrollHeight <= lineHeight + 4;
-    if (el === inputRef.current) {
-      setNewIsSingleLine(isSingle);
-      // 如果单行状态发生变化，恢复焦点并将光标置于末尾
-      if (prevNewSingleRef.current !== isSingle) {
-        requestAnimationFrame(() => {
-          inputRef.current?.focus();
-          setCaretToEnd(inputRef.current);
-          prevNewSingleRef.current = isSingle;
-        });
-      }
-    } else if (el === chatInputRef.current) {
-      setChatIsSingleLine(isSingle);
-      if (prevChatSingleRef.current !== isSingle) {
-        requestAnimationFrame(() => {
-          chatInputRef.current?.focus();
-          setCaretToEnd(chatInputRef.current);
-          prevChatSingleRef.current = isSingle;
-        });
-      }
-    }
-  }, []);
-
-  // 处理 TextArea change（用于 Antd Input.TextArea）
-  const handleTextAreaChange = useCallback((e) => {
-    const ta = e.target;
-    const value = ta.value;
+  // 监听输入框内容变化（控制发送按钮状态，同时更新受控组件的值）
+  const handleInputChange = (e) => {
+    const value = e.target.value;
     setInputValue(value);
-
-    // 判断是否为单行（根据 scrollHeight）
-    const lineHeight = 20;
-    const scrollHeight = ta.scrollHeight;
-    const isSingle = scrollHeight <= lineHeight + 4;
-
-    // 如果是 new chat textarea
-    if (
-      ta === inputRef.current ||
-      ta === chatInputRef.current?.resizableTextArea?.textArea
-    ) {
-      // decide which ref based on identity
-    }
-
-    // update both states conservatively
-    setNewIsSingleLine(isSingle);
-    setChatIsSingleLine(isSingle);
-
-    // restore caret if layout changed
-    if (prevNewSingleRef.current !== isSingle) {
-      requestAnimationFrame(() => {
-        try {
-          ta.focus();
-        } catch (err) {}
-        prevNewSingleRef.current = isSingle;
-      });
-    }
-  }, []);
+    setHasInputValue(value.trim().length > 0);
+  };
 
   // 处理键盘事件
   const handleKeyDown = useCallback((e) => {
@@ -440,82 +504,7 @@ const AskPage = () => {
       handleSend();
     }
     // Shift + Enter 允许默认行为（换行）
-  }, []);
-
-  // 处理粘贴事件，只保留纯文本
-  const handlePaste = useCallback((e) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text/plain');
-    const selection = window.getSelection();
-    if (selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      range.deleteContents();
-      const textNode = document.createTextNode(text);
-      range.insertNode(textNode);
-      selection.collapseToEnd();
-      // 不再手动触发原生 input 事件（使用 TextArea 的 onChange/受控方式）
-    }
-  }, []);
-
-  // 将光标设置到输入框末尾（兼容 textarea 与 contentEditable）
-  const setCursorToStart = useCallback(() => {
-    const getDom = (ref) => {
-      if (!ref) return null;
-      if (ref.resizableTextArea && ref.resizableTextArea.textArea)
-        return ref.resizableTextArea.textArea;
-      if (ref.textArea) return ref.textArea;
-      if (ref instanceof HTMLElement) return ref;
-      return null;
-    };
-    const el = getDom(inputRef.current);
-    if (el) {
-      requestAnimationFrame(() => {
-        try {
-          if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-            const len = el.value?.length || 0;
-            el.setSelectionRange(len, len);
-            el.focus();
-          } else {
-            const range = document.createRange();
-            const selection = window.getSelection();
-            if (selection) {
-              range.selectNodeContents(el);
-              range.collapse(false);
-              selection.removeAllRanges();
-              selection.addRange(range);
-            }
-          }
-        } catch (err) {
-          // ignore
-        }
-      });
-    }
-  }, []);
-
-  // 将光标设置到元素末尾
-  const setCaretToEnd = (el) => {
-    if (!el) return;
-    requestAnimationFrame(() => {
-      try {
-        if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-          // textarea/input
-          const len = el.value?.length || 0;
-          el.setSelectionRange(len, len);
-          el.focus();
-        } else {
-          const range = document.createRange();
-          range.selectNodeContents(el);
-          range.collapse(false);
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(range);
-          if (typeof el.focus === 'function') el.focus();
-        }
-      } catch (err) {
-        // ignore
-      }
-    });
-  };
+  }, [handleSend]);
 
 
   // 直接跳到底部（无动画），用于展示历史时定位到最后一条或发送新消息后定位
@@ -530,7 +519,8 @@ const AskPage = () => {
     });
   };
 
-  // 初始化 contentEditable div 的高度和光标位置
+  // 初始化输入框的高度（受控组件模式下，inputValue 初始值为空字符串，无需额外清空）
+  // 优化：移除 setTimeout 和 setCursorToStart，避免初始化时的性能开销
   useEffect(() => {
     const getDom = (ref) => {
       if (!ref) return null;
@@ -548,68 +538,9 @@ const AskPage = () => {
       try {
         el.style.height = '24px';
       } catch (err) {}
-      // 清空内容：textarea使用value，contentEditable使用textContent
-      if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-        try {
-          el.value = '';
-        } catch (err) {}
-      } else {
-        try {
-          el.textContent = '';
-        } catch (err) {}
-      }
-      // 延迟设置光标，确保 DOM 已完全渲染
-      setTimeout(() => {
-        setCursorToStart();
-      }, 10);
     }
   }, []);
 
-  // 同步 inputValue 值到 contentEditable div（仅在外部更新 inputValue 时）
-  useEffect(() => {
-    const getDom = (ref) => {
-      if (!ref) return null;
-      if (ref.resizableTextArea && ref.resizableTextArea.textArea)
-        return ref.resizableTextArea.textArea;
-      if (ref.textArea) return ref.textArea;
-      if (ref instanceof HTMLElement) return ref;
-      return null;
-    };
-    const el = getDom(inputRef.current);
-    if (el) {
-      const currentText =
-        el.tagName === 'TEXTAREA' || el.tagName === 'INPUT'
-          ? (el.value || '').trim()
-          : (el.textContent || '').trim();
-      // 只在内容不同时更新，避免用户输入时的冲突
-      if (currentText !== inputValue) {
-        const wasFocused = document.activeElement === el;
-        // 如果 inputValue 为空，清空输入框内容
-        if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-          try {
-            el.value = inputValue || '';
-          } catch (err) {}
-        } else {
-          try {
-            el.textContent = inputValue || '';
-          } catch (err) {}
-        }
-        // 调整高度
-        try {
-          el.style.height = 'auto';
-        } catch (err) {}
-        const scrollHeight = el.scrollHeight || 0;
-        const maxHeight = 24 * 6;
-        try {
-          el.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
-        } catch (err) {}
-        // 如果之前是聚焦状态，将光标设置到开头
-        if (wasFocused) {
-          setCursorToStart();
-        }
-      }
-    }
-  }, [inputValue, setCursorToStart]);
 
   // 获取模型列表
   useEffect(() => {
@@ -675,11 +606,12 @@ const AskPage = () => {
               return ta - tb;
             });
             // 构建 messages：按照时间顺序，每条 history 转成 user then assistant
+            // 使用统一的消息 ID 格式：用户消息为 user-{id}，AI 消息为 assistant-{id}
             const msgs = [];
-            history.forEach((h) => {
+            history.forEach((h, idx) => {
               if (h.userMessage !== undefined && h.userMessage !== null) {
                 msgs.push({
-                  id: `u-${h.id || generateId()}`,
+                  id: `user-${h.id}`, // 统一使用 user- 前缀
                   role: 'user',
                   content: h.userMessage,
                   timestamp: h.createTime,
@@ -687,16 +619,21 @@ const AskPage = () => {
               }
               if (h.aiResponse !== undefined && h.aiResponse !== null) {
                 msgs.push({
-                  id: `a-${h.id || generateId()}`,
+                  id: `assistant-${h.id}`, // 统一使用 assistant- 前缀
                   role: 'assistant',
                   content: h.aiResponse,
                   timestamp: h.createTime,
+                  // 支持历史记录中的 questionList 作为推荐问题
+                  questionList: h.questionList && Array.isArray(h.questionList) ? h.questionList : null,
                 });
               }
             });
-            // 直接设置 messages（按时间顺序，从上到下展示），并定位到最后一条
+            // 直接设置 messages（按时间顺序，从上到下展示）
             setMessages(msgs);
-            scrollToBottomImmediate();
+            // 延迟滚动到底部，确保 DOM 已完成渲染
+            requestAnimationFrame(() => {
+              scrollToBottomImmediate();
+            });
             setNewChatTitle(formattedHistory[0].title || '新对话');
           }
         }
@@ -704,6 +641,9 @@ const AskPage = () => {
         console.error('获取聊天历史记录失败', e);
         // 如果获取失败，设置为空数组
         setChatHistory([]);
+      } finally {
+        // 无论成功或失败，都关闭加载状态
+        setIsHistoryLoading(false);
       }
     };
 
@@ -1083,11 +1023,34 @@ const AskPage = () => {
     setChatHistory((prev) => prev.map((chat) => ({ ...chat, active: false })));
   };
 
-  // 发送消息
-  const handleSend = () => {
-    if (!inputValue.trim() || isLoading) {
+  // 发送消息（非受控组件，直接从 ref 获取值）
+  const handleSend = useCallback(() => {
+    // 获取原生 textarea 元素
+    let textArea = null;
+    const el = inputRef.current;
+
+    if (el) {
+      // 方法1: 通过 resizableTextArea.textArea (AntD TextArea)
+      if (el.resizableTextArea?.textArea) {
+        textArea = el.resizableTextArea.textArea;
+      }
+      // 方法2: 通过 querySelector 直接查找原生 textarea
+      else {
+        textArea = el.querySelector?.('textarea') || el;
+      }
+    }
+
+    if (!textArea) {
       return;
     }
+
+    const value = textArea.value?.trim() || '';
+    // 严格检查：如果正在加载或没有输入内容，直接返回
+    if (!value || isLoadingRef.current) {
+      return;
+    }
+    // 在检查后立即设置，防止重复调用
+    isLoadingRef.current = true;
 
     // 关闭之前的流式连接（如果有）
     if (streamControllerRef.current) {
@@ -1095,34 +1058,61 @@ const AskPage = () => {
       streamControllerRef.current = null;
     }
 
-    const userMessage = inputValue.trim();
+    const userMessage = value;
+    // 清空输入框（受控组件方式，确保发送后清空且不会回显）
     setInputValue('');
+    setHasInputValue(false);
     setIsLoading(true);
 
-    // 添加用户消息
+    // 添加用户消息 - 使用临时ID（流式完成后会用真实ID替换）
+    const tempUserId = `temp-${Date.now()}`;
     const newUserMessage = {
-      id: Date.now(),
+      id: tempUserId,
       role: 'user',
       content: userMessage,
+      tempId: tempUserId, // 保存临时ID用于后续替换
     };
-    setMessages((prev) => [...prev, newUserMessage]);
+
+    // 使用函数式更新，并在更新前检查是否已存在相同内容的用户消息
+    setMessages((prev) => {
+      // 检查是否已存在相同内容的用户消息（防止重复添加）
+      const exists = prev.some(
+        (m) => m.role === 'user' && m.content === userMessage && !m.tempId,
+      );
+      if (exists) {
+        return prev;
+      }
+      return [...prev, newUserMessage];
+    });
     // 在下一帧确保 DOM 已更新后跳到底部以展示用户新消息
     requestAnimationFrame(() => {
       scrollToBottomImmediate();
     });
 
-    // 添加AI消息占位符
-    const aiMessageId = Date.now() + 1;
+    // 添加AI消息占位符 - 使用相同的临时ID基础
+    const tempAiId = `temp-ai-${Date.now()}`;
+    const aiMessageId = tempAiId;
     // 标记当前正在流式的 AI 消息并开启流式状态
     currentAiMessageIdRef.current = aiMessageId;
+    currentAiMessageIdRef.currentTempId = tempAiId; // 保存临时ID
     setIsStreaming(true);
     const newAiMessage = {
       id: aiMessageId,
       role: 'assistant',
       content: '',
       isStreaming: true,
+      tempId: tempAiId, // 保存临时ID用于后续替换
     };
-    setMessages((prev) => [...prev, newAiMessage]);
+
+    // 使用函数式更新，并在更新前检查是否已存在 AI 消息占位符
+    setMessages((prev) => {
+      // 检查是否已存在相同ID的AI消息（防止重复添加）
+      const exists = prev.some((m) => m.id === aiMessageId);
+      if (exists) {
+        return prev;
+      }
+      return [...prev, newAiMessage];
+    });
     // 加入占位符后也确保滚到底部，显示用户消息与占位符
     requestAnimationFrame(() => {
       scrollToBottomImmediate();
@@ -1178,7 +1168,16 @@ const AskPage = () => {
       docParams, // 传递选择的文档ID
       // onMessage - 每次收到数据块立即调用，实时更新UI
       (chunk) => {
-        const piece = extractStreamText(chunk);
+        const parsed = parseStreamChunk(chunk);
+        if (parsed.followUps && parsed.followUps.length > 0) {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === aiMessageId ? { ...msg, followUps: parsed.followUps } : msg,
+            ),
+          );
+          return;
+        }
+        const piece = parsed.content || '';
         accumulatedContentRef.current += piece;
 
         // 立即更新状态，触发UI重新渲染 - 这是关键！每次数据到达都立即更新
@@ -1223,7 +1222,9 @@ const AskPage = () => {
         );
         setIsLoading(false);
         setIsStreaming(false);
+        const tempIdForReplace = currentAiMessageIdRef.currentTempId || aiMessageId;
         currentAiMessageIdRef.current = null;
+        currentAiMessageIdRef.currentTempId = null;
 
         // 消息发送完成后刷新历史记录
         const refreshChatHistory = async () => {
@@ -1245,6 +1246,34 @@ const AskPage = () => {
               }));
 
               setChatHistory(formattedHistory);
+
+              // 用真实ID替换临时ID - 找到当前会话的最新消息记录
+              const currentSessionHistory = historyList.find(
+                (item) => item.sessionId === sessionId,
+              );
+              if (currentSessionHistory) {
+                // 直接更新消息的ID，不做复杂的去重逻辑
+                const userOriginalId = `user-${currentSessionHistory.id}`;
+                const aiOriginalId = `assistant-${currentSessionHistory.id}`;
+
+                setMessages((prev) => {
+                  let hasUpdates = false;
+                  const newMessages = prev.map((msg) => {
+                    if (msg.tempId) {
+                      hasUpdates = true;
+                      if (msg.role === 'user') {
+                        return { ...msg, id: userOriginalId, tempId: undefined };
+                      }
+                      if (msg.role === 'assistant') {
+                        return { ...msg, id: aiOriginalId, tempId: undefined };
+                      }
+                    }
+                    return msg;
+                  });
+                  // 如果没有临时消息需要更新，直接返回原数组
+                  return hasUpdates ? newMessages : prev;
+                });
+              }
             }
           } catch (e) {
             console.error('刷新聊天历史记录失败', e);
@@ -1254,7 +1283,7 @@ const AskPage = () => {
         refreshChatHistory();
       },
     );
-  };
+  }, []); // handleSend 的依赖数组（空数组，因为内部使用 ref 获取最新值）
 
   // 发送或暂停切换：如果当前处于流式响应中，点击此按钮将停止当前流；否则发送新消息
   const handleSendOrStop = () => {
@@ -1520,10 +1549,11 @@ const AskPage = () => {
                         return ta - tb;
                       });
                       const newMsgs = [];
+                      // 直接使用后端返回的原始 id
                       historyList.forEach((h) => {
                         if (h.userMessage !== undefined && h.userMessage !== null) {
                           newMsgs.push({
-                            id: `u-${h.id || generateId()}`,
+                            id: h.id, // 直接使用后端返回的id
                             role: 'user',
                             content: h.userMessage,
                             timestamp: h.createTime,
@@ -1531,7 +1561,7 @@ const AskPage = () => {
                         }
                         if (h.aiResponse !== undefined && h.aiResponse !== null) {
                           newMsgs.push({
-                            id: `a-${h.id || generateId()}`,
+                            id: `${h.id}-ai`, // AI消息使用后端id加后缀区分
                             role: 'assistant',
                             content: h.aiResponse,
                             timestamp: h.createTime,
@@ -1539,8 +1569,6 @@ const AskPage = () => {
                         }
                       });
                       setMessages(newMsgs);
-                      // 切换会话后定位到底部
-                      scrollToBottomImmediate();
                       setNewChatTitle(chat.title);
                     }}
                   >
@@ -1574,22 +1602,20 @@ const AskPage = () => {
           {/* 顶部导航栏 */}
           <div className={styles['top-bar']}>
             <Dropdown
-              overlay={
-                <Menu
-                  items={modelMenuItems}
-                  onClick={(e) => {
-                    setSelectedModelId(Number(e.key));
-                    setModelDropdownVisible(false);
-                  }}
-                  className={styles['model-dropdown']}
-                  style={{
-                    minWidth: 380,
-                    maxWidth: 720,
-                    overflowX: 'hidden',
-                    whiteSpace: 'normal',
-                  }}
-                />
-              }
+              menu={{
+                items: modelMenuItems,
+                onClick: (e) => {
+                  setSelectedModelId(Number(e.key));
+                  setModelDropdownVisible(false);
+                },
+              }}
+              className={styles['model-dropdown']}
+              style={{
+                minWidth: 380,
+                maxWidth: 720,
+                overflowX: 'hidden',
+                whiteSpace: 'normal',
+              }}
               trigger={['click']}
               open={modelDropdownVisible}
               onOpenChange={setModelDropdownVisible}
@@ -1608,7 +1634,22 @@ const AskPage = () => {
           </div>
           <div className={styles['chat-content']}>
             <div className={styles['chat-messages']} ref={chatContainerRef}>
-              {isNewChat ? (
+              {isHistoryLoading ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: '400px',
+                  }}
+                >
+                  <Spin size="large">
+                    <div style={{ padding: 50, textAlign: 'center' }}>
+                      加载历史记录中...
+                    </div>
+                  </Spin>
+                </div>
+              ) : isNewChat ? (
                 <div style={{ textAlign: 'center', padding: '80px 0' }}>
                   <div className={styles['new-chat-title']}>{newChatTitle}</div>
                   <div
@@ -1660,7 +1701,7 @@ const AskPage = () => {
                             </div>
                           ) : (
                             <div className={styles['markdown-content']}>
-                              {msg.content ? (
+                          {msg.content ? (
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                   {msg.content}
                                 </ReactMarkdown>
@@ -1673,6 +1714,183 @@ const AskPage = () => {
                                     <span></span>
                                   </span>
                                 )
+                              )}
+                              {/* action icons separator - always shown under assistant answer */}
+                              <div className={styles['follow-separator']}>
+                                <Tooltip title="复制">
+                                  <div
+                                    className={styles['follow-sep-icon']}
+                                    onClick={() => {
+                                      if (msg.content) {
+                                        navigator.clipboard.writeText(msg.content);
+                                        message.success('已复制到剪贴板');
+                                      }
+                                    }}
+                                  >
+                                    <CopyOutlined />
+                                  </div>
+                                </Tooltip>
+                                <Tooltip title="刷新">
+                                  <div
+                                    className={styles['follow-sep-icon']}
+                                    onClick={() => {
+                                      // 找到上一条用户消息
+                                      const msgIndex = messages.findIndex((m) => m.id === msg.id);
+                                      if (msgIndex > 0) {
+                                        const prevMsg = messages[msgIndex - 1];
+                                        if (prevMsg.role === 'user') {
+                                          handleQuickQuestion(prevMsg.content);
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    <ReloadOutlined />
+                                  </div>
+                                </Tooltip>
+                                <Tooltip title="朗读">
+                                  <div
+                                    className={styles['follow-sep-icon']}
+                                    onClick={() => {
+                                      if (msg.content) {
+                                        const utterance = new SpeechSynthesisUtterance(msg.content);
+                                        utterance.lang = 'zh-CN';
+                                        window.speechSynthesis.speak(utterance);
+                                      }
+                                    }}
+                                  >
+                                    <SoundOutlined />
+                                  </div>
+                                </Tooltip>
+                                <Tooltip title="喜欢">
+                                  <div
+                                    className={`${styles['follow-sep-icon']} ${msg.liked ? styles['active'] : ''}`}
+                                    onClick={() => {
+                                      setMessages((prev) =>
+                                        prev.map((m) =>
+                                          m.id === msg.id
+                                            ? { ...m, liked: !m.liked, disliked: false }
+                                            : m,
+                                        ),
+                                      );
+                                    }}
+                                  >
+                                    {msg.liked ? <LikeFilled /> : <LikeOutlined />}
+                                  </div>
+                                </Tooltip>
+                                <Tooltip title="不喜欢">
+                                  <div
+                                    className={`${styles['follow-sep-icon']} ${msg.disliked ? styles['active'] : ''}`}
+                                    onClick={() => {
+                                      setMessages((prev) =>
+                                        prev.map((m) =>
+                                          m.id === msg.id
+                                            ? { ...m, disliked: !m.disliked, liked: false }
+                                            : m,
+                                        ),
+                                      );
+                                    }}
+                                  >
+                                    {msg.disliked ? <DislikeFilled /> : <DislikeOutlined />}
+                                  </div>
+                                </Tooltip>
+                                <Popconfirm
+                                  title="删除此消息"
+                                  description="确定要删除吗？"
+                                  onConfirm={async () => {
+                                    try {
+                                      // 用户消息和AI消息是同一条数据，id相同
+                                      // 判断是AI消息（id以-ai结尾），提取原始id
+                                      const msgIdStr = String(msg.id);
+                                      const isAiMessage = msgIdStr.endsWith('-ai');
+                                      const originalId = isAiMessage ? msgIdStr.replace(/-ai$/, '') : msgIdStr;
+                                      
+                                      // 删除后端记录（使用原始id）
+                                      await deleteChatMessage(sessionId, originalId);
+                                      message.success('删除成功');
+                                      
+                                      // 同时删除用户消息和AI消息（它们共享同一个id）
+                                      setMessages((prev) => 
+                                        prev.filter((m) => {
+                                          // 用户消息id是原始数字，AI消息id是"数字-ai"格式
+                                          // 需要提取原始id进行比较
+                                          const mIdStr = String(m.id);
+                                          let mOriginalId;
+                                          if (mIdStr.endsWith('-ai')) {
+                                            // AI消息，去掉-ai后缀
+                                            mOriginalId = mIdStr.slice(0, -3);
+                                          } else {
+                                            // 用户消息，直接使用
+                                            mOriginalId = mIdStr;
+                                          }
+                                          // 精确匹配要删除的消息id
+                                          const shouldDelete = 
+                                            mIdStr === msgIdStr || // 当前点击的消息
+                                            mOriginalId === originalId; // 同一条数据的消息
+                                          return !shouldDelete;
+                                        })
+                                      );
+                                    } catch (error) {
+                                      message.error('删除失败');
+                                    }
+                                  }}
+                                >
+                                  <Tooltip title="删除">
+                                    <div
+                                      className={styles['follow-sep-icon']}
+                                      style={{ color: '#ff4d4f' }}
+                                    >
+                                      <DeleteOutlined />
+                                    </div>
+                                  </Tooltip>
+                                </Popconfirm>
+                              </div>
+                              {/* follow-up suggestions (来自后端 followUps 字段) */}
+                              {msg.followUps && Array.isArray(msg.followUps) && msg.followUps.length > 0 && (
+                                <div className={styles['follow-ups']}>
+                                  {msg.followUps.map((f, idx) => (
+                                    <div
+                                      key={idx}
+                                      className={styles['follow-up-item']}
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={() => {
+                                        // 直接触发问答：将该建议作为用户消息发送
+                                        // handleQuickQuestion 内部会读取 selectedKnowledgeDocIds 与 selectedLocalTempFileIds
+                                        try {
+                                          handleQuickQuestion(f);
+                                        } catch (err) {
+                                          console.warn('触发建议问答失败', err);
+                                        }
+                                      }}
+                                    >
+                                      <span className={styles['follow-up-text']}>{f}</span>
+                                      <RightArrowOutlined className={styles['follow-up-icon']} />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {/* 历史记录中的推荐问题 (来自 questionList 字段) */}
+                              {msg.questionList && Array.isArray(msg.questionList) && msg.questionList.length > 0 && (
+                                <div className={styles['follow-ups']}>
+                                  {msg.questionList.map((q, idx) => (
+                                    <div
+                                      key={`q-${idx}`}
+                                      className={styles['follow-up-item']}
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={() => {
+                                        try {
+                                          handleQuickQuestion(q);
+                                        } catch (err) {
+                                          console.warn('触发推荐问题失败', err);
+                                        }
+                                      }}
+                                    >
+                                      <span className={styles['follow-up-text']}>{q}</span>
+                                      <RightArrowOutlined className={styles['follow-up-icon']} />
+                                    </div>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           )}
@@ -1759,11 +1977,11 @@ const AskPage = () => {
                     </div>
                   </div>
 
-                  {/* 第二行：输入框 */}
-                  <Input.TextArea
+                  {/* 第二行：输入框（受控组件，支持自动高度调整，最大高度200px） */}
+                  <TextArea
                     ref={inputRef}
                     value={inputValue}
-                    onChange={handleTextAreaChange}
+                    onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
                     onPressEnter={(e) => {
                       if (!e.shiftKey) {
@@ -1773,9 +1991,8 @@ const AskPage = () => {
                     }}
                     placeholder="有问题，尽管问"
                     autoSize={{ minRows: 1, maxRows: 6 }}
-                    bordered={false}
+                    variant="borderless"
                     disabled={isLoading}
-                    className={styles.editableInput}
                   />
 
                   {/* 第三行：功能按钮行（将 + 菜单全部展开为按钮） */}
@@ -1802,14 +2019,12 @@ const AskPage = () => {
                                 }}
                               >
                                 <Dropdown
-                                  overlay={
-                                    <Menu
-                                      items={addFileMenu}
-                                      onClick={handleAddFileMenuClick}
-                                    />
-                                  }
+                                  menu={{
+                                    items: addFileMenu,
+                                    onClick: handleAddFileMenuClick,
+                                  }}
                                   trigger={['click']}
-                                  placement="topCenter"
+                                  placement="top"
                                 >
                                   <Button
                                     type="text"
@@ -1856,7 +2071,7 @@ const AskPage = () => {
                     <div className={styles['right-actions']}>
                       <SendButton
                         onClick={handleSendOrStop}
-                        disabled={!inputValue.trim() && !isStreaming}
+                        disabled={!hasInputValue && !isStreaming}
                         loading={isLoading && !isStreaming}
                         isStreaming={isStreaming}
                       />

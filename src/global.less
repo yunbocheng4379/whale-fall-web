@@ -47,3 +47,19 @@ body,
   padding: 12px 0 !important;
   color: rgba(0, 0, 0, 88%) !important;
 }
+
+/* Ensure Search inputs keep visible border when switching UI modes */
+:where(.ant-input.force-border-search),
+:where(.ant-input-affix-wrapper.force-border-search) {
+  border: 1px solid rgba(0, 0, 0, 15%) !important;
+  border-radius: 4px !important;
+  background: #fff !important;
+  box-sizing: border-box !important;
+}
+
+:where(.ant-input.force-border-search:focus),
+:where(.ant-input-affix-wrapper.force-border-search:focus-within) {
+  border-color: #5b8cff !important;
+  box-shadow: 0 0 0 4px rgba(91, 140, 255, 6%) !important;
+  outline: none !important;
+}

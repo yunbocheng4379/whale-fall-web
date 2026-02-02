@@ -6,6 +6,7 @@
 // 存储原始的 console 方法
 const originalConsoleWarn = console.warn;
 const originalConsoleError = console.error;
+const originalConsoleInfo = console.info;
 
 // 需要抑制的警告模式
 const SUPPRESSED_WARNINGS = [
@@ -21,11 +22,26 @@ const SUPPRESSED_WARNINGS = [
   'componentWillMount has been renamed',
 ];
 
+// 需要抑制的 Violation 警告模式（这些是浏览器性能警告，不是真正的错误）
+const SUPPRESSED_VIOLATIONS = [
+  'handler took', // 例如: '[Violation] handler took 502ms'
+  "Don't panic", // Chrome 扩展相关
+  'message handler took', // 例如: '[Violation] message handler took 502ms'
+  'Forced reflow while executing JavaScript', // 强制回流警告
+];
+
 // 检查是否应该抑制警告
 const shouldSuppressWarning = (message) => {
   if (typeof message !== 'string') return false;
 
   return SUPPRESSED_WARNINGS.some((pattern) => message.includes(pattern));
+};
+
+// 检查是否应该抑制 Violation 警告
+const shouldSuppressViolation = (message) => {
+  if (typeof message !== 'string') return false;
+
+  return SUPPRESSED_VIOLATIONS.some((pattern) => message.includes(pattern));
 };
 
 // 重写 console.warn
@@ -37,6 +53,17 @@ console.warn = (...args) => {
 
   // 否则正常输出警告
   originalConsoleWarn.apply(console, args);
+};
+
+// 重写 console.info（用于抑制 Violation 警告）
+console.info = (...args) => {
+  // 抑制 Violation 警告
+  if (args.length > 0 && shouldSuppressViolation(args[0])) {
+    return;
+  }
+
+  // 否则正常输出信息
+  originalConsoleInfo.apply(console, args);
 };
 
 // 重写 console.error（如果需要抑制某些错误）
@@ -59,6 +86,7 @@ if (process.env.NODE_ENV === 'development') {
 export const originalConsole = {
   warn: originalConsoleWarn,
   error: originalConsoleError,
+  info: originalConsoleInfo,
 };
 
 // 导出控制函数
@@ -85,6 +113,7 @@ export const suppressWarnings = {
   disable: () => {
     console.warn = originalConsoleWarn;
     console.error = originalConsoleError;
+    console.info = originalConsoleInfo;
   },
 
   // 重新启用抑制
@@ -101,6 +130,13 @@ export const suppressWarnings = {
         return;
       }
       originalConsoleError.apply(console, args);
+    };
+
+    console.info = (...args) => {
+      if (args.length > 0 && shouldSuppressViolation(args[0])) {
+        return;
+      }
+      originalConsoleInfo.apply(console, args);
     };
   },
 };
