@@ -832,12 +832,22 @@
       .chat-messages {
         flex: 1;
         overflow-y: auto;
-        padding: 30px 310px 20px;
+
+        /* 与底部输入框同宽：外层只留少量安全边距，真实内容宽度由 max-width 控制 */
+        padding: 30px 10px 20px;
         display: flex;
         flex-direction: column;
         gap: 24px;
         scroll-behavior: smooth;
         background: #fff;
+
+        /* 让所有消息内容区域与输入框宽度保持一致 */
+        & > * {
+          width: 100%;
+          max-width: 800px;
+          margin-left: auto;
+          margin-right: auto;
+        }
 
         .message-item {
           display: flex;

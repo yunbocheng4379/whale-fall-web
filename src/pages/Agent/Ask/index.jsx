@@ -1,4 +1,9 @@
-import { createChatStream, getChatHistory, stopChat, deleteChatMessage } from '@/api/AiAskApi';
+import {
+  createChatStream,
+  deleteChatMessage,
+  getChatHistory,
+  stopChat,
+} from '@/api/AiAskApi';
 import DocumentApi from '@/api/DocumentApi';
 import KnowledgeApi from '@/api/KnowledgeApi';
 import ModelApi from '@/api/ModelApi';
@@ -7,36 +12,33 @@ import SendButton from '@/components/SendButton';
 import {
   BulbOutlined,
   CheckOutlined,
+  ClockCircleOutlined,
   CloseOutlined,
   CloudUploadOutlined,
   CodeOutlined,
-  DatabaseOutlined,
+  CopyOutlined,
   DeleteOutlined,
+  DislikeFilled,
+  DislikeOutlined,
   DownOutlined,
   EditOutlined,
-  MessageOutlined,
-  ClockCircleOutlined,
   FileTextOutlined,
   FlagOutlined,
   FolderOutlined,
   InboxOutlined,
   LeftOutlined,
+  LikeFilled,
+  LikeOutlined,
+  MessageOutlined,
   MoreOutlined,
   PaperClipOutlined,
   PictureOutlined,
+  ReloadOutlined,
   RightOutlined as RightArrowOutlined,
   RightOutlined,
   SearchOutlined as SearchIcon,
   ShoppingOutlined,
-  StarFilled,
-  UserAddOutlined,
-  CopyOutlined,
-  ReloadOutlined,
   SoundOutlined,
-  LikeOutlined,
-  DislikeOutlined,
-  LikeFilled,
-  DislikeFilled,
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import {
@@ -44,7 +46,6 @@ import {
   Dropdown,
   Empty,
   Input,
-  Menu,
   message,
   Modal,
   Popconfirm,
@@ -140,6 +141,13 @@ const AskPage = () => {
   const addFileWrapperRef = useRef(null);
   const isLoadingRef = useRef(isLoading); // 保存最新的 isLoading 状态
   const isStreamingRef = useRef(isStreaming); // 保存最新的 isStreaming 状态
+  // 由于 handleSend 使用 useCallback([]) 以保持稳定引用，这里用 ref 同步关键 state，避免闭包拿到旧值
+  const sessionIdRef = useRef(sessionId);
+  const selectedModelIdRef = useRef(selectedModelId);
+  const viewingKnowledgeIdRef = useRef(viewingKnowledgeId);
+  const selectedKnowledgeDocIdsRef = useRef(selectedKnowledgeDocIds);
+  const selectedLocalTempFileIdsRef = useRef(selectedLocalTempFileIds);
+  const modalSelectedByKbRef = useRef(modalSelectedByKb);
   const [computedGap, setComputedGap] = useState(null);
 
   // 计算 left-actions 与 add-file wrapper 两处 gap 值，优先取较小的可用值
@@ -176,6 +184,26 @@ const AskPage = () => {
   useEffect(() => {
     isStreamingRef.current = isStreaming;
   }, [isStreaming]);
+
+  // 同步关键 state 到 ref，供稳定回调使用
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
+  useEffect(() => {
+    selectedModelIdRef.current = selectedModelId;
+  }, [selectedModelId]);
+  useEffect(() => {
+    viewingKnowledgeIdRef.current = viewingKnowledgeId;
+  }, [viewingKnowledgeId]);
+  useEffect(() => {
+    selectedKnowledgeDocIdsRef.current = selectedKnowledgeDocIds;
+  }, [selectedKnowledgeDocIds]);
+  useEffect(() => {
+    selectedLocalTempFileIdsRef.current = selectedLocalTempFileIds;
+  }, [selectedLocalTempFileIds]);
+  useEffect(() => {
+    modalSelectedByKbRef.current = modalSelectedByKb;
+  }, [modalSelectedByKb]);
 
   // 选择/上传文件相关状态
   const [selectDocModalVisible, setSelectDocModalVisible] = useState(false);
@@ -272,6 +300,14 @@ const AskPage = () => {
     setHasInputValue(false);
 
     const userMessage = question;
+    const activeSessionId = sessionIdRef.current;
+    const activeSelectedModelId = selectedModelIdRef.current;
+    const activeViewingKnowledgeId = viewingKnowledgeIdRef.current;
+    const activeSelectedKnowledgeDocIds =
+      selectedKnowledgeDocIdsRef.current || [];
+    const activeSelectedLocalTempFileIds =
+      selectedLocalTempFileIdsRef.current || [];
+    const activeModalSelectedByKb = modalSelectedByKbRef.current || {};
     // 使用临时ID（流式完成后会用真实ID替换）
     const tempUserId = `temp-${Date.now()}`;
     const newUserMessage = {
@@ -324,25 +360,25 @@ const AskPage = () => {
 
     accumulatedContentRef.current = '';
     // 计算本次请求应使用的知识库 ID 与 文档列表
-    let effectiveKnowledgeBaseId = viewingKnowledgeId || null;
+    let effectiveKnowledgeBaseId = activeViewingKnowledgeId || null;
     // 合并已确认的 selectedKnowledgeDocIds 与 modal 中当前 KB 的选择
     let effectiveSelectedKnowledgeIds = Array.from(
-      selectedKnowledgeDocIds || [],
+      activeSelectedKnowledgeDocIds || [],
     );
     if (
-      viewingKnowledgeId &&
-      modalSelectedByKb &&
-      modalSelectedByKb[viewingKnowledgeId]
+      activeViewingKnowledgeId &&
+      activeModalSelectedByKb &&
+      activeModalSelectedByKb[activeViewingKnowledgeId]
     ) {
       effectiveSelectedKnowledgeIds = Array.from(
         new Set([
           ...effectiveSelectedKnowledgeIds,
-          ...(modalSelectedByKb[viewingKnowledgeId] || []),
+          ...(activeModalSelectedByKb[activeViewingKnowledgeId] || []),
         ]),
       );
     } else {
       // 当未在某个 KB 内（viewingKnowledgeId 为 null）时，如果 modalSelectedByKb 只有一个 KB 有选择，则使用该 KB 的选择
-      const kbEntries = Object.entries(modalSelectedByKb || {}).filter(
+      const kbEntries = Object.entries(activeModalSelectedByKb || {}).filter(
         ([k, arr]) => arr && arr.length > 0,
       );
       if (kbEntries.length === 1) {
@@ -358,14 +394,14 @@ const AskPage = () => {
 
     const docParams = {
       selectedKnowledgeDocIds: effectiveSelectedKnowledgeIds,
-      selectedLocalTempFileIds: selectedLocalTempFileIds || [],
+      selectedLocalTempFileIds: activeSelectedLocalTempFileIds || [],
     };
 
     const knowledgeBaseIdForRequest = effectiveKnowledgeBaseId || null;
     streamControllerRef.current = createChatStream(
       userMessage,
-      sessionId,
-      selectedModelId,
+      activeSessionId,
+      activeSelectedModelId,
       knowledgeBaseIdForRequest,
       docParams,
       (chunk) => {
@@ -374,7 +410,9 @@ const AskPage = () => {
           // attach followUps to the current AI message
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === aiMessageId ? { ...msg, followUps: parsed.followUps } : msg,
+              msg.id === aiMessageId
+                ? { ...msg, followUps: parsed.followUps }
+                : msg,
             ),
           );
           return;
@@ -422,7 +460,8 @@ const AskPage = () => {
         );
         setIsLoading(false);
         setIsStreaming(false);
-        const tempIdForReplace = currentAiMessageIdRef.currentTempId || aiMessageId;
+        const tempIdForReplace =
+          currentAiMessageIdRef.currentTempId || aiMessageId;
         currentAiMessageIdRef.current = null;
         currentAiMessageIdRef.currentTempId = null;
 
@@ -437,8 +476,10 @@ const AskPage = () => {
               // 转换后端数据为前端需要的格式
               const formattedHistory = historyList.map((item) => ({
                 id: item.sessionId,
-                title: item.userMessage ? item.userMessage.substring(0, 8) : '新对话',
-                active: item.sessionId === sessionId,
+                title: item.userMessage
+                  ? item.userMessage.substring(0, 8)
+                  : '新对话',
+                active: item.sessionId === activeSessionId,
                 sessionId: item.sessionId,
                 userMessage: item.userMessage,
                 aiResponse: item.aiResponse,
@@ -449,7 +490,7 @@ const AskPage = () => {
 
               // 用真实ID替换临时ID - 找到当前会话的最新消息记录
               const currentSessionHistory = historyList.find(
-                (item) => item.sessionId === sessionId,
+                (item) => item.sessionId === activeSessionId,
               );
               if (currentSessionHistory) {
                 // 直接更新消息的ID，不做复杂的去重逻辑
@@ -462,7 +503,11 @@ const AskPage = () => {
                     if (msg.tempId) {
                       hasUpdates = true;
                       if (msg.role === 'user') {
-                        return { ...msg, id: userOriginalId, tempId: undefined };
+                        return {
+                          ...msg,
+                          id: userOriginalId,
+                          tempId: undefined,
+                        };
                       }
                       if (msg.role === 'assistant') {
                         return { ...msg, id: aiOriginalId, tempId: undefined };
@@ -488,7 +533,6 @@ const AskPage = () => {
   // 判断是否为新聊天（没有消息）
   const isNewChat = useMemo(() => messages.length === 0, [messages]);
 
-
   // 监听输入框内容变化（控制发送按钮状态，同时更新受控组件的值）
   const handleInputChange = (e) => {
     const value = e.target.value;
@@ -497,15 +541,17 @@ const AskPage = () => {
   };
 
   // 处理键盘事件
-  const handleKeyDown = useCallback((e) => {
-    // Enter 发送；Shift + Enter 换行
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-    // Shift + Enter 允许默认行为（换行）
-  }, [handleSend]);
-
+  const handleKeyDown = useCallback(
+    (e) => {
+      // Enter 发送；Shift + Enter 换行
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+      // Shift + Enter 允许默认行为（换行）
+    },
+    [handleSend],
+  );
 
   // 直接跳到底部（无动画），用于展示历史时定位到最后一条或发送新消息后定位
   const scrollToBottomImmediate = () => {
@@ -540,7 +586,6 @@ const AskPage = () => {
       } catch (err) {}
     }
   }, []);
-
 
   // 获取模型列表
   useEffect(() => {
@@ -583,9 +628,14 @@ const AskPage = () => {
           // formattedHistory 用于左侧会话列表，只展示 sessionId 与 title
           const formattedHistory = sessions.map((item, index) => ({
             id: item.sessionId,
-            title: item.title || (item.chatHistoryList && item.chatHistoryList.length > 0
-              ? (item.chatHistoryList[item.chatHistoryList.length - 1].userMessage || '').substring(0, 8)
-              : '新对话'),
+            title:
+              item.title ||
+              (item.chatHistoryList && item.chatHistoryList.length > 0
+                ? (
+                    item.chatHistoryList[item.chatHistoryList.length - 1]
+                      .userMessage || ''
+                  ).substring(0, 8)
+                : '新对话'),
             active: index === 0,
             sessionId: item.sessionId,
             // keep original payload for potential usage
@@ -598,7 +648,9 @@ const AskPage = () => {
           if (sessions.length > 0) {
             const first = sessions[0];
             setSessionId(first.sessionId);
-            const history = Array.isArray(first.chatHistoryList) ? first.chatHistoryList.slice() : [];
+            const history = Array.isArray(first.chatHistoryList)
+              ? first.chatHistoryList.slice()
+              : [];
             // 按 createTime 升序（从早到晚）
             history.sort((a, b) => {
               const ta = a.createTime ? new Date(a.createTime).getTime() : 0;
@@ -624,7 +676,10 @@ const AskPage = () => {
                   content: h.aiResponse,
                   timestamp: h.createTime,
                   // 支持历史记录中的 questionList 作为推荐问题
-                  questionList: h.questionList && Array.isArray(h.questionList) ? h.questionList : null,
+                  questionList:
+                    h.questionList && Array.isArray(h.questionList)
+                      ? h.questionList
+                      : null,
                 });
               }
             });
@@ -1016,7 +1071,10 @@ const AskPage = () => {
 
   // 生成新的会话ID
   const generateNewSession = () => {
-    setSessionId(generateId());
+    const nextId = generateId();
+    // 立即同步 ref，避免用户立刻发送导致使用旧 sessionId
+    sessionIdRef.current = nextId;
+    setSessionId(nextId);
     setMessages([]);
     setNewChatTitle(getRandomTitle());
     // 重置所有历史记录为非活跃状态
@@ -1059,6 +1117,14 @@ const AskPage = () => {
     }
 
     const userMessage = value;
+    const activeSessionId = sessionIdRef.current;
+    const activeSelectedModelId = selectedModelIdRef.current;
+    const activeViewingKnowledgeId = viewingKnowledgeIdRef.current;
+    const activeSelectedKnowledgeDocIds =
+      selectedKnowledgeDocIdsRef.current || [];
+    const activeSelectedLocalTempFileIds =
+      selectedLocalTempFileIdsRef.current || [];
+    const activeModalSelectedByKb = modalSelectedByKbRef.current || {};
     // 清空输入框（受控组件方式，确保发送后清空且不会回显）
     setInputValue('');
     setHasInputValue(false);
@@ -1124,23 +1190,23 @@ const AskPage = () => {
 
     // 准备文档参数
     // 计算本次请求应使用的知识库 ID 与 文档列表（同上逻辑）
-    let effectiveKnowledgeBaseId = viewingKnowledgeId || null;
+    let effectiveKnowledgeBaseId = activeViewingKnowledgeId || null;
     let effectiveSelectedKnowledgeIds = Array.from(
-      selectedKnowledgeDocIds || [],
+      activeSelectedKnowledgeDocIds || [],
     );
     if (
-      viewingKnowledgeId &&
-      modalSelectedByKb &&
-      modalSelectedByKb[viewingKnowledgeId]
+      activeViewingKnowledgeId &&
+      activeModalSelectedByKb &&
+      activeModalSelectedByKb[activeViewingKnowledgeId]
     ) {
       effectiveSelectedKnowledgeIds = Array.from(
         new Set([
           ...effectiveSelectedKnowledgeIds,
-          ...(modalSelectedByKb[viewingKnowledgeId] || []),
+          ...(activeModalSelectedByKb[activeViewingKnowledgeId] || []),
         ]),
       );
     } else {
-      const kbEntries = Object.entries(modalSelectedByKb || {}).filter(
+      const kbEntries = Object.entries(activeModalSelectedByKb || {}).filter(
         ([k, arr]) => arr && arr.length > 0,
       );
       if (kbEntries.length === 1) {
@@ -1156,14 +1222,14 @@ const AskPage = () => {
 
     const docParams = {
       selectedKnowledgeDocIds: effectiveSelectedKnowledgeIds,
-      selectedLocalTempFileIds: selectedLocalTempFileIds || [],
+      selectedLocalTempFileIds: activeSelectedLocalTempFileIds || [],
     };
 
     const knowledgeBaseIdForRequest = effectiveKnowledgeBaseId || null;
     streamControllerRef.current = createChatStream(
       userMessage,
-      sessionId,
-      selectedModelId, // 传递选中的模型ID
+      activeSessionId,
+      activeSelectedModelId, // 传递选中的模型ID
       knowledgeBaseIdForRequest, // 新增 knowledgeBaseId 参数
       docParams, // 传递选择的文档ID
       // onMessage - 每次收到数据块立即调用，实时更新UI
@@ -1172,7 +1238,9 @@ const AskPage = () => {
         if (parsed.followUps && parsed.followUps.length > 0) {
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === aiMessageId ? { ...msg, followUps: parsed.followUps } : msg,
+              msg.id === aiMessageId
+                ? { ...msg, followUps: parsed.followUps }
+                : msg,
             ),
           );
           return;
@@ -1222,7 +1290,8 @@ const AskPage = () => {
         );
         setIsLoading(false);
         setIsStreaming(false);
-        const tempIdForReplace = currentAiMessageIdRef.currentTempId || aiMessageId;
+        const tempIdForReplace =
+          currentAiMessageIdRef.currentTempId || aiMessageId;
         currentAiMessageIdRef.current = null;
         currentAiMessageIdRef.currentTempId = null;
 
@@ -1237,8 +1306,10 @@ const AskPage = () => {
               // 转换后端数据为前端需要的格式
               const formattedHistory = historyList.map((item) => ({
                 id: item.sessionId,
-                title: item.userMessage ? item.userMessage.substring(0, 8) : '新对话',
-                active: item.sessionId === sessionId, // 当前会话保持active状态
+                title: item.userMessage
+                  ? item.userMessage.substring(0, 8)
+                  : '新对话',
+                active: item.sessionId === activeSessionId, // 当前会话保持active状态
                 sessionId: item.sessionId,
                 userMessage: item.userMessage,
                 aiResponse: item.aiResponse,
@@ -1249,7 +1320,7 @@ const AskPage = () => {
 
               // 用真实ID替换临时ID - 找到当前会话的最新消息记录
               const currentSessionHistory = historyList.find(
-                (item) => item.sessionId === sessionId,
+                (item) => item.sessionId === activeSessionId,
               );
               if (currentSessionHistory) {
                 // 直接更新消息的ID，不做复杂的去重逻辑
@@ -1262,7 +1333,11 @@ const AskPage = () => {
                     if (msg.tempId) {
                       hasUpdates = true;
                       if (msg.role === 'user') {
-                        return { ...msg, id: userOriginalId, tempId: undefined };
+                        return {
+                          ...msg,
+                          id: userOriginalId,
+                          tempId: undefined,
+                        };
                       }
                       if (msg.role === 'assistant') {
                         return { ...msg, id: aiOriginalId, tempId: undefined };
@@ -1289,7 +1364,7 @@ const AskPage = () => {
   const handleSendOrStop = () => {
     if (isStreaming && streamControllerRef.current) {
       // 停止时仅发送最小信息：sessionId（stop 标志由 stopChat 自动添加）
-      const body = { sessionId };
+      const body = { sessionId: sessionIdRef.current };
       (async () => {
         try {
           await stopChat(body);
@@ -1540,18 +1615,29 @@ const AskPage = () => {
                         prev.map((c) => ({ ...c, active: c.id === chat.id })),
                       );
                       // 加载选中会话的完整消息列表并展示（按 createTime 升序）
+                      // 立即同步 ref，避免切换后立刻发送仍使用旧 sessionId
+                      sessionIdRef.current = chat.sessionId;
                       setSessionId(chat.sessionId);
                       const raw = chat.raw || {};
-                      const historyList = Array.isArray(raw.chatHistoryList) ? raw.chatHistoryList.slice() : [];
+                      const historyList = Array.isArray(raw.chatHistoryList)
+                        ? raw.chatHistoryList.slice()
+                        : [];
                       historyList.sort((a, b) => {
-                        const ta = a.createTime ? new Date(a.createTime).getTime() : 0;
-                        const tb = b.createTime ? new Date(b.createTime).getTime() : 0;
+                        const ta = a.createTime
+                          ? new Date(a.createTime).getTime()
+                          : 0;
+                        const tb = b.createTime
+                          ? new Date(b.createTime).getTime()
+                          : 0;
                         return ta - tb;
                       });
                       const newMsgs = [];
                       // 直接使用后端返回的原始 id
                       historyList.forEach((h) => {
-                        if (h.userMessage !== undefined && h.userMessage !== null) {
+                        if (
+                          h.userMessage !== undefined &&
+                          h.userMessage !== null
+                        ) {
                           newMsgs.push({
                             id: h.id, // 直接使用后端返回的id
                             role: 'user',
@@ -1559,7 +1645,10 @@ const AskPage = () => {
                             timestamp: h.createTime,
                           });
                         }
-                        if (h.aiResponse !== undefined && h.aiResponse !== null) {
+                        if (
+                          h.aiResponse !== undefined &&
+                          h.aiResponse !== null
+                        ) {
                           newMsgs.push({
                             id: `${h.id}-ai`, // AI消息使用后端id加后缀区分
                             role: 'assistant',
@@ -1570,16 +1659,20 @@ const AskPage = () => {
                       });
                       setMessages(newMsgs);
                       setNewChatTitle(chat.title);
+                      // 切换会话后，右侧直接定位到最后一条问答
+                      requestAnimationFrame(() => {
+                        scrollToBottomImmediate();
+                      });
                     }}
                   >
-                <MessageOutlined
-                  style={{
-                    marginRight: 8,
-                    fontSize: 14,
-                    color: chat.active ? '#1890ff' : '#666',
-                  }}
-                />
-                {chat.title}
+                    <MessageOutlined
+                      style={{
+                        marginRight: 8,
+                        fontSize: 14,
+                        color: chat.active ? '#1890ff' : '#666',
+                      }}
+                    />
+                    {chat.title}
                   </div>
                 ))}
               </div>
@@ -1701,7 +1794,7 @@ const AskPage = () => {
                             </div>
                           ) : (
                             <div className={styles['markdown-content']}>
-                          {msg.content ? (
+                              {msg.content ? (
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                   {msg.content}
                                 </ReactMarkdown>
@@ -1722,7 +1815,9 @@ const AskPage = () => {
                                     className={styles['follow-sep-icon']}
                                     onClick={() => {
                                       if (msg.content) {
-                                        navigator.clipboard.writeText(msg.content);
+                                        navigator.clipboard.writeText(
+                                          msg.content,
+                                        );
                                         message.success('已复制到剪贴板');
                                       }
                                     }}
@@ -1735,7 +1830,9 @@ const AskPage = () => {
                                     className={styles['follow-sep-icon']}
                                     onClick={() => {
                                       // 找到上一条用户消息
-                                      const msgIndex = messages.findIndex((m) => m.id === msg.id);
+                                      const msgIndex = messages.findIndex(
+                                        (m) => m.id === msg.id,
+                                      );
                                       if (msgIndex > 0) {
                                         const prevMsg = messages[msgIndex - 1];
                                         if (prevMsg.role === 'user') {
@@ -1752,7 +1849,10 @@ const AskPage = () => {
                                     className={styles['follow-sep-icon']}
                                     onClick={() => {
                                       if (msg.content) {
-                                        const utterance = new SpeechSynthesisUtterance(msg.content);
+                                        const utterance =
+                                          new SpeechSynthesisUtterance(
+                                            msg.content,
+                                          );
                                         utterance.lang = 'zh-CN';
                                         window.speechSynthesis.speak(utterance);
                                       }
@@ -1768,13 +1868,21 @@ const AskPage = () => {
                                       setMessages((prev) =>
                                         prev.map((m) =>
                                           m.id === msg.id
-                                            ? { ...m, liked: !m.liked, disliked: false }
+                                            ? {
+                                                ...m,
+                                                liked: !m.liked,
+                                                disliked: false,
+                                              }
                                             : m,
                                         ),
                                       );
                                     }}
                                   >
-                                    {msg.liked ? <LikeFilled /> : <LikeOutlined />}
+                                    {msg.liked ? (
+                                      <LikeFilled />
+                                    ) : (
+                                      <LikeOutlined />
+                                    )}
                                   </div>
                                 </Tooltip>
                                 <Tooltip title="不喜欢">
@@ -1784,13 +1892,21 @@ const AskPage = () => {
                                       setMessages((prev) =>
                                         prev.map((m) =>
                                           m.id === msg.id
-                                            ? { ...m, disliked: !m.disliked, liked: false }
+                                            ? {
+                                                ...m,
+                                                disliked: !m.disliked,
+                                                liked: false,
+                                              }
                                             : m,
                                         ),
                                       );
                                     }}
                                   >
-                                    {msg.disliked ? <DislikeFilled /> : <DislikeOutlined />}
+                                    {msg.disliked ? (
+                                      <DislikeFilled />
+                                    ) : (
+                                      <DislikeOutlined />
+                                    )}
                                   </div>
                                 </Tooltip>
                                 <Popconfirm
@@ -1801,15 +1917,21 @@ const AskPage = () => {
                                       // 用户消息和AI消息是同一条数据，id相同
                                       // 判断是AI消息（id以-ai结尾），提取原始id
                                       const msgIdStr = String(msg.id);
-                                      const isAiMessage = msgIdStr.endsWith('-ai');
-                                      const originalId = isAiMessage ? msgIdStr.replace(/-ai$/, '') : msgIdStr;
-                                      
+                                      const isAiMessage =
+                                        msgIdStr.endsWith('-ai');
+                                      const originalId = isAiMessage
+                                        ? msgIdStr.replace(/-ai$/, '')
+                                        : msgIdStr;
+
                                       // 删除后端记录（使用原始id）
-                                      await deleteChatMessage(sessionId, originalId);
+                                      await deleteChatMessage(
+                                        sessionIdRef.current,
+                                        originalId,
+                                      );
                                       message.success('删除成功');
-                                      
+
                                       // 同时删除用户消息和AI消息（它们共享同一个id）
-                                      setMessages((prev) => 
+                                      setMessages((prev) =>
                                         prev.filter((m) => {
                                           // 用户消息id是原始数字，AI消息id是"数字-ai"格式
                                           // 需要提取原始id进行比较
@@ -1823,11 +1945,11 @@ const AskPage = () => {
                                             mOriginalId = mIdStr;
                                           }
                                           // 精确匹配要删除的消息id
-                                          const shouldDelete = 
+                                          const shouldDelete =
                                             mIdStr === msgIdStr || // 当前点击的消息
                                             mOriginalId === originalId; // 同一条数据的消息
                                           return !shouldDelete;
-                                        })
+                                        }),
                                       );
                                     } catch (error) {
                                       message.error('删除失败');
@@ -1845,53 +1967,75 @@ const AskPage = () => {
                                 </Popconfirm>
                               </div>
                               {/* follow-up suggestions (来自后端 followUps 字段) */}
-                              {msg.followUps && Array.isArray(msg.followUps) && msg.followUps.length > 0 && (
-                                <div className={styles['follow-ups']}>
-                                  {msg.followUps.map((f, idx) => (
-                                    <div
-                                      key={idx}
-                                      className={styles['follow-up-item']}
-                                      role="button"
-                                      tabIndex={0}
-                                      onClick={() => {
-                                        // 直接触发问答：将该建议作为用户消息发送
-                                        // handleQuickQuestion 内部会读取 selectedKnowledgeDocIds 与 selectedLocalTempFileIds
-                                        try {
-                                          handleQuickQuestion(f);
-                                        } catch (err) {
-                                          console.warn('触发建议问答失败', err);
-                                        }
-                                      }}
-                                    >
-                                      <span className={styles['follow-up-text']}>{f}</span>
-                                      <RightArrowOutlined className={styles['follow-up-icon']} />
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
+                              {msg.followUps &&
+                                Array.isArray(msg.followUps) &&
+                                msg.followUps.length > 0 && (
+                                  <div className={styles['follow-ups']}>
+                                    {msg.followUps.map((f, idx) => (
+                                      <div
+                                        key={idx}
+                                        className={styles['follow-up-item']}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => {
+                                          // 直接触发问答：将该建议作为用户消息发送
+                                          // handleQuickQuestion 内部会读取 selectedKnowledgeDocIds 与 selectedLocalTempFileIds
+                                          try {
+                                            handleQuickQuestion(f);
+                                          } catch (err) {
+                                            console.warn(
+                                              '触发建议问答失败',
+                                              err,
+                                            );
+                                          }
+                                        }}
+                                      >
+                                        <span
+                                          className={styles['follow-up-text']}
+                                        >
+                                          {f}
+                                        </span>
+                                        <RightArrowOutlined
+                                          className={styles['follow-up-icon']}
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               {/* 历史记录中的推荐问题 (来自 questionList 字段) */}
-                              {msg.questionList && Array.isArray(msg.questionList) && msg.questionList.length > 0 && (
-                                <div className={styles['follow-ups']}>
-                                  {msg.questionList.map((q, idx) => (
-                                    <div
-                                      key={`q-${idx}`}
-                                      className={styles['follow-up-item']}
-                                      role="button"
-                                      tabIndex={0}
-                                      onClick={() => {
-                                        try {
-                                          handleQuickQuestion(q);
-                                        } catch (err) {
-                                          console.warn('触发推荐问题失败', err);
-                                        }
-                                      }}
-                                    >
-                                      <span className={styles['follow-up-text']}>{q}</span>
-                                      <RightArrowOutlined className={styles['follow-up-icon']} />
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
+                              {msg.questionList &&
+                                Array.isArray(msg.questionList) &&
+                                msg.questionList.length > 0 && (
+                                  <div className={styles['follow-ups']}>
+                                    {msg.questionList.map((q, idx) => (
+                                      <div
+                                        key={`q-${idx}`}
+                                        className={styles['follow-up-item']}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => {
+                                          try {
+                                            handleQuickQuestion(q);
+                                          } catch (err) {
+                                            console.warn(
+                                              '触发推荐问题失败',
+                                              err,
+                                            );
+                                          }
+                                        }}
+                                      >
+                                        <span
+                                          className={styles['follow-up-text']}
+                                        >
+                                          {q}
+                                        </span>
+                                        <RightArrowOutlined
+                                          className={styles['follow-up-icon']}
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                             </div>
                           )}
                         </div>
