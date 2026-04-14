@@ -1654,14 +1654,43 @@ const AskPage = () => {
                             role: 'assistant',
                             content: h.aiResponse,
                             timestamp: h.createTime,
+                            // 支持历史记录中的 questionList 作为推荐问题
+                            questionList:
+                              h.questionList && Array.isArray(h.questionList)
+                                ? h.questionList
+                                : null,
                           });
                         }
                       });
+                      // 保存切换前的滚动位置
+                      const prevScrollTop =
+                        chatContainerRef.current?.scrollTop || 0;
+                      const prevScrollHeight =
+                        chatContainerRef.current?.scrollHeight || 0;
+
                       setMessages(newMsgs);
                       setNewChatTitle(chat.title);
-                      // 切换会话后，右侧直接定位到最后一条问答
+
+                      // 使用双重 requestAnimationFrame 确保 DOM 完全渲染后再滚动
                       requestAnimationFrame(() => {
-                        scrollToBottomImmediate();
+                        requestAnimationFrame(() => {
+                          const container = chatContainerRef.current;
+                          if (!container) return;
+
+                          const newScrollHeight = container.scrollHeight;
+                          // 如果滚动高度没变（内容稳定），直接滚动到底部
+                          // 否则继续等待下一帧
+                          if (newScrollHeight === prevScrollHeight) {
+                            container.style.scrollBehavior = 'smooth';
+                            container.scrollTop = container.scrollHeight;
+                          } else {
+                            // 内容高度变化，继续等待下一帧
+                            requestAnimationFrame(() => {
+                              container.style.scrollBehavior = 'smooth';
+                              container.scrollTop = container.scrollHeight;
+                            });
+                          }
+                        });
                       });
                     }}
                   >
