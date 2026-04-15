@@ -133,6 +133,7 @@ const AskPage = () => {
   const currentAiMessageIdRef = useRef(null);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const historyListContainerRef = useRef(null); // 左侧历史列表容器
   const streamControllerRef = useRef(null);
   const accumulatedContentRef = useRef('');
   const inputRef = useRef(null);
@@ -465,32 +466,76 @@ const AskPage = () => {
         currentAiMessageIdRef.current = null;
         currentAiMessageIdRef.currentTempId = null;
 
-        // 刷新历史记录并用真实ID替换临时ID
-        const refreshChatHistory = async () => {
+        // 刷新历史记录并用真实ID替换临时ID（带重试机制）
+        const refreshChatHistory = async (retryCount = 0) => {
           try {
             const res = await getChatHistory();
             if (res && res.data) {
-              const data = res.data.data || res.data;
-              const historyList = data || [];
+              // 解析返回的数据：支持 { data: { list: [...] } } 或直接返回数组
+              const payload = res.data.data || res.data;
+              const historyList = (payload && payload.list) || payload || [];
 
-              // 转换后端数据为前端需要的格式
+              // 使用最新的 sessionId（从 ref 中获取，避免闭包问题）
+              const currentSessionId = sessionIdRef.current;
+
+              // 检查当前会话是否已存在于历史列表中（如果不存在，说明异步保存还未完成，重试）
+              const currentSessionExists = historyList.some(
+                (item) => item.sessionId === currentSessionId,
+              );
+
+              // 如果会话不存在且重试次数未超，则延迟重试
+              if (!currentSessionExists && retryCount < 3) {
+                setTimeout(() => refreshChatHistory(retryCount + 1), 300);
+                return;
+              }
+
+              // 转换后端数据为前端需要的格式（包含 raw 字段供切换会话使用）
               const formattedHistory = historyList.map((item) => ({
                 id: item.sessionId,
-                title: item.userMessage
-                  ? item.userMessage.substring(0, 8)
-                  : '新对话',
-                active: item.sessionId === activeSessionId,
+                title:
+                  item.title ||
+                  (item.chatHistoryList && item.chatHistoryList.length > 0
+                    ? (
+                        item.chatHistoryList[item.chatHistoryList.length - 1]
+                          .userMessage || ''
+                      ).substring(0, 8)
+                    : '新对话'),
+                active: item.sessionId === currentSessionId, // 使用最新的 sessionId
                 sessionId: item.sessionId,
                 userMessage: item.userMessage,
                 aiResponse: item.aiResponse,
                 createTime: item.createTime,
+                // 保存原始数据用于切换会话时加载完整消息
+                raw: item,
               }));
 
               setChatHistory(formattedHistory);
 
+              // 刷新后滚动定位：右侧聊天区域滚动到底部
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  scrollToBottomImmediate();
+                });
+              });
+
+              // 左侧历史列表滚动到激活的会话项
+              requestAnimationFrame(() => {
+                const container = historyListContainerRef.current;
+                if (!container) return;
+                const activeItem = container.querySelector(
+                  `.${styles['active']}`,
+                );
+                if (activeItem) {
+                  activeItem.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                  });
+                }
+              });
+
               // 用真实ID替换临时ID - 找到当前会话的最新消息记录
               const currentSessionHistory = historyList.find(
-                (item) => item.sessionId === activeSessionId,
+                (item) => item.sessionId === currentSessionId,
               );
               if (currentSessionHistory) {
                 // 直接更新消息的ID，不做复杂的去重逻辑
@@ -1295,32 +1340,76 @@ const AskPage = () => {
         currentAiMessageIdRef.current = null;
         currentAiMessageIdRef.currentTempId = null;
 
-        // 消息发送完成后刷新历史记录
-        const refreshChatHistory = async () => {
+        // 消息发送完成后刷新历史记录（带重试机制，确保异步保存完成）
+        const refreshChatHistory = async (retryCount = 0) => {
           try {
             const res = await getChatHistory();
             if (res && res.data) {
-              const data = res.data.data || res.data;
-              const historyList = data || [];
+              // 解析返回的数据：支持 { data: { list: [...] } } 或直接返回数组
+              const payload = res.data.data || res.data;
+              const historyList = (payload && payload.list) || payload || [];
 
-              // 转换后端数据为前端需要的格式
+              // 使用最新的 sessionId（从 ref 中获取，避免闭包问题）
+              const currentSessionId = sessionIdRef.current;
+
+              // 检查当前会话是否已存在于历史列表中（如果不存在，说明异步保存还未完成，重试）
+              const currentSessionExists = historyList.some(
+                (item) => item.sessionId === currentSessionId,
+              );
+
+              // 如果会话不存在且重试次数未超，则延迟重试
+              if (!currentSessionExists && retryCount < 3) {
+                setTimeout(() => refreshChatHistory(retryCount + 1), 300);
+                return;
+              }
+
+              // 转换后端数据为前端需要的格式（包含 raw 字段供切换会话使用）
               const formattedHistory = historyList.map((item) => ({
                 id: item.sessionId,
-                title: item.userMessage
-                  ? item.userMessage.substring(0, 8)
-                  : '新对话',
-                active: item.sessionId === activeSessionId, // 当前会话保持active状态
+                title:
+                  item.title ||
+                  (item.chatHistoryList && item.chatHistoryList.length > 0
+                    ? (
+                        item.chatHistoryList[item.chatHistoryList.length - 1]
+                          .userMessage || ''
+                      ).substring(0, 8)
+                    : '新对话'),
+                active: item.sessionId === currentSessionId, // 使用最新的 sessionId
                 sessionId: item.sessionId,
                 userMessage: item.userMessage,
                 aiResponse: item.aiResponse,
                 createTime: item.createTime,
+                // 保存原始数据用于切换会话时加载完整消息
+                raw: item,
               }));
 
               setChatHistory(formattedHistory);
 
+              // 刷新后滚动定位：右侧聊天区域滚动到底部
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  scrollToBottomImmediate();
+                });
+              });
+
+              // 左侧历史列表滚动到激活的会话项
+              requestAnimationFrame(() => {
+                const container = historyListContainerRef.current;
+                if (!container) return;
+                const activeItem = container.querySelector(
+                  `.${styles['active']}`,
+                );
+                if (activeItem) {
+                  activeItem.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                  });
+                }
+              });
+
               // 用真实ID替换临时ID - 找到当前会话的最新消息记录
               const currentSessionHistory = historyList.find(
-                (item) => item.sessionId === activeSessionId,
+                (item) => item.sessionId === currentSessionId,
               );
               if (currentSessionHistory) {
                 // 直接更新消息的ID，不做复杂的去重逻辑
@@ -1605,7 +1694,10 @@ const AskPage = () => {
             </div>
 
             <div className={styles['chat-history']}>
-              <div className={styles['history-list']}>
+              <div
+                className={styles['history-list']}
+                ref={historyListContainerRef}
+              >
                 {chatHistory.map((chat) => (
                   <div
                     key={chat.id}
@@ -1662,34 +1754,16 @@ const AskPage = () => {
                           });
                         }
                       });
-                      // 保存切换前的滚动位置
-                      const prevScrollTop =
-                        chatContainerRef.current?.scrollTop || 0;
-                      const prevScrollHeight =
-                        chatContainerRef.current?.scrollHeight || 0;
-
                       setMessages(newMsgs);
                       setNewChatTitle(chat.title);
 
-                      // 使用双重 requestAnimationFrame 确保 DOM 完全渲染后再滚动
+                      // 使用双重 requestAnimationFrame 确保 DOM 完全渲染后立即定位到底部（无动画）
                       requestAnimationFrame(() => {
                         requestAnimationFrame(() => {
                           const container = chatContainerRef.current;
                           if (!container) return;
-
-                          const newScrollHeight = container.scrollHeight;
-                          // 如果滚动高度没变（内容稳定），直接滚动到底部
-                          // 否则继续等待下一帧
-                          if (newScrollHeight === prevScrollHeight) {
-                            container.style.scrollBehavior = 'smooth';
-                            container.scrollTop = container.scrollHeight;
-                          } else {
-                            // 内容高度变化，继续等待下一帧
-                            requestAnimationFrame(() => {
-                              container.style.scrollBehavior = 'smooth';
-                              container.scrollTop = container.scrollHeight;
-                            });
-                          }
+                          container.style.scrollBehavior = 'auto';
+                          container.scrollTop = container.scrollHeight;
                         });
                       });
                     }}
