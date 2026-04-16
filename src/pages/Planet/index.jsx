@@ -3,6 +3,7 @@ import { withAuth } from '@/components/Auth';
 import { PageContainer } from '@ant-design/pro-components';
 import {
   Button,
+  Checkbox,
   Empty,
   message,
   Modal,
@@ -63,6 +64,7 @@ const Planet = () => {
   const [tags, setTags] = useState([]);
   const [myCardsModalOpen, setMyCardsModalOpen] = useState(false);
   const [myCards, setMyCards] = useState([]);
+  const [selectedCardIds, setSelectedCardIds] = useState([]);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailData, setDetailData] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -175,6 +177,38 @@ const Planet = () => {
       }
     } catch (e) {
       message.error('删除失败');
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedCardIds.length === 0) {
+      message.warning('请先选择要删除的卡片');
+      return;
+    }
+    try {
+      await Promise.all(selectedCardIds.map((id) => PlanetApi.deleteKnowledgeCard(id)));
+      message.success(`成功删除 ${selectedCardIds.length} 个卡片`);
+      setSelectedCardIds([]);
+      setMyCardsModalOpen(false);
+      fetchCards();
+    } catch (e) {
+      message.error('批量删除失败');
+    }
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedCardIds(myCards.map((card) => card.id));
+    } else {
+      setSelectedCardIds([]);
+    }
+  };
+
+  const handleSelectCard = (cardId, checked) => {
+    if (checked) {
+      setSelectedCardIds([...selectedCardIds, cardId]);
+    } else {
+      setSelectedCardIds(selectedCardIds.filter((id) => id !== cardId));
     }
   };
 
@@ -342,9 +376,9 @@ const Planet = () => {
               placeholder="搜索知识内容..."
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              onPressEnter={handleSearch}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
-            <button className="searchBtn" onClick={handleSearch}>
+            <button type="button" className="searchBtn" onClick={handleSearch}>
               搜索
             </button>
           </div>
@@ -386,7 +420,7 @@ const Planet = () => {
             />
           </div>
 
-          <button className="addBtn" onClick={handleAddCard}>
+          <button type="button" className="addBtn" onClick={handleAddCard}>
             <PlusOutlined />
             创建知识
           </button>
@@ -484,7 +518,7 @@ const Planet = () => {
             </div>
             {formData.tagIds.length === 0 && (
               <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
-                未选择标签将默认归为"其他"类别
+                {'未选择标签将默认归为"其他"类别'}
               </div>
             )}
           </div>
@@ -539,8 +573,36 @@ const Planet = () => {
       <Modal
         title="我的知识卡片"
         open={myCardsModalOpen}
-        onCancel={() => setMyCardsModalOpen(false)}
-        footer={null}
+        onCancel={() => {
+          setMyCardsModalOpen(false);
+          setSelectedCardIds([]);
+        }}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Checkbox
+              indeterminate={selectedCardIds.length > 0 && selectedCardIds.length < myCards.length}
+              checked={myCards.length > 0 && selectedCardIds.length === myCards.length}
+              onChange={(e) => handleSelectAll(e.target.checked)}
+            >
+              全选
+            </Checkbox>
+            <Button
+              danger
+              disabled={selectedCardIds.length === 0}
+              onClick={() => {
+                Modal.confirm({
+                  title: '确认删除',
+                  content: `确定要删除选中的 ${selectedCardIds.length} 个卡片吗？`,
+                  okText: '确认',
+                  cancelText: '取消',
+                  onOk: handleBatchDelete,
+                });
+              }}
+            >
+              批量删除 {selectedCardIds.length > 0 && `(${selectedCardIds.length})`}
+            </Button>
+          </div>
+        }
         width={800}
       >
         {myCards.length === 0 ? (
@@ -561,9 +623,16 @@ const Planet = () => {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
+                    background: selectedCardIds.includes(card.id) ? '#f0f7ff' : '#fff',
+                    transition: 'background 0.2s',
                   }}
                 >
-                  <div>
+                  <Checkbox
+                    checked={selectedCardIds.includes(card.id)}
+                    onChange={(e) => handleSelectCard(card.id, e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div style={{ flex: 1, marginLeft: 12 }}>
                     <div style={{ fontWeight: 500, marginBottom: 4 }}>{card.title}</div>
                     <div style={{ fontSize: 12, color: '#999' }}>
                       {typeInfo.label} | {moment(card.createTime).format('YYYY-MM-DD HH:mm')}

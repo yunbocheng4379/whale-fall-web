@@ -129,6 +129,13 @@ const formalRoutes = [
     access: 'allowAdminAccessRoute',
   },
   {
+    path: 'check',
+    name: '习题检查',
+    icon: 'icon-check',
+    component: '@/pages/Check',
+    access: 'allowAdminAccessRoute',
+  },
+  {
     path: 'oauth-callback',
     component: '@/pages/OAuthCallback',
     layout: false,
