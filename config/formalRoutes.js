@@ -122,6 +122,13 @@ const formalRoutes = [
     access: 'allowAdminAccessRoute',
   },
   {
+    path: 'planet',
+    name: '知识星球',
+    icon: 'icon-planet',
+    component: '@/pages/Planet',
+    access: 'allowAdminAccessRoute',
+  },
+  {
     path: 'oauth-callback',
     component: '@/pages/OAuthCallback',
     layout: false,
